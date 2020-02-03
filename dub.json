@@ -1,0 +1,9 @@
+{
+	"description": "Yet Another Music Macro Language compiler in D",
+	"license": "proprietary",
+	"authors": [
+		"Starg"
+	],
+	"copyright": "Copyright © 2020, Starg",
+	"name": "yammld3"
+}
