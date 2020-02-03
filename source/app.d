@@ -204,7 +204,7 @@ int main(string[] args)
 			}
 			catch (ErrnoException e)
 			{
-				stderr.writeln("fatal error: cannot open output file '", outFilePath, "'");
+				stderr.writefln("fatal error: cannot open output file '%s'", outFilePath);
 				throw new FatalErrorException("command line error");
 			}
 

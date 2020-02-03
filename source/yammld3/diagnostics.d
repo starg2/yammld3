@@ -61,21 +61,21 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     public override void notImplemented(SourceLocation loc, string featureName)
     {
-        writeMessage(loc, "fatal error: support for '", featureName, "' is not implemented yet");
+        writeMessage(loc, "fatal error: support for '%s' is not implemented yet", featureName);
         incrementErrorCount();
         throw new FatalErrorException("not implemented");
     }
 
     public override void cannotOpenFile(string path)
     {
-        _output.writeln("fatal error: cannot open file '", path, "'");
+        _output.writefln("fatal error: cannot open file '%s'", path);
         incrementErrorCount();
         throw new FatalErrorException("cannot open file");
     }
 
     public override void unexpectedCharacter(SourceLocation loc, string context, dchar c)
     {
-        writeMessage(loc, "error: '", context, "': unexpected character '", c, "'");
+        writeMessage(loc, "error: '%s': unexpected character '%c'", context, c);
         incrementErrorCount();
     }
 
@@ -87,22 +87,22 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     public override void expectedAfter(SourceLocation loc, string context, string expected, string after)
     {
-        writeMessage(loc, "error: '", context, "': expected '", expected, "' after '", after, "'");
+        writeMessage(loc, "error: '%s': expected '%s' after '%s'", context, expected, after);
         incrementErrorCount();
     }
 
     public override void noCloseCharacters(SourceLocation loc, SourceLocation openLoc, string openCharacters, string closeCharacters)
     {
-        writeMessage(loc, "error: expected '", closeCharacters, "'");
+        writeMessage(loc, "error: expected '%s'", closeCharacters);
         incrementErrorCount();
 
-        writeMessage(openLoc, "note: no '", closeCharacters, "' found matching '", openCharacters, "'");
+        writeMessage(openLoc, "note: no '%s' found matching '%s'", closeCharacters, openCharacters);
         incrementErrorCount();
     }
 
     public override void overflow(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': overflow error has occurred");
+        writeMessage(loc, "error: '%s': overflow error has occurred", context);
         incrementErrorCount();
     }
 
@@ -114,19 +114,19 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     public override void undefinedBasicCommand(SourceLocation loc, string name)
     {
-        writeMessage(loc, "error: undefined command '", name, "'");
+        writeMessage(loc, "error: undefined command '%s'", name);
         incrementErrorCount();
     }
 
     public override void undefinedExtensionCommand(SourceLocation loc, string name)
     {
-        writeMessage(loc, "error: undefined extension command '%", name, "'");
+        writeMessage(loc, "error: undefined extension command '%%%s'", name);
         incrementErrorCount();
     }
 
     public override void undefinedModifierCommand(SourceLocation loc, string name)
     {
-        writeMessage(loc, "error: undefined modifier command '!", name, "'");
+        writeMessage(loc, "error: undefined modifier command '!%s'", name);
         incrementErrorCount();
     }
 
@@ -138,70 +138,70 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     
     public override void expectedArgumentList(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': expected argument list");
+        writeMessage(loc, "error: '%s': expected argument list", context);
         incrementErrorCount();
     }
 
     public override void wrongNumberOfArguments(SourceLocation loc, string context, size_t expectedCount, size_t actualCount)
     {
-        writeMessage(loc, "error: '", context, "': wrong number of arguments; expected ", expectedCount, ", got ", actualCount);
+        writeMessage(loc, "error: '%s': wrong number of arguments; expected %d, got %d", context, expectedCount, actualCount);
         incrementErrorCount();
     }
 
     public override void wrongNumberOfArguments(SourceLocation loc, string context, size_t minCount, size_t maxCount, size_t actualCount)
     {
         writeMessage(
-            loc, "error: '", context, "': wrong number of arguments; expected ", minCount, "-", maxCount, ", got ", actualCount
+            loc, "error: '%s': wrong number of arguments; expected %d-%d, got %d", context, minCount, maxCount, actualCount
         );
         incrementErrorCount();
     }
     
     public override void unexpectedArgumentKey(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': unexpected argument key");
+        writeMessage(loc, "error: '%s': unexpected argument key", context);
         incrementErrorCount();
     }
 
     public override void cannotCountNoteLikeCommand(SourceLocation loc, SourceLocation requestLoc, string requestContext)
     {
         writeMessage(loc, "error: cannot count note-like commands");
-        writeMessage(requestLoc, "note: note counting requested by '", requestContext, "'");
+        writeMessage(requestLoc, "note: note counting requested by '%s'", requestContext);
         incrementErrorCount();
     }
 
     public override void unexpectedExpressionKind(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': unexpected kind of expression");
+        writeMessage(loc, "error: '%s': unexpected kind of expression", context);
         incrementErrorCount();
     }
 
     public override void expectedArgument(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': expected argument");
+        writeMessage(loc, "error: '%s': expected argument", context);
         incrementErrorCount();
     }
 
     public override void expectedCommandBlock(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': expected command block");
+        writeMessage(loc, "error: '%s': expected command block", context);
         incrementErrorCount();
     }
     
     public override void expectedTrackPropertyCommand(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': expected track property command");
+        writeMessage(loc, "error: '%s': expected track property command", context);
         incrementErrorCount();
     }
 
     public override void unexpectedCommandBlock(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': unexpected command block");
+        writeMessage(loc, "error: '%s': unexpected command block", context);
         incrementErrorCount();
     }
 
     public override void unexpectedSign(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': unexpected sign");
+        writeMessage(loc, "error: '%s': unexpected sign", context);
         incrementErrorCount();
     }
 
@@ -213,50 +213,46 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     public override void invalidChannel(SourceLocation loc, string context, int channel)
     {
-        writeMessage(loc, "error: '", context, "': channel number ", channel, " is out of range");
+        writeMessage(loc, "error: '%s': channel number '%d' is out of range", context, channel);
         incrementErrorCount();
     }
     
     public override void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue)
     {
         writeMessage(
-            loc, "error: '", context, "': value ", actualValue, " is out of range; it must be between ", minValue, " and ", maxValue
+            loc, "error: '%s': value '%d' is out of range; it must be between '%d' and '%d'", context, actualValue, minValue, maxValue
         );
         incrementErrorCount();
     }
 
     public override void undefinedKeySignature(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '", context, "': undefined key signature");
+        writeMessage(loc, "error: '%s': undefined key signature", context);
         incrementErrorCount();
     }
 
     public override void tooManyTracks(string filePath)
     {
-        _output.writeln(
-            filePath, ": fatal error: more than ", (1 << 16) - 1, " tracks defined"
-        );
+        _output.writefln("%s: fatal error: more than %d tracks defined", filePath, (1 << 16) - 1);
         incrementErrorCount();
         throw new FatalErrorException("too many tracks defined");
     }
 
     public override void vlvIsOutOfRange(string filePath)
     {
-        _output.writefln(
-            filePath, ": fatal error: variable length value is out of range"
-        );
+        _output.writefln("%s: fatal error: variable length value is out of range", filePath);
         incrementErrorCount();
         throw new FatalErrorException("variable length value out of range");
     }
 
-    private void writeMessage(T...)(SourceLocation loc, T args)
+    private void writeMessage(T...)(SourceLocation loc, string msg, T args)
     {
         import std.utf : count;
 
         string lineStr = loc.getLine();
         size_t startColumn = lineStr[0..loc.column].count();
-        _output.write(loc.source.path, "(", loc.line, ",", startColumn + 1, "): ");
-        _output.writeln(args);
+        _output.writef("%s(%d,%d): ", loc.source.path, loc.line, startColumn + 1);
+        _output.writefln(msg, args);
 
         if (_printAnnotatedLine)
         {
