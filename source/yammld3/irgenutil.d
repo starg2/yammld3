@@ -8,6 +8,8 @@ import std.variant;
 
 import yammld3.common;
 import yammld3.ir;
+import yammld3.priorspec;
+
 
 package enum TrackPropertyKind
 {
@@ -46,8 +48,6 @@ package float toPercentage(TrackPropertyKind kind, float n)
 
 private struct TrackProperty(T)
 {
-    import yammld3.priorspec : PriorSpec;
-
     public void setBaseValue(T n)
     {
         _baseValue = n;
@@ -262,6 +262,40 @@ private final class TrackBuilder
         }
     }
 
+    public void addPriorSpec(TrackPropertyKind kind, Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec)
+    {
+        final switch (kind)
+        {
+        case TrackPropertyKind.duration:
+            assert(false);
+
+        case TrackPropertyKind.octave:
+            assert(priorSpec.peek!(PriorSpec!int) !is null);
+            _context.octave.addPriorSpec(priorSpec.get!(PriorSpec!int));
+            break;
+
+        case TrackPropertyKind.keyShift:
+            assert(priorSpec.peek!(PriorSpec!int) !is null);
+            _context.keyShift.addPriorSpec(priorSpec.get!(PriorSpec!int));
+            break;
+
+        case TrackPropertyKind.velocity:
+            assert(priorSpec.peek!(PriorSpec!float) !is null);
+            _context.velocity.addPriorSpec(priorSpec.get!(PriorSpec!float));
+            break;
+
+        case TrackPropertyKind.timeShift:
+            assert(priorSpec.peek!(PriorSpec!float) !is null);
+            _context.timeShift.addPriorSpec(priorSpec.get!(PriorSpec!float));
+            break;
+
+        case TrackPropertyKind.gateTime:
+            assert(priorSpec.peek!(PriorSpec!float) !is null);
+            _context.gateTime.addPriorSpec(priorSpec.get!(PriorSpec!float));
+            break;
+        }
+    }
+    
     private void flush()
     {
         if (!_queuedNote.isNull)
@@ -455,6 +489,11 @@ package final class ConductorTrackBuilder
     {
         _context.duration.clearPriorSpecs();
     }
+    
+    public void addDurationPriorSpec(PriorSpec!float priorSpec)
+    {
+        _context.duration.addPriorSpec(priorSpec);
+    }
 
     public Track build()
     {
@@ -570,6 +609,14 @@ package final class MultiTrackBuilder
         }
     }
 
+    public void addPriorSpec(TrackPropertyKind kind, Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec)
+    {
+        foreach (t; _tracks)
+        {
+            t.addPriorSpec(kind, priorSpec);
+        }
+    }
+    
     private CompositionBuilder _composition;
     private TrackBuilder[] _tracks;
 }

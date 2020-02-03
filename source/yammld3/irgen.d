@@ -8,6 +8,7 @@ import yammld3.common;
 import yammld3.eval;
 import ir = yammld3.ir;
 import yammld3.irgenutil;
+import yammld3.priorspec;
 
 private float delegate(float, ast.TimeLiteral) timeEvaluator(ConductorTrackBuilder cdb)
 {
@@ -19,6 +20,7 @@ public final class IRGenerator
     import std.conv : to;
     import std.random : Random;
     import std.typecons : Nullable;
+    import std.variant : Algebraic;
 
     import yammld3.diagnostics : DiagnosticsHandler;
     import yammld3.source : SourceLocation;
@@ -314,8 +316,6 @@ public final class IRGenerator
         ast.Expression arg
     )
     {
-        import std.variant : Algebraic;
-
         if (sign == OptionalSign.none && arg is null)
         {
             _diagnosticsHandler.expectedArgument(loc, "basic command");
@@ -335,8 +335,6 @@ public final class IRGenerator
                 auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
                 value = ie.evaluate(arg);
             }
-
-            tb.setTrackProperty(kind, sign, value);
         }
         else
         {
@@ -350,9 +348,9 @@ public final class IRGenerator
                 auto fe = new NumericExpressionEvaluator!float(_diagnosticsHandler);
                 value = toPercentage(kind, fe.evaluate(arg));
             }
-
-            tb.setTrackProperty(kind, sign, value);
         }
+        
+        tb.setTrackProperty(kind, sign, value);
     }
 
     private void compileExtensionCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
@@ -490,7 +488,7 @@ public final class IRGenerator
             break;
         
         case "const":
-            _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
+            addConstPriorSpec(tb, c);
             break;
         
         case "nrand":
@@ -1091,6 +1089,63 @@ public final class IRGenerator
         }
     }
 
+    private void addConstPriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "const");
+        
+        if (c.arguments is null)
+        {
+            _diagnosticsHandler.expectedArgumentList(c.location, "!" ~ c.name.value);
+            return;
+        }
+        
+        if (c.arguments.items.length != 1)
+        {
+            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "!" ~ c.name.value, 1, c.arguments.items.length);
+            return;
+        }
+        
+        if (c.arguments.items[0].key !is null)
+        {
+            _diagnosticsHandler.unexpectedArgumentKey(c.arguments.items[0].key.location, "!" ~ c.name.value);
+            return;
+        }
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+        
+        if (kind.isNull)
+        {
+            return;
+        }
+        
+        auto cb = tb.compositionBuilder;
+        
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cb.conductorTrackBuilder));
+            float t = de.evaluate(cb.currentTime, c.arguments.items[0].value);
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(new ConstantPriorSpec!float(t));
+        }
+        else
+        {
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+            
+            if (isIntegerProperty(kind.get))
+            {
+                auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
+                priorSpec = cast(PriorSpec!int)new ConstantPriorSpec!int(ie.evaluate(c.arguments.items[0].value));
+            }
+            else
+            {
+                auto fe = new NumericExpressionEvaluator!float(_diagnosticsHandler);
+                priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(fe.evaluate(c.arguments.items[0].value));
+            }
+            
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+    
     private bool verifySingleKeylessArgument(ast.ExtensionCommand c)
     {
         assert(c !is null);
