@@ -1,0 +1,15 @@
+.dub
+.vscode
+docs.json
+__dummy.html
+docs/
+yammld3.so
+yammld3.dylib
+yammld3.dll
+yammld3.a
+yammld3.lib
+yammld3-test-*
+*.exe
+*.o
+*.obj
+*.lst
