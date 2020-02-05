@@ -1,39 +1,39 @@
 
 module yammld3.irgen;
 
-import std.range.primitives;
-
-import ast = yammld3.ast;
-import yammld3.common;
-import yammld3.eval;
-import ir = yammld3.ir;
-import yammld3.irgenutil;
-import yammld3.priorspec;
-
-private float delegate(float, ast.TimeLiteral) timeEvaluator(ConductorTrackBuilder cdb)
-{
-    return (startTime, t) => cdb.toTime(startTime, t.time);
-}
-
 public final class IRGenerator
 {
     import std.conv : to;
     import std.random : Random;
+    import std.range.primitives;
     import std.typecons : Nullable;
     import std.variant : Algebraic;
 
+    import ast = yammld3.ast;
+    import yammld3.common;
     import yammld3.diagnostics : DiagnosticsHandler;
+    import yammld3.eval;
+    import ir = yammld3.ir;
+    import yammld3.irgenutil;
+    import yammld3.priorspec;
     import yammld3.source : SourceLocation;
 
     public this(DiagnosticsHandler handler)
     {
         _diagnosticsHandler = handler;
+        _intEvaluator = new NumericExpressionEvaluator!int(handler);
+        _floatEvaluator = new NumericExpressionEvaluator!float(handler);
     }
 
     public ir.Composition compileModule(ast.Module am)
     {
         assert(am !is null);
         auto cb = new CompositionBuilder(am.name);
+        _durationEvaluator = new DurationExpressionEvaluator(
+            _diagnosticsHandler,
+            (startTime, t) => cb.conductorTrackBuilder.toTime(startTime, t.time)
+        );
+
         auto tb = cb.selectDefaultTrack();
         compileCommands(tb, am.commands);
         return cb.build();
@@ -102,7 +102,7 @@ public final class IRGenerator
         case "f":
         case "g":
             assert(false);
-            
+
         case "h":
             compileControlChangeCommand(tb, ir.ControlChangeCode.hold1, c, true);
             break;
@@ -186,8 +186,7 @@ public final class IRGenerator
         }
         else
         {
-            auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cdb));
-            duration = de.evaluate(curTime, c.duration);
+            duration = _durationEvaluator.evaluate(curTime, c.duration);
         }
 
         ir.NoteInfo noteInfo;
@@ -224,8 +223,7 @@ public final class IRGenerator
         }
         else
         {
-            auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cdb));
-            duration = de.evaluate(curTime, c.argument);
+            duration = _durationEvaluator.evaluate(curTime, c.argument);
         }
 
         ir.Note note;
@@ -248,8 +246,7 @@ public final class IRGenerator
         }
 
         float curTime = cb.currentTime;
-        auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cb.conductorTrackBuilder));
-        float duration = de.evaluate(curTime, c.argument);
+        float duration = _durationEvaluator.evaluate(curTime, c.argument);
 
         if (c.sign == OptionalSign.minus)
         {
@@ -284,8 +281,7 @@ public final class IRGenerator
         }
         else
         {
-            auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cdb));
-            duration = de.evaluate(curTime, c.argument);
+            duration = _durationEvaluator.evaluate(curTime, c.argument);
         }
 
         tb.extendPreviousNote(noteCount, curTime, duration);
@@ -304,8 +300,7 @@ public final class IRGenerator
             return;
         }
 
-        auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cdb));
-        cdb.setDuration(sign, de.evaluate(curTime, arg));
+        cdb.setDuration(sign, _durationEvaluator.evaluate(curTime, arg));
     }
 
     private void setTrackProperty(
@@ -332,8 +327,7 @@ public final class IRGenerator
             }
             else
             {
-                auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
-                value = ie.evaluate(arg);
+                value = _intEvaluator.evaluate(arg);
             }
         }
         else
@@ -345,11 +339,10 @@ public final class IRGenerator
             }
             else
             {
-                auto fe = new NumericExpressionEvaluator!float(_diagnosticsHandler);
-                value = toPercentage(kind, fe.evaluate(arg));
+                value = toPercentage(kind, _floatEvaluator.evaluate(arg));
             }
         }
-        
+
         tb.setTrackProperty(kind, sign, value);
     }
 
@@ -476,45 +469,45 @@ public final class IRGenerator
         // While it is possible to define modifier commands that accept control change commands like `m` and `x`,
         // it may be confusing to do so.
         assert(c !is null);
-        
+
         switch (c.name.value)
         {
         //case "animate":
         //    _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
         //    break;
-        
+
         case "clear":
             clearPriorSpecs(tb, c);
             break;
-        
+
         case "const":
             addConstPriorSpec(tb, c);
             break;
-        
+
         case "nrand":
             _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
             break;
-        
+
         case "on_note":
             _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
             break;
-        
+
         case "on_time":
             _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
             break;
-        
+
         case "on_time_l":
             _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
             break;
-        
+
         case "rand":
             _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
             break;
-        
+
         //case "transition":
         //    _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
         //    break;
-        
+
         default:
             _diagnosticsHandler.undefinedModifierCommand(c.location, c.name.value);
             break;
@@ -529,8 +522,7 @@ public final class IRGenerator
 
         if (c.repeatCount !is null)
         {
-            auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
-            repeatCount = ie.evaluate(c.repeatCount);
+            repeatCount = _intEvaluator.evaluate(c.repeatCount);
 
             if (repeatCount < 0)
             {
@@ -563,8 +555,7 @@ public final class IRGenerator
         }
         else
         {
-            auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cdb));
-            duration = de.evaluate(curTime, c.duration);
+            duration = _durationEvaluator.evaluate(curTime, c.duration);
         }
 
         int noteLikeCommandCount = countNoteLikeCommands(c.command, c.location, "tuplet command");
@@ -610,8 +601,7 @@ public final class IRGenerator
             return;
         }
 
-        auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
-        int ch = ie.evaluate(c.arguments.items[0].value);
+        int ch = _intEvaluator.evaluate(c.arguments.items[0].value);
 
         if (!(0 <= ch && ch < maxChannelCount))
         {
@@ -667,7 +657,7 @@ public final class IRGenerator
 
         tb.setControlChange(cc);
     }
-    
+
     private void compileControlChangeCommand(MultiTrackBuilder tb, ir.ControlChangeCode code, ast.ExtensionCommand c)
     {
         assert(c !is null);
@@ -696,23 +686,23 @@ public final class IRGenerator
 
         tb.setControlChange(cc);
     }
-    
+
     private void compileControlChangeCommand(MultiTrackBuilder tb, ir.ControlChangeCode code, ast.BasicCommand c, bool isBinary)
     {
         assert(c !is null);
-        
+
         if (c.sign != OptionalSign.none)
         {
             _diagnosticsHandler.unexpectedSign(c.location, c.name);
             return;
         }
-        
+
         if (c.argument is null)
         {
             _diagnosticsHandler.expectedArgument(c.location, c.name);
             return;
         }
-        
+
         auto value = evaluateAsByte(c.name, c.argument);
 
         if (value.isNull)
@@ -731,7 +721,7 @@ public final class IRGenerator
     private void resetSystem(CompositionBuilder cb, ir.SystemKind kind, ast.ExtensionCommand c)
     {
         assert(c !is null);
-        
+
         if (c.block !is null)
         {
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
@@ -741,7 +731,7 @@ public final class IRGenerator
         {
             _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 0, c.arguments.items.length);
         }
-        
+
         cb.conductorTrackBuilder.resetSystem(cb.currentTime, kind);
     }
 
@@ -760,8 +750,7 @@ public final class IRGenerator
             return;
         }
 
-        auto fe = new NumericExpressionEvaluator!float(_diagnosticsHandler);
-        float tempo = fe.evaluate(c.arguments.items[0].value);
+        float tempo = _floatEvaluator.evaluate(c.arguments.items[0].value);
 
         // TODO: clamp value
         cb.conductorTrackBuilder.setTempo(cb.currentTime, tempo);
@@ -790,10 +779,9 @@ public final class IRGenerator
             return;
         }
 
-        auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
         Fraction!int m;
-        m.numerator = ie.evaluate(be.left);
-        m.denominator = ie.evaluate(be.right);
+        m.numerator = _intEvaluator.evaluate(be.left);
+        m.denominator = _intEvaluator.evaluate(be.right);
 
         if (m.denominator == 0)
         {
@@ -838,7 +826,7 @@ public final class IRGenerator
 
         cb.conductorTrackBuilder.setKeySig(ks.get);
     }
-    
+
     private void addTextEventToConductorTrack(CompositionBuilder cb, ir.MetaEventKind kind, ast.ExtensionCommand c)
     {
         assert(c !is null);
@@ -958,8 +946,7 @@ public final class IRGenerator
                 }
                 else
                 {
-                    auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cb.conductorTrackBuilder));
-                    cb.currentTime = de.evaluate(0.0f, c.arguments.items[0].value);
+                    cb.currentTime = _durationEvaluator.evaluate(0.0f, c.arguments.items[0].value);
                 }
             }
         }
@@ -996,8 +983,7 @@ public final class IRGenerator
                 }
                 else
                 {
-                    auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cb.conductorTrackBuilder));
-                    startTime = de.evaluate(0.0f, c.arguments.items[0].value);
+                    startTime = _durationEvaluator.evaluate(0.0f, c.arguments.items[0].value);
                 }
             }
         }
@@ -1060,25 +1046,25 @@ public final class IRGenerator
         auto cb = tb.compositionBuilder;
         compileCommands(cb.selectTracks(trackNames[]), c.block.commands);
     }
-    
+
     private void clearPriorSpecs(MultiTrackBuilder tb, ast.ModifierCommand c)
     {
         assert(c !is null);
         assert(c.name.value == "clear");
-        
+
         if (c.arguments !is null && c.arguments.items.length != 0)
         {
             _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "!" ~ c.name.value, 0, c.arguments.items.length);
             return;
         }
-        
+
         auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
-        
+
         if (kind.isNull)
         {
             return;
         }
-        
+
         if (kind.get == TrackPropertyKind.duration)
         {
             tb.compositionBuilder.conductorTrackBuilder.clearDurationPriorSpecs();
@@ -1093,19 +1079,19 @@ public final class IRGenerator
     {
         assert(c !is null);
         assert(c.name.value == "const");
-        
+
         if (c.arguments is null)
         {
             _diagnosticsHandler.expectedArgumentList(c.location, "!" ~ c.name.value);
             return;
         }
-        
+
         if (c.arguments.items.length != 1)
         {
             _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "!" ~ c.name.value, 1, c.arguments.items.length);
             return;
         }
-        
+
         if (c.arguments.items[0].key !is null)
         {
             _diagnosticsHandler.unexpectedArgumentKey(c.arguments.items[0].key.location, "!" ~ c.name.value);
@@ -1113,39 +1099,36 @@ public final class IRGenerator
         }
 
         auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
-        
+
         if (kind.isNull)
         {
             return;
         }
-        
+
         auto cb = tb.compositionBuilder;
-        
+
         if (kind.get == TrackPropertyKind.duration)
         {
-            auto de = new DurationExpressionEvaluator(_diagnosticsHandler, timeEvaluator(cb.conductorTrackBuilder));
-            float t = de.evaluate(cb.currentTime, c.arguments.items[0].value);
+            float t = _durationEvaluator.evaluate(cb.currentTime, c.arguments.items[0].value);
             tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(new ConstantPriorSpec!float(t));
         }
         else
         {
             Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
-            
+
             if (isIntegerProperty(kind.get))
             {
-                auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
-                priorSpec = cast(PriorSpec!int)new ConstantPriorSpec!int(ie.evaluate(c.arguments.items[0].value));
+                priorSpec = cast(PriorSpec!int)new ConstantPriorSpec!int(_intEvaluator.evaluate(c.arguments.items[0].value));
             }
             else
             {
-                auto fe = new NumericExpressionEvaluator!float(_diagnosticsHandler);
-                priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(fe.evaluate(c.arguments.items[0].value));
+                priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(_floatEvaluator.evaluate(c.arguments.items[0].value));
             }
-            
+
             tb.addPriorSpec(kind.get, priorSpec);
         }
     }
-    
+
     private bool verifySingleKeylessArgument(ast.ExtensionCommand c)
     {
         assert(c !is null);
@@ -1175,8 +1158,7 @@ public final class IRGenerator
     {
         assert(expr !is null);
 
-        auto ie = new NumericExpressionEvaluator!int(_diagnosticsHandler);
-        int v = ie.evaluate(expr);
+        int v = _intEvaluator.evaluate(expr);
 
         if (!(0 <= v && v <= 127))
         {
@@ -1214,13 +1196,13 @@ public final class IRGenerator
     private Nullable!TrackPropertyKind trackPropertyKindFromCommand(ast.Command c, string context)
     {
         auto bc = cast(ast.BasicCommand)c;
-        
+
         if (bc is null)
         {
             _diagnosticsHandler.expectedTrackPropertyCommand(c.location, context);
             return typeof(return).init;
         }
-        
+
         switch (bc.name)
         {
         case "l":
@@ -1240,13 +1222,16 @@ public final class IRGenerator
 
         case "v":
             return typeof(return)(TrackPropertyKind.velocity);
-            
+
         default:
             _diagnosticsHandler.expectedTrackPropertyCommand(bc.location, context);
             return typeof(return).init;
         }
     }
-    
+
     private DiagnosticsHandler _diagnosticsHandler;
+    private DurationExpressionEvaluator _durationEvaluator;
+    private NumericExpressionEvaluator!int _intEvaluator;
+    private NumericExpressionEvaluator!float _floatEvaluator;
     private Random _rng;
 }
