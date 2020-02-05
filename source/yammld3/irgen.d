@@ -3,9 +3,9 @@ module yammld3.irgen;
 
 public final class IRGenerator
 {
+    import std.array;
     import std.conv : to;
     import std.random : Random;
-    import std.range.primitives;
     import std.typecons : Nullable;
     import std.variant : Algebraic;
 
@@ -15,6 +15,7 @@ public final class IRGenerator
     import yammld3.eval;
     import ir = yammld3.ir;
     import yammld3.irgenutil;
+    import yammld3.options;
     import yammld3.priorspec;
     import yammld3.source : SourceLocation;
 
@@ -29,9 +30,17 @@ public final class IRGenerator
     {
         assert(am !is null);
         auto cb = new CompositionBuilder(am.name);
+
         _durationEvaluator = new DurationExpressionEvaluator(
             _diagnosticsHandler,
             (startTime, t) => cb.conductorTrackBuilder.toTime(startTime, t.time)
+        );
+
+        _optionProc = new OptionProcessor(
+            _diagnosticsHandler,
+            _durationEvaluator,
+            _intEvaluator,
+            _floatEvaluator
         );
 
         auto tb = cb.selectDefaultTrack();
@@ -596,19 +605,25 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (!verifySingleKeylessArgument(c))
+        OptionValue ch;
+        Option chOpt;
+        chOpt.mandatory = true;
+        chOpt.position = 0;
+        chOpt.valueType = OptionType.integer;
+        chOpt.values = &ch;
+
+        if (!_optionProc.processOptions([chOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
             return;
         }
 
-        int ch = _intEvaluator.evaluate(c.arguments.items[0].value);
-
-        if (!(0 <= ch && ch < maxChannelCount))
+        if (!(0 <= ch.data.get!int && ch.data.get!int < maxChannelCount))
         {
-            _diagnosticsHandler.invalidChannel(c.arguments.items[0].value.location, "%" ~ c.name.value, ch);
+            _diagnosticsHandler.invalidChannel(ch.location, "%" ~ c.name.value, ch.data.get!int);
+            return;
         }
 
-        tb.setChannel(ch);
+        tb.setChannel(ch.data.get!int);
     }
 
     private void compileControlChangeCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
@@ -621,39 +636,31 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (c.arguments is null)
-        {
-            _diagnosticsHandler.expectedArgumentList(c.location, "%" ~ c.name.value);
-            return;
-        }
+        OptionValue code;
+        Option codeOpt;
+        codeOpt.mandatory = true;
+        codeOpt.key = "code";
+        codeOpt.position = 0;
+        codeOpt.valueType = OptionType.int7b;
+        codeOpt.values = &code;
 
-        if (c.arguments.items.length != 2)
-        {
-            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 2, c.arguments.items.length);
-            return;
-        }
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.mandatory = true;
+        valueOpt.key = "value";
+        valueOpt.position = 1;
+        valueOpt.valueType = OptionType.int7b;
+        valueOpt.values = &value;
 
-        foreach (arg; c.arguments.items)
-        {
-            if (arg.key !is null)
-            {
-                _diagnosticsHandler.unexpectedArgumentKey(arg.key.location, "%" ~ c.name.value);
-                return;
-            }
-        }
-
-        auto code = evaluateAsByte("%" ~ c.name.value, c.arguments.items[0].value);
-        auto value = evaluateAsByte("%" ~ c.name.value, c.arguments.items[1].value);
-
-        if (code.isNull || value.isNull)
+        if (!_optionProc.processOptions([codeOpt, valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
             return;
         }
 
         ir.ControlChange cc;
         cc.nominalTime = tb.compositionBuilder.currentTime;
-        cc.code = cast(ir.ControlChangeCode)code.get;
-        cc.value = value.get;
+        cc.code = cast(ir.ControlChangeCode)code.data.get!byte;
+        cc.value = value.data.get!byte;
 
         tb.setControlChange(cc);
     }
@@ -667,14 +674,14 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (!verifySingleKeylessArgument(c))
-        {
-            return;
-        }
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.mandatory = true;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.int7b;
+        valueOpt.values = &value;
 
-        auto value = evaluateAsByte("%" ~ c.name.value, c.arguments.items[0].value);
-
-        if (value.isNull)
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
             return;
         }
@@ -682,7 +689,7 @@ public final class IRGenerator
         ir.ControlChange cc;
         cc.nominalTime = tb.compositionBuilder.currentTime;
         cc.code = code;
-        cc.value = value.get;
+        cc.value = value.data.get!byte;
 
         tb.setControlChange(cc);
     }
@@ -727,9 +734,9 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (c.arguments !is null && c.arguments.items.length > 0)
+        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 0, c.arguments.items.length);
+            return;
         }
 
         cb.conductorTrackBuilder.resetSystem(cb.currentTime, kind);
@@ -745,12 +752,19 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (!verifySingleKeylessArgument(c))
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.mandatory = true;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.floatingPoint;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
             return;
         }
 
-        float tempo = _floatEvaluator.evaluate(c.arguments.items[0].value);
+        float tempo = value.data.get!float;
 
         // TODO: clamp value
         cb.conductorTrackBuilder.setTempo(cb.currentTime, tempo);
@@ -766,8 +780,21 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (!verifySingleKeylessArgument(c))
+        if (c.arguments is null)
         {
+            _diagnosticsHandler.expectedArgumentList(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        if (c.arguments.items.length != 1)
+        {
+            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 1, c.arguments.items.length);
+            return;
+        }
+
+        if (c.arguments.items[0].key !is null)
+        {
+            _diagnosticsHandler.unexpectedArgument(c.arguments.items[0].key.location, "%" ~ c.name.value);
             return;
         }
 
@@ -803,24 +830,23 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (!verifySingleKeylessArgument(c))
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.mandatory = true;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.text;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
             return;
         }
 
-        auto str = cast(ast.StringLiteral)c.arguments.items[0].value;
-
-        if (str is null)
-        {
-            _diagnosticsHandler.unexpectedExpressionKind(c.arguments.items[0].value.location, "%" ~ c.name.value);
-            return;
-        }
-
-        auto ks = makeKeySigEvent(cb.currentTime, str.value);
+        auto ks = makeKeySigEvent(cb.currentTime, value.data.get!string);
 
         if (ks.isNull)
         {
-            _diagnosticsHandler.undefinedKeySignature(str.location, "%" ~ c.name.value);
+            _diagnosticsHandler.undefinedKeySignature(value.location, "%" ~ c.name.value);
             return;
         }
 
@@ -836,23 +862,22 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (!verifySingleKeylessArgument(c))
-        {
-            return;
-        }
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.mandatory = true;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.text;
+        valueOpt.values = &value;
 
-        auto str = cast(ast.StringLiteral)c.arguments.items[0].value;
-
-        if (str is null)
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            _diagnosticsHandler.unexpectedExpressionKind(c.arguments.items[0].value.location, "%" ~ c.name.value);
             return;
         }
 
         ir.TextMetaEvent te;
         te.nominalTime = cb.currentTime;
         te.kind = kind;
-        te.text = str.value;
+        te.text = value.data.get!string;
         cb.conductorTrackBuilder.addTextEvent(te);
     }
 
@@ -866,53 +891,45 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (c.arguments is null)
+        OptionValue prog;
+        Option progOpt;
+        progOpt.mandatory = true;
+        progOpt.key = "program";
+        progOpt.position = 0;
+        progOpt.valueType = OptionType.int7b;
+        progOpt.values = &prog;
+
+        OptionValue bm;
+        Option bmOpt;
+        bmOpt.key = "bank_msb";
+        bmOpt.position = 1;
+        bmOpt.valueType = OptionType.int7b;
+        bmOpt.values = &bm;
+
+        OptionValue bl;
+        Option blOpt;
+        blOpt.key = "bank_lsb";
+        blOpt.position = 2;
+        blOpt.valueType = OptionType.int7b;
+        blOpt.values = &bl;
+
+        if (!_optionProc.processOptions([progOpt, bmOpt, blOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            _diagnosticsHandler.expectedArgumentList(c.location, "%" ~ c.name.value);
             return;
         }
 
         ir.ProgramChange pc;
         pc.nominalTime = tb.compositionBuilder.currentTime;
+        pc.program = prog.data.get!byte;
 
-        foreach (arg; c.arguments.items)
+        if (bm.data.hasValue)
         {
-            if (arg.key is null)
-            {
-                auto prog = evaluateAsByte("%" ~ c.name.value, arg.value);
+            pc.bankMSB = bm.data.get!byte;
+        }
 
-                if (!prog.isNull)
-                {
-                    pc.program = prog.get;
-                }
-            }
-            else
-            {
-                auto ident = cast(ast.Identifier)arg.key;
-
-                if (ident.value == "bank_lsb")
-                {
-                    auto lsb = evaluateAsByte("%" ~ c.name.value, arg.value);
-
-                    if (!lsb.isNull)
-                    {
-                        pc.bankLSB = lsb.get;
-                    }
-                }
-                else if (ident.value == "bank_msb")
-                {
-                    auto msb = evaluateAsByte("%" ~ c.name.value, arg.value);
-
-                    if (!msb.isNull)
-                    {
-                        pc.bankMSB = msb.get;
-                    }
-                }
-                else
-                {
-                    _diagnosticsHandler.unexpectedArgumentKey(arg.key.location, "%" ~ c.name.value);
-                }
-            }
+        if (bl.data.hasValue)
+        {
+            pc.bankLSB = bl.data.get!byte;
         }
 
         tb.setProgram(pc);
@@ -932,23 +949,21 @@ public final class IRGenerator
         auto cb = tb.compositionBuilder;
         float prevTime = cb.currentTime;
 
-        if (c.arguments !is null)
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.key = "time";
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.duration;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            if (c.arguments.items.length > 1)
-            {
-                _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 0, 1, c.arguments.items.length);
-            }
-            else if (c.arguments.items.length == 1)
-            {
-                if (c.arguments.items[0].key !is null)
-                {
-                    _diagnosticsHandler.unexpectedArgumentKey(c.arguments.items[0].key.location, "%" ~ c.name.value);
-                }
-                else
-                {
-                    cb.currentTime = _durationEvaluator.evaluate(0.0f, c.arguments.items[0].value);
-                }
-            }
+            return;
+        }
+
+        if (value.data.hasValue)
+        {
+            cb.currentTime = value.data.get!float;
         }
 
         compileCommands(tb, c.block.commands);
@@ -969,23 +984,21 @@ public final class IRGenerator
         auto cb = tb.compositionBuilder;
         float startTime = cb.currentTime;
 
-        if (c.arguments !is null)
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.key = "time";
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.duration;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            if (c.arguments.items.length > 1)
-            {
-                _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 0, 1, c.arguments.items.length);
-            }
-            else if (c.arguments.items.length == 1)
-            {
-                if (c.arguments.items[0].key !is null)
-                {
-                    _diagnosticsHandler.unexpectedArgumentKey(c.arguments.items[0].key.location, "%" ~ c.name.value);
-                }
-                else
-                {
-                    startTime = _durationEvaluator.evaluate(0.0f, c.arguments.items[0].value);
-                }
-            }
+            return;
+        }
+
+        if (value.data.hasValue)
+        {
+            startTime = value.data.get!float;
         }
 
         float endTime = startTime;
@@ -1004,8 +1017,7 @@ public final class IRGenerator
 
     private void compileTrackCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
-        import std.array : appender;
-
+        import std.algorithm.iteration : map;
         assert(c !is null);
         assert(c.name.value == "track");
 
@@ -1015,36 +1027,19 @@ public final class IRGenerator
             return;
         }
 
-        if (c.arguments is null)
+        OptionValue[] tracks;
+        Option trackOpt;
+        trackOpt.multi = true;
+        trackOpt.position = 0;
+        trackOpt.valueType = OptionType.identifier;
+        trackOpt.values = appender(&tracks);
+
+        if (!_optionProc.processOptions([trackOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            _diagnosticsHandler.expectedArgumentList(c.location, "%" ~ c.name.value);
+            return;
         }
 
-        auto trackNames = appender!(string[]);
-
-        foreach (arg; c.arguments.items)
-        {
-            if (arg.key !is null)
-            {
-                _diagnosticsHandler.unexpectedArgumentKey(arg.key.location, "%" ~ c.name.value);
-            }
-            else
-            {
-                auto name = cast(ast.Identifier)arg.value;
-
-                if (name is null)
-                {
-                    _diagnosticsHandler.unexpectedExpressionKind(arg.value.location, "%" ~ c.name.value);
-                }
-                else
-                {
-                    trackNames.put(name.value);
-                }
-            }
-        }
-
-        auto cb = tb.compositionBuilder;
-        compileCommands(cb.selectTracks(trackNames[]), c.block.commands);
+        compileCommands(tb.compositionBuilder.selectTracks(tracks.map!(x => x.data.get!string).array), c.block.commands);
     }
 
     private void clearPriorSpecs(MultiTrackBuilder tb, ast.ModifierCommand c)
@@ -1052,9 +1047,8 @@ public final class IRGenerator
         assert(c !is null);
         assert(c.name.value == "clear");
 
-        if (c.arguments !is null && c.arguments.items.length != 0)
+        if (!_optionProc.processOptions([], c.arguments, "!" ~ c.name.value, c.location, 0.0f))
         {
-            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "!" ~ c.name.value, 0, c.arguments.items.length);
             return;
         }
 
@@ -1086,18 +1080,6 @@ public final class IRGenerator
             return;
         }
 
-        if (c.arguments.items.length != 1)
-        {
-            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "!" ~ c.name.value, 1, c.arguments.items.length);
-            return;
-        }
-
-        if (c.arguments.items[0].key !is null)
-        {
-            _diagnosticsHandler.unexpectedArgumentKey(c.arguments.items[0].key.location, "!" ~ c.name.value);
-            return;
-        }
-
         auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
 
         if (kind.isNull)
@@ -1107,9 +1089,20 @@ public final class IRGenerator
 
         auto cb = tb.compositionBuilder;
 
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.position = 0;
+        valueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
         if (kind.get == TrackPropertyKind.duration)
         {
-            float t = _durationEvaluator.evaluate(cb.currentTime, c.arguments.items[0].value);
+            float t = value.data.get!float;
             tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(new ConstantPriorSpec!float(t));
         }
         else
@@ -1118,40 +1111,15 @@ public final class IRGenerator
 
             if (isIntegerProperty(kind.get))
             {
-                priorSpec = cast(PriorSpec!int)new ConstantPriorSpec!int(_intEvaluator.evaluate(c.arguments.items[0].value));
+                priorSpec = cast(PriorSpec!int)new ConstantPriorSpec!int(value.data.get!int);
             }
             else
             {
-                priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(_floatEvaluator.evaluate(c.arguments.items[0].value));
+                priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(value.data.get!float);
             }
 
             tb.addPriorSpec(kind.get, priorSpec);
         }
-    }
-
-    private bool verifySingleKeylessArgument(ast.ExtensionCommand c)
-    {
-        assert(c !is null);
-
-        if (c.arguments is null)
-        {
-            _diagnosticsHandler.expectedArgumentList(c.location, "%" ~ c.name.value);
-            return false;
-        }
-
-        if (c.arguments.items.length != 1)
-        {
-            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 1, c.arguments.items.length);
-            return false;
-        }
-
-        if (c.arguments.items[0].key !is null)
-        {
-            _diagnosticsHandler.unexpectedArgumentKey(c.arguments.items[0].key.location, "%" ~ c.name.value);
-            return false;
-        }
-
-        return true;
     }
 
     private Nullable!byte evaluateAsByte(string context, ast.Expression expr)
@@ -1229,9 +1197,30 @@ public final class IRGenerator
         }
     }
 
+    private OptionType optionTypeFromTrackPropertyKind(TrackPropertyKind kind)
+    {
+        final switch (kind)
+        {
+        case TrackPropertyKind.duration:
+        case TrackPropertyKind.timeShift:
+            return OptionType.duration;
+
+        case TrackPropertyKind.octave:
+        case TrackPropertyKind.keyShift:
+            return OptionType.integer;
+
+        case TrackPropertyKind.velocity:
+            return OptionType.floatRatio127;
+
+        case TrackPropertyKind.gateTime:
+            return OptionType.floatRatio100;
+        }
+    }
+
     private DiagnosticsHandler _diagnosticsHandler;
     private DurationExpressionEvaluator _durationEvaluator;
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
+    private OptionProcessor _optionProc;
     private Random _rng;
 }

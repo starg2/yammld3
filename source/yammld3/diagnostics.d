@@ -25,16 +25,20 @@ public interface DiagnosticsHandler
     void expectedArgumentList(SourceLocation loc, string context);
     void wrongNumberOfArguments(SourceLocation loc, string context, size_t expectedCount, size_t actualCount);
     void wrongNumberOfArguments(SourceLocation loc, string context, size_t minCount, size_t maxCount, size_t actualCount);
-    void unexpectedArgumentKey(SourceLocation loc, string context);
+    void duplicatedOption(SourceLocation loc, string context);
+    void unexpectedArgument(SourceLocation loc, string context);
+    void unspecifiedOption(SourceLocation loc, string context);
     void cannotCountNoteLikeCommand(SourceLocation loc, SourceLocation requestLoc, string requestContext);
     void unexpectedExpressionKind(SourceLocation loc, string context);
+    void expectedIdentifier(SourceLocation loc, string context);
+    void expectedStringLiteral(SourceLocation loc, string context);
     void expectedArgument(SourceLocation loc, string context);
     void expectedCommandBlock(SourceLocation loc, string context);
     void expectedTrackPropertyCommand(SourceLocation loc, string context);
     void unexpectedCommandBlock(SourceLocation loc, string context);
     void unexpectedSign(SourceLocation loc, string context);
     void divideBy0(SourceLocation loc);
-    
+
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
@@ -135,7 +139,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(loc, "error: repeat count may not be negative");
         incrementErrorCount();
     }
-    
+
     public override void expectedArgumentList(SourceLocation loc, string context)
     {
         writeMessage(loc, "error: '%s': expected argument list", context);
@@ -155,10 +159,22 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         );
         incrementErrorCount();
     }
-    
-    public override void unexpectedArgumentKey(SourceLocation loc, string context)
+
+    public override void duplicatedOption(SourceLocation loc, string context)
     {
-        writeMessage(loc, "error: '%s': unexpected argument key", context);
+        writeMessage(loc, "error: '%s': duplicated option", context);
+        incrementErrorCount();
+    }
+
+    public override void unexpectedArgument(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': unexpected argument", context);
+        incrementErrorCount();
+    }
+
+    public override void unspecifiedOption(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': not all options were specified", context);
         incrementErrorCount();
     }
 
@@ -175,6 +191,18 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
+    public override void expectedIdentifier(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': expected identifier", context);
+        incrementErrorCount();
+    }
+
+    public override void expectedStringLiteral(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': expected string literal", context);
+        incrementErrorCount();
+    }
+
     public override void expectedArgument(SourceLocation loc, string context)
     {
         writeMessage(loc, "error: '%s': expected argument", context);
@@ -186,7 +214,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(loc, "error: '%s': expected command block", context);
         incrementErrorCount();
     }
-    
+
     public override void expectedTrackPropertyCommand(SourceLocation loc, string context)
     {
         writeMessage(loc, "error: '%s': expected track property command", context);
@@ -216,7 +244,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(loc, "error: '%s': channel number '%d' is out of range", context, channel);
         incrementErrorCount();
     }
-    
+
     public override void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue)
     {
         writeMessage(

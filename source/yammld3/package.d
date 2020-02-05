@@ -13,6 +13,7 @@ public import yammld3.irprinter;
 public import yammld3.midievent;
 public import yammld3.midigen;
 public import yammld3.midiwriter;
+// public import yammld3.options;
 public import yammld3.parser;
 // public import yammld3.priorspec;
 // public import yammld3.scanner;

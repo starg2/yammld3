@@ -81,7 +81,7 @@ private struct TrackProperty(T)
     {
         _priorSpecs ~= ps;
     }
-    
+
     public void clearPriorSpecs()
     {
         _priorSpecs = null;
@@ -232,7 +232,7 @@ private final class TrackBuilder
             break;
         }
     }
-    
+
     public void clearPriorSpecs(TrackPropertyKind kind)
     {
         final switch (kind)
@@ -295,7 +295,7 @@ private final class TrackBuilder
             break;
         }
     }
-    
+
     private void flush()
     {
         if (!_queuedNote.isNull)
@@ -489,7 +489,7 @@ package final class ConductorTrackBuilder
     {
         _context.duration.clearPriorSpecs();
     }
-    
+
     public void addDurationPriorSpec(PriorSpec!float priorSpec)
     {
         _context.duration.addPriorSpec(priorSpec);
@@ -616,7 +616,7 @@ package final class MultiTrackBuilder
             t.addPriorSpec(kind, priorSpec);
         }
     }
-    
+
     private CompositionBuilder _composition;
     private TrackBuilder[] _tracks;
 }
