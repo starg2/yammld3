@@ -120,7 +120,7 @@ private final class TrackBuilder
         _name = name;
         _context.octave.setBaseValue(5);
         _context.velocity.setBaseValue(0.7f);
-        _context.gateTime.setBaseValue(0.7f);
+        _context.gateTime.setBaseValue(0.8f);
     }
 
     public @property string name()
