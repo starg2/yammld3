@@ -33,11 +33,14 @@ public interface DiagnosticsHandler
     void expectedIdentifier(SourceLocation loc, string context);
     void expectedStringLiteral(SourceLocation loc, string context);
     void expectedArgument(SourceLocation loc, string context);
+    void expectedArgumentKey(SourceLocation loc, string context);
     void expectedCommandBlock(SourceLocation loc, string context);
     void expectedTrackPropertyCommand(SourceLocation loc, string context);
     void unexpectedCommandBlock(SourceLocation loc, string context);
     void unexpectedSign(SourceLocation loc, string context);
     void divideBy0(SourceLocation loc);
+    void maxIsLessThanMin(SourceLocation minLoc, SourceLocation maxLoc, string context);
+    void negativeStdDev(SourceLocation loc, string context);
 
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
@@ -209,6 +212,12 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
+    public override void expectedArgumentKey(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': expected argument key", context);
+        incrementErrorCount();
+    }
+
     public override void expectedCommandBlock(SourceLocation loc, string context)
     {
         writeMessage(loc, "error: '%s': expected command block", context);
@@ -236,6 +245,19 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void divideBy0(SourceLocation loc)
     {
         writeMessage(loc, "error: attempt to divide expression by 0");
+        incrementErrorCount();
+    }
+
+    public override void maxIsLessThanMin(SourceLocation minLoc, SourceLocation maxLoc, string context)
+    {
+        writeMessage(maxLoc, "error: maximun value must be larger than or equal to minimum value");
+        writeMessage(minLoc, "note: minimum value was defined here");
+        incrementErrorCount();
+    }
+
+    public override void negativeStdDev(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': standard deviation cannot be negative", context);
         incrementErrorCount();
     }
 

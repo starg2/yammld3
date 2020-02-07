@@ -494,23 +494,23 @@ public final class IRGenerator
             break;
 
         case "nrand":
-            _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
+            addNormalRandomPriorSpec(tb, c);
             break;
 
         case "on_note":
-            _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
+            addOnNotePriorSpec(tb, c);
             break;
 
         case "on_time":
-            _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
+            addOnTimePriorSpec(tb, c, false);
             break;
 
         case "on_time_l":
-            _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
+            addOnTimePriorSpec(tb, c, true);
             break;
 
         case "rand":
-            _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
+            addUniformRandomPriorSpec(tb, c);
             break;
 
         //case "transition":
@@ -607,7 +607,6 @@ public final class IRGenerator
 
         OptionValue ch;
         Option chOpt;
-        chOpt.mandatory = true;
         chOpt.position = 0;
         chOpt.valueType = OptionType.integer;
         chOpt.values = &ch;
@@ -638,7 +637,6 @@ public final class IRGenerator
 
         OptionValue code;
         Option codeOpt;
-        codeOpt.mandatory = true;
         codeOpt.key = "code";
         codeOpt.position = 0;
         codeOpt.valueType = OptionType.int7b;
@@ -646,7 +644,6 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
-        valueOpt.mandatory = true;
         valueOpt.key = "value";
         valueOpt.position = 1;
         valueOpt.valueType = OptionType.int7b;
@@ -676,7 +673,6 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
-        valueOpt.mandatory = true;
         valueOpt.position = 0;
         valueOpt.valueType = OptionType.int7b;
         valueOpt.values = &value;
@@ -754,7 +750,6 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
-        valueOpt.mandatory = true;
         valueOpt.position = 0;
         valueOpt.valueType = OptionType.floatingPoint;
         valueOpt.values = &value;
@@ -832,7 +827,6 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
-        valueOpt.mandatory = true;
         valueOpt.position = 0;
         valueOpt.valueType = OptionType.text;
         valueOpt.values = &value;
@@ -864,7 +858,6 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
-        valueOpt.mandatory = true;
         valueOpt.position = 0;
         valueOpt.valueType = OptionType.text;
         valueOpt.values = &value;
@@ -893,7 +886,6 @@ public final class IRGenerator
 
         OptionValue prog;
         Option progOpt;
-        progOpt.mandatory = true;
         progOpt.key = "program";
         progOpt.position = 0;
         progOpt.valueType = OptionType.int7b;
@@ -901,6 +893,7 @@ public final class IRGenerator
 
         OptionValue bm;
         Option bmOpt;
+        bmOpt.optional = true;
         bmOpt.key = "bank_msb";
         bmOpt.position = 1;
         bmOpt.valueType = OptionType.int7b;
@@ -908,6 +901,7 @@ public final class IRGenerator
 
         OptionValue bl;
         Option blOpt;
+        blOpt.optional = true;
         blOpt.key = "bank_lsb";
         blOpt.position = 2;
         blOpt.valueType = OptionType.int7b;
@@ -951,6 +945,7 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
+        valueOpt.optional = true;
         valueOpt.key = "time";
         valueOpt.position = 0;
         valueOpt.valueType = OptionType.duration;
@@ -986,6 +981,7 @@ public final class IRGenerator
 
         OptionValue value;
         Option valueOpt;
+        valueOpt.optional = true;
         valueOpt.key = "time";
         valueOpt.position = 0;
         valueOpt.valueType = OptionType.duration;
@@ -1059,6 +1055,8 @@ public final class IRGenerator
             return;
         }
 
+        compileBasicCommandIfItHasArgument(tb, c);
+
         if (kind.get == TrackPropertyKind.duration)
         {
             tb.compositionBuilder.conductorTrackBuilder.clearDurationPriorSpecs();
@@ -1074,12 +1072,6 @@ public final class IRGenerator
         assert(c !is null);
         assert(c.name.value == "const");
 
-        if (c.arguments is null)
-        {
-            _diagnosticsHandler.expectedArgumentList(c.location, "!" ~ c.name.value);
-            return;
-        }
-
         auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
 
         if (kind.isNull)
@@ -1087,7 +1079,7 @@ public final class IRGenerator
             return;
         }
 
-        auto cb = tb.compositionBuilder;
+        compileBasicCommandIfItHasArgument(tb, c);
 
         OptionValue value;
         Option valueOpt;
@@ -1095,7 +1087,7 @@ public final class IRGenerator
         valueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
         valueOpt.values = &value;
 
-        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, 0.0f))
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
         {
             return;
         }
@@ -1116,6 +1108,280 @@ public final class IRGenerator
             else
             {
                 priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(value.data.get!float);
+            }
+
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+
+    private void addUniformRandomPriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "rand");
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+
+        if (kind.isNull)
+        {
+            return;
+        }
+
+        compileBasicCommandIfItHasArgument(tb, c);
+
+        OptionValue minValue;
+        Option minValueOpt;
+        minValueOpt.key = "min";
+        minValueOpt.position = 0;
+        minValueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        minValueOpt.values = &minValue;
+
+        OptionValue maxValue;
+        Option maxValueOpt;
+        maxValueOpt.key = "max";
+        maxValueOpt.position = 1;
+        maxValueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        maxValueOpt.values = &maxValue;
+
+        if (!_optionProc.processOptions([minValueOpt, maxValueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        {
+            return;
+        }
+
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            if (maxValue.data.get!float < minValue.data.get!float)
+            {
+                _diagnosticsHandler.maxIsLessThanMin(minValue.location, maxValue.location, "!" ~ c.name.value);
+                return;
+            }
+
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
+                new UniformRandomPriorSpec!(typeof(_rng), float)(&_rng, minValue.data.get!float, maxValue.data.get!float)
+            );
+        }
+        else
+        {
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+
+            if (isIntegerProperty(kind.get))
+            {
+                if (maxValue.data.get!int < minValue.data.get!int)
+                {
+                    _diagnosticsHandler.maxIsLessThanMin(minValue.location, maxValue.location, "!" ~ c.name.value);
+                    return;
+                }
+
+                priorSpec = cast(PriorSpec!int)new UniformRandomPriorSpec!(typeof(_rng), int)(
+                    &_rng, minValue.data.get!int, maxValue.data.get!int
+                );
+            }
+            else
+            {
+                if (maxValue.data.get!float < minValue.data.get!float)
+                {
+                    _diagnosticsHandler.maxIsLessThanMin(minValue.location, maxValue.location, "!" ~ c.name.value);
+                    return;
+                }
+
+                priorSpec = cast(PriorSpec!float)new UniformRandomPriorSpec!(typeof(_rng), float)(
+                    &_rng, minValue.data.get!float, maxValue.data.get!float
+                );
+            }
+
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+
+    private void addNormalRandomPriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "nrand");
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+
+        if (kind.isNull)
+        {
+            return;
+        }
+
+        compileBasicCommandIfItHasArgument(tb, c);
+
+        auto type = optionTypeFromTrackPropertyKind(kind.get);
+
+        OptionValue meanValue;
+        Option meanValueOpt;
+        meanValueOpt.key = "mean";
+        meanValueOpt.position = 0;
+        meanValueOpt.valueType = type;
+        meanValueOpt.values = &meanValue;
+
+        OptionValue sdValue;
+        Option sdValueOpt;
+        sdValueOpt.key = "stddev";
+        sdValueOpt.position = 1;
+
+        if (type == OptionType.integer)
+        {
+            sdValueOpt.valueType = OptionType.floatingPoint;
+        }
+        else
+        {
+            sdValueOpt.valueType = type;
+        }
+
+        sdValueOpt.values = &sdValue;
+
+        if (!_optionProc.processOptions([meanValueOpt, sdValueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        {
+            return;
+        }
+
+        if (sdValue.data.get!float < 0.0f)
+        {
+            _diagnosticsHandler.negativeStdDev(sdValue.location, "!" ~ c.name.value);
+            return;
+        }
+
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
+                new NormalRandomPriorSpec!(typeof(_rng), float)(&_rng, meanValue.data.get!float, sdValue.data.get!float)
+            );
+        }
+        else
+        {
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+
+            if (isIntegerProperty(kind.get))
+            {
+                priorSpec = cast(PriorSpec!int)new NormalRandomPriorSpec!(typeof(_rng), int)(
+                    &_rng, meanValue.data.get!int, sdValue.data.get!float
+                );
+            }
+            else
+            {
+                priorSpec = cast(PriorSpec!float)new NormalRandomPriorSpec!(typeof(_rng), float)(
+                    &_rng, meanValue.data.get!float, sdValue.data.get!float
+                );
+            }
+
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+
+    private void addOnNotePriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        import std.algorithm.iteration : map;
+        import std.range : enumerate;
+        import std.typecons : tuple;
+
+        assert(c !is null);
+        assert(c.name.value == "on_note");
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+
+        if (kind.isNull)
+        {
+            return;
+        }
+
+        compileBasicCommandIfItHasArgument(tb, c);
+
+        OptionValue[] values;
+        Option valueOpt;
+        valueOpt.multi = true;
+        valueOpt.position = 0;
+        valueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        valueOpt.values = appender(&values);
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        {
+            return;
+        }
+
+        alias getValues(T) = () => values.enumerate.map!(x => tuple(x.index.to!int, x.value.data.get!T)).array;
+
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
+                new OnNotePriorSpec!float(tb.compositionBuilder.currentNoteCount, getValues!float())
+            );
+        }
+        else
+        {
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+
+            if (isIntegerProperty(kind.get))
+            {
+                priorSpec = cast(PriorSpec!int)new OnNotePriorSpec!int(
+                    tb.compositionBuilder.currentNoteCount, getValues!int()
+                );
+            }
+            else
+            {
+                priorSpec = cast(PriorSpec!float)new OnNotePriorSpec!float(
+                    tb.compositionBuilder.currentNoteCount, getValues!float()
+                );
+            }
+
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+
+    private void addOnTimePriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c, bool linearInterpolation)
+    {
+        import std.algorithm.iteration : map;
+        import std.range : slide;
+        import std.typecons : No, tuple;
+
+        assert(c !is null);
+        assert(c.name.value == "on_time" || c.name.value == "on_time_l");
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+
+        if (kind.isNull)
+        {
+            return;
+        }
+
+        compileBasicCommandIfItHasArgument(tb, c);
+
+        OptionValue[] values;
+        Option valueOpt;
+        valueOpt.multi = true;
+        valueOpt.position = 0;
+        valueOpt.key = OptionType.duration;
+        valueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        valueOpt.values = appender(&values);
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        {
+            return;
+        }
+
+        alias getValues(T) = () => values.slide!(No.withPartial)(2, 2).map!(x => tuple(x[0].data.get!float, x[1].data.get!T)).array;
+
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
+                new OnTimePriorSpec!float(tb.compositionBuilder.currentNoteCount, getValues!float(), linearInterpolation)
+            );
+        }
+        else
+        {
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+
+            if (isIntegerProperty(kind.get))
+            {
+                priorSpec = cast(PriorSpec!int)new OnTimePriorSpec!int(
+                    tb.compositionBuilder.currentNoteCount, getValues!int(), linearInterpolation
+                );
+            }
+            else
+            {
+                priorSpec = cast(PriorSpec!float)new OnTimePriorSpec!float(
+                    tb.compositionBuilder.currentNoteCount, getValues!float(), linearInterpolation
+                );
             }
 
             tb.addPriorSpec(kind.get, priorSpec);
@@ -1194,6 +1460,17 @@ public final class IRGenerator
         default:
             _diagnosticsHandler.expectedTrackPropertyCommand(bc.location, context);
             return typeof(return).init;
+        }
+    }
+
+    private void compileBasicCommandIfItHasArgument(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        assert(c !is null);
+        auto bc = cast(ast.BasicCommand)c.command;
+
+        if (bc !is null && bc.argument !is null)
+        {
+            compileBasicCommand(tb, bc);
         }
     }
 

@@ -30,7 +30,7 @@ package struct OptionValue
 
 package struct Option
 {
-    bool mandatory;
+    bool optional;
     bool multi;
 
     Algebraic!(string, OptionType) key;
@@ -98,9 +98,10 @@ package final class OptionProcessor
                 pOption.actualCount++;
 
                 SourceLocation keyLoc = arg.key !is null ? arg.key.location : arg.location;
+
                 if (pOption.key.peek!OptionType !is null)
                 {
-                    auto keyVal = evaluateAs(pOption.key.get!OptionType, arg.key, context, keyLoc, startTime);
+                    auto keyVal = evaluateAs(pOption.key.get!OptionType, arg.key, context, keyLoc, startTime, true);
 
                     if (keyVal.isNull)
                     {
@@ -115,7 +116,7 @@ package final class OptionProcessor
                 }
 
                 assert(arg.value !is null);
-                auto val = evaluateAs(pOption.valueType, arg.value, context, arg.value.location, startTime);
+                auto val = evaluateAs(pOption.valueType, arg.value, context, arg.value.location, startTime, false);
 
                 if (val.isNull)
                 {
@@ -139,7 +140,7 @@ package final class OptionProcessor
 
         foreach (ref opt; options)
         {
-            if (opt.mandatory && opt.actualCount == 0)
+            if (!opt.optional && opt.actualCount == 0)
             {
                 err = true;
 
@@ -252,14 +253,23 @@ package final class OptionProcessor
         Expression expr,
         string context,
         SourceLocation loc,
-        float startTime
+        float startTime,
+        bool isKey
     )
     {
         import std.conv : to;
 
         if (expr is null)
         {
-            _diagnosticsHandler.expectedArgument(loc, context);
+            if (isKey)
+            {
+                _diagnosticsHandler.expectedArgumentKey(loc, context);
+            }
+            else
+            {
+                _diagnosticsHandler.expectedArgument(loc, context);
+            }
+
             return typeof(return).init;
         }
 
