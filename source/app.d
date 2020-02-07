@@ -4,6 +4,14 @@ import std.stdio;
 
 import yammld3;
 
+private class CommandLineErrorException : Exception
+{
+    public this(string msg = "command line error", string file = __FILE__, size_t line = __LINE__) @nogc @safe pure nothrow
+    {
+        super(msg, file, line);
+    }
+}
+
 private enum OperationMode
 {
 	compile,
@@ -66,7 +74,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 			if (!cmdInfo.outputFile.empty)
 			{
 				stderr.writeln("command line error: cannot specify multiple output files");
-				throw new FatalErrorException("command line error");
+				throw new CommandLineErrorException();
 			}
 
 			i++;
@@ -78,7 +86,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 			else
 			{
 				stderr.writeln("command line error: expected file name after '-o'");
-				throw new FatalErrorException("command line error");
+				throw new CommandLineErrorException();
 			}
 		}
 		else if (arg == "-r")
@@ -94,14 +102,14 @@ private CommandLineInfo parseCommandLine(string[] args)
 				if (i >= args.length)
 				{
 					stderr.writeln("command line error: expected file name after '--'");
-					throw new FatalErrorException("command line error");
+					throw new CommandLineErrorException();
 				}
 			}
 
 			if (!cmdInfo.inputFile.empty)
 			{
 				stderr.writeln("command line error: cannot specify multiple input files");
-				throw new FatalErrorException("command line error");
+				throw new CommandLineErrorException();
 			}
 
 			cmdInfo.inputFile = args[i];
@@ -181,7 +189,7 @@ int main(string[] args)
 			if (cmdInfo.inputFile.empty)
 			{
 				stderr.writeln("command line error: input file not specified");
-				throw new FatalErrorException("command line error");
+				throw new CommandLineErrorException();
 			}
 
 			string outFilePath = makeOutputFilePath(cmdInfo);
@@ -205,7 +213,7 @@ int main(string[] args)
 			catch (ErrnoException e)
 			{
 				stderr.writefln("fatal error: cannot open output file '%s'", outFilePath);
-				throw new FatalErrorException("command line error");
+				throw new FatalErrorException("cannot open output file");
 			}
 
 			auto diagnosticsHandler = new SimpleDiagnosticsHandler(stderr);
@@ -224,25 +232,40 @@ int main(string[] args)
 
             if (cmdInfo.mode == OperationMode.printAST)
             {
+                if (diagnosticsHandler.hasErrors)
+                {
+    				throw new FatalErrorException("error occurred");
+                }
+
                 auto fileWriter = outFile.lockingTextWriter();
                 auto astPrinter = new ASTPrinter!(typeof(fileWriter))(fileWriter, "  ");
                 astPrinter.printModule(astModule);
                 return 0;
             }
-            
+
             auto irGenerator = new IRGenerator(diagnosticsHandler);
             auto ir = irGenerator.compileModule(astModule).enforce!FatalErrorException("failed to generate IR");
-            
+
             if (cmdInfo.mode == OperationMode.printIR)
             {
+                if (diagnosticsHandler.hasErrors)
+                {
+                    throw new FatalErrorException("error occurred");
+                }
+
                 auto fileWriter = outFile.lockingTextWriter();
                 auto irPrinter = new IRPrinter!(typeof(fileWriter))(fileWriter, "  ");
                 irPrinter.printComposition(ir);
                 return 0;
             }
-            
+
             auto midiGenerator = new MIDIGenerator(diagnosticsHandler);
             auto midiEvents = midiGenerator.generateMIDI(ir).enforce!FatalErrorException("failed to generate MIDI events");
+
+            if (diagnosticsHandler.hasErrors)
+            {
+				throw new FatalErrorException("error occurred");
+            }
 
 			auto fileWriter = outFile.lockingBinaryWriter();
 			auto midiWriter = new MIDIWriter!(typeof(fileWriter))(diagnosticsHandler, fileWriter);
@@ -254,5 +277,9 @@ int main(string[] args)
 	catch (FatalErrorException e)
 	{
 		return 1;
+	}
+	catch (CommandLineErrorException e)
+	{
+	    return 2;
 	}
 }
