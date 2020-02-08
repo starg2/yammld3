@@ -140,7 +140,7 @@ package final class OptionProcessor
 
         foreach (ref opt; options)
         {
-            if (!opt.optional && opt.actualCount == 0)
+            if (!opt.optional && opt.valueType != OptionType.flag && opt.actualCount == 0)
             {
                 err = true;
 

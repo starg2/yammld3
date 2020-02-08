@@ -361,6 +361,11 @@ public final class IRGenerator
 
         switch (c.name.value)
         {
+        case "arp":
+        case "arpeggio":
+            compileArpeggioCommand(tb, c);
+            break;
+
         case "assert_time":
             assertTime(tb.compositionBuilder, c);
             break;
@@ -591,6 +596,86 @@ public final class IRGenerator
         {
             import std.algorithm.comparison : max;
 
+            cb.currentTime = startTime;
+            compileCommand(tb, child);
+            endTime = max(endTime, cb.currentTime);
+        }
+
+        cb.currentTime = endTime;
+    }
+
+    private void compileArpeggioCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        import std.algorithm.comparison : max, min;
+        import std.algorithm.iteration : map, sum;
+        import std.range : iota;
+        import std.typecons : tuple;
+
+        assert(c !is null);
+        assert(c.name.value == "arp" || c.name.value == "arpeggio");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        auto cb = tb.compositionBuilder;
+        auto cdb = cb.conductorTrackBuilder;
+        int noteCount = cb.currentNoteCount;
+        float curTime = cb.currentTime;
+
+        OptionValue ahead;
+        Option aheadOpt;
+        aheadOpt.key = "ahead";
+        aheadOpt.valueType = OptionType.flag;
+        aheadOpt.values = &ahead;
+
+        OptionValue behind;
+        Option behindOpt;
+        behindOpt.key = "behind";
+        behindOpt.valueType = OptionType.flag;
+        behindOpt.values = &behind;
+
+        OptionValue stepVal;
+        Option stepOpt;
+        stepOpt.optional = true;
+        stepOpt.key = "step";
+        stepOpt.position = 0;
+        stepOpt.valueType = OptionType.duration;
+        stepOpt.values = &stepVal;
+
+        OptionValue durationVal;
+        Option durationOpt;
+        durationOpt.optional = true;
+        durationOpt.key = "duration";
+        durationOpt.position = 1;
+        durationOpt.valueType = OptionType.duration;
+        durationOpt.values = &durationVal;
+
+        if (!_optionProc.processOptions([aheadOpt, behindOpt, stepOpt, durationOpt], c.arguments, "%" ~ c.name.value, c.location, curTime))
+        {
+            return;
+        }
+
+        float duration = durationVal.data.hasValue ? durationVal.data.get!float : cdb.getDurationFor(noteCount, curTime);
+        int noteLikeCommandCount = c.block.commands.map!(x => countNoteLikeCommands(x, c.location, "%" ~ c.name.value)).sum(0);
+
+        if (noteLikeCommandCount > 0)
+        {
+            float step = stepVal.data.hasValue ? stepVal.data.get!float : min(duration / 4.0f / noteLikeCommandCount, 4.0f / 64.0f);
+            bool isBehind = behind.data.hasValue;
+
+            auto values = iota(0, noteLikeCommandCount).map!(x => tuple(x, isBehind ? x * step : (noteLikeCommandCount - 1 - x) * -step));
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec = cast(PriorSpec!float)new OnNotePriorSpec!float(noteCount, values.array);
+            tb.addPriorSpec(TrackPropertyKind.timeShift, priorSpec);
+        }
+
+        float startTime = curTime;
+        float endTime = startTime;
+
+        foreach (child; c.block.commands)
+        {
             cb.currentTime = startTime;
             compileCommand(tb, child);
             endTime = max(endTime, cb.currentTime);
