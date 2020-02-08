@@ -3,7 +3,6 @@ module yammld3.irgenutil;
 
 import std.array;
 import std.conv : to;
-import std.typecons : Nullable;
 import std.variant;
 
 import yammld3.common;
@@ -157,26 +156,30 @@ private final class TrackBuilder
     public void setProgram(ProgramChange pc)
     {
         flush();
-        _commands.put(Command(pc));
+        _commands.put(pc);
     }
 
     public void setControlChange(ControlChange cc)
     {
         flush();
-        _commands.put(Command(cc));
+        _commands.put(cc);
     }
 
     public void putNote(int noteCount, float time, Note note)
     {
         flush();
 
-        if (!note.noteInfo.isNull)
+        if (!note.isRest)
         {
-            note.noteInfo.get.key += _context.octave.getValueFor(noteCount, time) * 12;
-            note.noteInfo.get.key += _context.keyShift.getValueFor(noteCount, time);
-            note.noteInfo.get.velocity += _context.velocity.getValueFor(noteCount, time);
-            note.noteInfo.get.timeShift += _context.timeShift.getValueFor(noteCount, time);
-            note.noteInfo.get.gateTime += _context.gateTime.getValueFor(noteCount, time);
+            auto noteInfo = note.noteInfo;
+
+            noteInfo.key += _context.octave.getValueFor(noteCount, time) * 12;
+            noteInfo.key += _context.keyShift.getValueFor(noteCount, time);
+            noteInfo.velocity += _context.velocity.getValueFor(noteCount, time);
+            noteInfo.timeShift += _context.timeShift.getValueFor(noteCount, time);
+            noteInfo.gateTime += _context.gateTime.getValueFor(noteCount, time);
+
+            note.noteInfo = noteInfo;
         }
 
         _queuedNote = note;
@@ -184,18 +187,22 @@ private final class TrackBuilder
 
     public bool extendPreviousNote(int noteCount, float time, float duration)
     {
-        if (_queuedNote.isNull)
+        if (_queuedNote is null)
         {
             return false;
         }
 
-        if (!_queuedNote.get.noteInfo.isNull)
+        if (!_queuedNote.isRest)
         {
-            _queuedNote.get.noteInfo.get.lastNominalDuration = duration;
-            _queuedNote.get.noteInfo.get.gateTime = _context.gateTime.getValueFor(noteCount, time);
+            auto noteInfo = _queuedNote.noteInfo;
+
+            noteInfo.lastNominalDuration = duration;
+            noteInfo.gateTime = _context.gateTime.getValueFor(noteCount, time);
+
+            _queuedNote.noteInfo = noteInfo;
         }
 
-        _queuedNote.get.nominalDuration += duration;
+        _queuedNote.nominalDuration = _queuedNote.nominalDuration + duration;
         return true;
     }
 
@@ -298,10 +305,10 @@ private final class TrackBuilder
 
     private void flush()
     {
-        if (!_queuedNote.isNull)
+        if (_queuedNote !is null)
         {
-            _commands.put(Command(_queuedNote.get));
-            _queuedNote.nullify();
+            _commands.put(_queuedNote);
+            _queuedNote = null;
         }
     }
 
@@ -309,7 +316,7 @@ private final class TrackBuilder
     private int _channel;
     private TrackBuilderContext _context;
     private Appender!(Command[]) _commands;
-    private Nullable!Note _queuedNote;
+    private Note _queuedNote;
 }
 
 private struct MeterInfo
@@ -436,38 +443,30 @@ package final class ConductorTrackBuilder
 
     public void resetSystem(float time, SystemKind kind)
     {
-        SystemReset sr;
-        sr.nominalTime = time;
-        sr.kind = kind;
-        _commands.put(Command(sr));
+        _commands.put(new SystemReset(time, kind));
     }
 
     public void setTempo(float time, float tempo)
     {
-        SetTempoEvent c;
-        c.nominalTime = time;
-        c.tempo = tempo;
-        _commands.put(Command(c));
+        _commands.put(new SetTempoEvent(time, tempo));
     }
 
     public void setMeter(float time, Fraction!int meter)
     {
         _meterMap.setMeter(time, meter);
-
-        SetMeterEvent c;
-        c.nominalTime = time;
-        c.meter = meter;
-        _commands.put(Command(c));
+        _commands.put(new SetMeterEvent(time, meter));
     }
 
     public void setKeySig(SetKeySigEvent ks)
     {
-        _commands.put(Command(ks));
+        assert(ks !is null);
+        _commands.put(ks);
     }
 
     public void addTextEvent(TextMetaEvent te)
     {
-        _commands.put(Command(te));
+        assert(te !is null);
+        _commands.put(te);
     }
 
     public ConductorTrackContext saveContext()
@@ -689,136 +688,83 @@ package final class CompositionBuilder
     private int _noteCount = 0;
 }
 
-package Nullable!SetKeySigEvent makeKeySigEvent(float time, string text)
+package SetKeySigEvent makeKeySigEvent(float time, string text)
 {
-    SetKeySigEvent ks;
-    ks.nominalTime = time;
-
     switch (text)
     {
     case "C":
-        ks.tonic = KeyName.c;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.c, false);
 
     case "Cm":
-        ks.tonic = KeyName.c;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.c, true);
 
     case "C#":
-        ks.tonic = KeyName.cSharp;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.cSharp, false);
 
     case "C#m":
-        ks.tonic = KeyName.cSharp;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.cSharp, true);
 
     case "D":
-        ks.tonic = KeyName.d;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.d, false);
 
     case "Dm":
-        ks.tonic = KeyName.d;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.d, true);
 
     case "D#":
-        ks.tonic = KeyName.dSharp;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.dSharp, false);
 
     case "D#m":
-        ks.tonic = KeyName.dSharp;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.dSharp, true);
 
     case "E":
-        ks.tonic = KeyName.e;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.e, false);
 
     case "Em":
-        ks.tonic = KeyName.e;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.e, true);
 
     case "F":
-        ks.tonic = KeyName.f;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.f, false);
 
     case "Fm":
-        ks.tonic = KeyName.f;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.f, true);
 
     case "F#":
-        ks.tonic = KeyName.fSharp;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.fSharp, false);
 
     case "F#m":
-        ks.tonic = KeyName.fSharp;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.fSharp, true);
 
     case "G":
-        ks.tonic = KeyName.g;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.g, false);
 
     case "Gm":
-        ks.tonic = KeyName.g;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.g, true);
 
     case "G#":
-        ks.tonic = KeyName.gSharp;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.gSharp, false);
 
     case "G#m":
-        ks.tonic = KeyName.gSharp;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.gSharp, true);
 
     case "A":
-        ks.tonic = KeyName.a;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.a, false);
 
     case "Am":
-        ks.tonic = KeyName.a;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.a, true);
 
     case "A#":
-        ks.tonic = KeyName.aSharp;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.aSharp, false);
 
     case "A#m":
-        ks.tonic = KeyName.aSharp;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.aSharp, true);
 
     case "B":
-        ks.tonic = KeyName.b;
-        ks.isMinor = false;
-        break;
+        return new SetKeySigEvent(time, KeyName.b, false);
 
     case "Bm":
-        ks.tonic = KeyName.b;
-        ks.isMinor = true;
-        break;
+        return new SetKeySigEvent(time, KeyName.b, true);
 
     default:
-        return typeof(return).init;
+        return null;
     }
-
-    return typeof(return)(ks);
 }

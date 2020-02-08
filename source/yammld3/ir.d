@@ -1,10 +1,26 @@
 
 module yammld3.ir;
 
-import std.variant;
-
 import yammld3.common;
 public import yammld3.midievent : ControlChangeCode, MetaEventKind;
+
+public enum IRKind
+{
+    note,
+    controlChange,
+    programChange,
+    setTempo,
+    setMeter,
+    setKeySig,
+    textMetaEvent,
+    systemReset
+}
+
+public interface Command
+{
+    @property IRKind kind();
+    @property float nominalTime();
+}
 
 public struct NoteInfo
 {
@@ -15,59 +31,300 @@ public struct NoteInfo
     float gateTime;
 }
 
-public struct Note
+public final class Note : Command
 {
     import std.typecons : Nullable;
 
-    @property bool isRest()
+    public this(float nominalTime, float nominalDuration)
     {
-        return noteInfo.isNull;
+        _nominalTime = nominalTime;
+        _nominalDuration = nominalDuration;
     }
 
-    float nominalTime;
-    Nullable!NoteInfo noteInfo;
-    float nominalDuration;  // 1.0 == quarter note
+    public this(float nominalTime, NoteInfo noteInfo, float nominalDuration)
+    {
+        _nominalTime = nominalTime;
+        _noteInfo = noteInfo;
+        _nominalDuration = nominalDuration;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.note;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property bool isRest()
+    {
+        return _noteInfo.isNull;
+    }
+
+    public @property NoteInfo noteInfo()
+    {
+        return _noteInfo.get;
+    }
+
+    package @property void noteInfo(NoteInfo ni)
+    {
+        _noteInfo = ni;
+    }
+
+    public @property float nominalDuration()
+    {
+        return _nominalDuration;
+    }
+
+    package @property void nominalDuration(float d)
+    {
+        _nominalDuration = d;
+    }
+
+    private float _nominalTime;
+    private Nullable!NoteInfo _noteInfo;
+    private float _nominalDuration;
 }
 
-public struct ControlChange
+public final class ControlChange : Command
 {
-    float nominalTime;
-    ControlChangeCode code;
-    int value;
+    public this(float nominalTime, ControlChangeCode code, int value)
+    {
+        _nominalTime = nominalTime;
+        _code = code;
+        _value = value;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.controlChange;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property ControlChangeCode code()
+    {
+        return _code;
+    }
+
+    public @property int value()
+    {
+        return _value;
+    }
+
+    private float _nominalTime;
+    private ControlChangeCode _code;
+    private int _value;
 }
 
-public struct ProgramChange
+public final class ProgramChange : Command
 {
-    float nominalTime;
-    byte bankLSB;
-    byte bankMSB;
-    byte program;
+    public this(float nominalTime, byte bankLSB, byte bankMSB, byte program)
+    {
+        _nominalTime = nominalTime;
+        _bankLSB = bankLSB;
+        _bankMSB = bankMSB;
+        _program = program;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.programChange;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property byte bankLSB()
+    {
+        return _bankLSB;
+    }
+
+    public @property byte bankMSB()
+    {
+        return _bankMSB;
+    }
+
+    public @property byte program()
+    {
+        return _program;
+    }
+
+    private float _nominalTime;
+    private byte _bankLSB;
+    private byte _bankMSB;
+    private byte _program;
 }
 
-public struct SetTempoEvent
+public final class SetTempoEvent : Command
 {
-    float nominalTime;
-    float tempo;
+    public this(float nominalTime, float tempo)
+    {
+        _nominalTime = nominalTime;
+        _tempo = tempo;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.setTempo;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property float tempo()
+    {
+        return _tempo;
+    }
+
+    private float _nominalTime;
+    private float _tempo;
 }
 
-public struct SetMeterEvent
+public final class SetMeterEvent : Command
 {
-    float nominalTime;
-    Fraction!int meter;
+    public this(float nominalTime, Fraction!int meter)
+    {
+        _nominalTime = nominalTime;
+        _meter = meter;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.setMeter;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property Fraction!int meter()
+    {
+        return _meter;
+    }
+
+    private float _nominalTime;
+    private Fraction!int _meter;
 }
 
-public struct SetKeySigEvent
+public final class SetKeySigEvent : Command
 {
-    float nominalTime;
-    KeyName tonic;
-    bool isMinor;
+    public this(float nominalTime, KeyName tonic, bool isMinor)
+    {
+        _nominalTime = nominalTime;
+        _tonic = tonic;
+        _isMinor = isMinor;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.setKeySig;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property KeyName tonic()
+    {
+        return _tonic;
+    }
+
+    public @property bool isMinor()
+    {
+        return _isMinor;
+    }
+
+    public int countSharp()
+    {
+        final switch (_tonic)
+        {
+        case KeyName.c:
+            return !_isMinor ? 0 : -3;
+
+        case KeyName.cSharp:
+            return !_isMinor ? -5 : 4;
+
+        case KeyName.d:
+            return !_isMinor ? 2 : -1;
+
+        case KeyName.dSharp:
+            return !_isMinor ? -3 : 6;
+
+        case KeyName.e:
+            return !_isMinor ? 4 : 1;
+
+        case KeyName.f:
+            return !_isMinor ? -1 : -4;
+
+        case KeyName.fSharp:
+            return !_isMinor ? 6 : 3;
+
+        case KeyName.g:
+            return !_isMinor ? 1 : -2;
+
+        case KeyName.gSharp:
+            return !_isMinor ? -4 : 5;
+
+        case KeyName.a:
+            return !_isMinor ? 3 : 0;
+
+        case KeyName.aSharp:
+            return !_isMinor ? -2 : -5;
+
+        case KeyName.b:
+            return !_isMinor ? 5 : -2;
+        }
+    }
+
+    private float _nominalTime;
+    private KeyName _tonic;
+    private bool _isMinor;
 }
 
-public struct TextMetaEvent
+public final class TextMetaEvent : Command
 {
-    float nominalTime;
-    MetaEventKind kind;
-    string text;
+    public this(float nominalTime, MetaEventKind metaEventKind, string text)
+    {
+        _nominalTime = nominalTime;
+        _metaEventKind = metaEventKind;
+        _text = text;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.textMetaEvent;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property MetaEventKind metaEventKind()
+    {
+        return _metaEventKind;
+    }
+
+    public @property string text()
+    {
+        return _text;
+    }
+
+    private float _nominalTime;
+    private MetaEventKind _metaEventKind;
+    private string _text;
 }
 
 public enum SystemKind
@@ -77,22 +334,32 @@ public enum SystemKind
     xg
 }
 
-public struct SystemReset
+public final class SystemReset : Command
 {
-    float nominalTime;
-    SystemKind kind;
-}
+    public this(float nominalTime, SystemKind systemKind)
+    {
+        _nominalTime = nominalTime;
+        _systemKind = systemKind;
+    }
 
-public alias Command = Algebraic!(
-    Note,
-    ControlChange,
-    ProgramChange,
-    SetTempoEvent,
-    SetMeterEvent,
-    SetKeySigEvent,
-    TextMetaEvent,
-    SystemReset
-);
+    public override @property IRKind kind()
+    {
+        return IRKind.systemReset;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property SystemKind systemKind()
+    {
+        return _systemKind;
+    }
+
+    private float _nominalTime;
+    private SystemKind _systemKind;
+}
 
 public enum int conductorChannel = -1;
 public enum int virtualChannel = -2;

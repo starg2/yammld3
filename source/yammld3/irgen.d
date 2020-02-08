@@ -205,10 +205,7 @@ public final class IRGenerator
         noteInfo.lastNominalDuration = duration;
         noteInfo.gateTime = 0.0f;
 
-        ir.Note note;
-        note.nominalTime = curTime;
-        note.noteInfo = noteInfo;
-        note.nominalDuration = duration;
+        auto note = new ir.Note(curTime, noteInfo, duration);
 
         tb.putNote(noteCount, curTime, note);
         cb.currentTime = curTime + duration;
@@ -235,9 +232,7 @@ public final class IRGenerator
             duration = _durationEvaluator.evaluate(curTime, c.argument);
         }
 
-        ir.Note note;
-        note.nominalTime = curTime;
-        note.nominalDuration = duration;
+        auto note = new ir.Note(curTime, duration);
 
         tb.putNote(noteCount, curTime, note);
         cb.currentTime = curTime + duration;
@@ -772,10 +767,11 @@ public final class IRGenerator
             return;
         }
 
-        ir.ControlChange cc;
-        cc.nominalTime = tb.compositionBuilder.currentTime;
-        cc.code = cast(ir.ControlChangeCode)code.data.get!byte;
-        cc.value = value.data.get!byte;
+        auto cc = new ir.ControlChange(
+            tb.compositionBuilder.currentTime,
+            cast(ir.ControlChangeCode)code.data.get!byte,
+            value.data.get!byte
+        );
 
         tb.setControlChange(cc);
     }
@@ -800,10 +796,11 @@ public final class IRGenerator
             return;
         }
 
-        ir.ControlChange cc;
-        cc.nominalTime = tb.compositionBuilder.currentTime;
-        cc.code = code;
-        cc.value = value.data.get!byte;
+        auto cc = new ir.ControlChange(
+            tb.compositionBuilder.currentTime,
+            code,
+            value.data.get!byte
+        );
 
         tb.setControlChange(cc);
     }
@@ -831,10 +828,11 @@ public final class IRGenerator
             return;
         }
 
-        ir.ControlChange cc;
-        cc.nominalTime = tb.compositionBuilder.currentTime;
-        cc.code = code;
-        cc.value = isBinary && value.get > 0 ? 127 : value.get;
+        auto cc = new ir.ControlChange(
+            tb.compositionBuilder.currentTime,
+            code,
+            isBinary && value.get > 0 ? 127 : value.get
+        );
 
         tb.setControlChange(cc);
     }
@@ -956,13 +954,13 @@ public final class IRGenerator
 
         auto ks = makeKeySigEvent(cb.currentTime, value.data.get!string);
 
-        if (ks.isNull)
+        if (ks is null)
         {
             _diagnosticsHandler.undefinedKeySignature(value.location, "%" ~ c.name.value);
             return;
         }
 
-        cb.conductorTrackBuilder.setKeySig(ks.get);
+        cb.conductorTrackBuilder.setKeySig(ks);
     }
 
     private void addTextEventToConductorTrack(CompositionBuilder cb, ir.MetaEventKind kind, ast.ExtensionCommand c)
@@ -985,10 +983,12 @@ public final class IRGenerator
             return;
         }
 
-        ir.TextMetaEvent te;
-        te.nominalTime = cb.currentTime;
-        te.kind = kind;
-        te.text = value.data.get!string;
+        auto te = new ir.TextMetaEvent(
+            cb.currentTime,
+            kind,
+            value.data.get!string
+        );
+
         cb.conductorTrackBuilder.addTextEvent(te);
     }
 
@@ -1030,19 +1030,12 @@ public final class IRGenerator
             return;
         }
 
-        ir.ProgramChange pc;
-        pc.nominalTime = tb.compositionBuilder.currentTime;
-        pc.program = prog.data.get!byte;
-
-        if (bm.data.hasValue)
-        {
-            pc.bankMSB = bm.data.get!byte;
-        }
-
-        if (bl.data.hasValue)
-        {
-            pc.bankLSB = bl.data.get!byte;
-        }
+        auto pc = new ir.ProgramChange(
+            tb.compositionBuilder.currentTime,
+            bl.data.hasValue ? bl.data.get!byte : 0,
+            bm.data.hasValue ? bm.data.get!byte : 0,
+            prog.data.get!byte
+        );
 
         tb.setProgram(pc);
     }

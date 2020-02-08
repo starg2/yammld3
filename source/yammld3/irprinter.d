@@ -64,7 +64,6 @@ private string systemKindToString(SystemKind kind)
 public final class IRPrinter(Writer)
 {
     import std.conv : text;
-    import std.variant : visit;
     import yammld3.xmlwriter : XMLAttribute, XMLWriter;
 
     public this(Writer output, string indent = "")
@@ -96,25 +95,62 @@ public final class IRPrinter(Writer)
 
     private void printCommand(Command c)
     {
-        c.visit!(x => printCommand(x));
+        assert(c !is null);
+
+        final switch (c.kind)
+        {
+        case IRKind.note:
+            printCommand(cast(Note)c);
+            break;
+
+        case IRKind.controlChange:
+            printCommand(cast(ControlChange)c);
+            break;
+
+        case IRKind.programChange:
+            printCommand(cast(ProgramChange)c);
+            break;
+
+        case IRKind.setTempo:
+            printCommand(cast(SetTempoEvent)c);
+            break;
+
+        case IRKind.setMeter:
+            printCommand(cast(SetMeterEvent)c);
+            break;
+
+        case IRKind.setKeySig:
+            printCommand(cast(SetKeySigEvent)c);
+            break;
+
+        case IRKind.textMetaEvent:
+            printCommand(cast(TextMetaEvent)c);
+            break;
+
+        case IRKind.systemReset:
+            printCommand(cast(SystemReset)c);
+            break;
+        }
     }
 
     private void printCommand(Note note)
     {
+        assert(note !is null);
+
         auto attr = [
             XMLAttribute("NominalTime", note.nominalTime.text),
             XMLAttribute("NominalDuration", note.nominalDuration.text),
             XMLAttribute("IsRest", note.isRest.text)
         ];
 
-        if (!note.noteInfo.isNull)
+        if (!note.isRest)
         {
             attr ~= [
-                XMLAttribute("Key", note.noteInfo.get.key.text),
-                XMLAttribute("Velocity", note.noteInfo.get.velocity.text),
-                XMLAttribute("TimeShift", note.noteInfo.get.timeShift.text),
-                XMLAttribute("LastNominalDuration", note.noteInfo.get.lastNominalDuration.text),
-                XMLAttribute("GateTime", note.noteInfo.get.gateTime.text)
+                XMLAttribute("Key", note.noteInfo.key.text),
+                XMLAttribute("Velocity", note.noteInfo.velocity.text),
+                XMLAttribute("TimeShift", note.noteInfo.timeShift.text),
+                XMLAttribute("LastNominalDuration", note.noteInfo.lastNominalDuration.text),
+                XMLAttribute("GateTime", note.noteInfo.gateTime.text)
             ];
         }
 
@@ -123,6 +159,8 @@ public final class IRPrinter(Writer)
 
     private void printCommand(ControlChange cc)
     {
+        assert(cc !is null);
+
         _writer.writeElement(
             "ControlChange",
             [XMLAttribute("NominalTime", cc.nominalTime.text), XMLAttribute("Code", cc.code.text), XMLAttribute("Value", cc.value.text)]
@@ -131,6 +169,8 @@ public final class IRPrinter(Writer)
 
     private void printCommand(ProgramChange pc)
     {
+        assert(pc !is null);
+
         _writer.writeElement(
             "ProgramChange",
             [
@@ -144,6 +184,8 @@ public final class IRPrinter(Writer)
 
     private void printCommand(SetTempoEvent e)
     {
+        assert(e !is null);
+
         _writer.writeElement(
             "SetTempoEvent",
             [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Tempo", e.tempo.text)]
@@ -152,6 +194,8 @@ public final class IRPrinter(Writer)
 
     private void printCommand(SetMeterEvent e)
     {
+        assert(e !is null);
+
         _writer.writeElement(
             "SetMeterEvent",
             [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Meter", e.meter.numerator.text ~ "/" ~ e.meter.denominator.text)]
@@ -160,6 +204,8 @@ public final class IRPrinter(Writer)
 
     private void printCommand(SetKeySigEvent e)
     {
+        assert(e !is null);
+
         _writer.writeElement(
             "SetKeySigEvent",
             [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("KeySig", e.tonic.keyNameToString() ~ (e.isMinor ? " Maj" : " Min"))]
@@ -168,17 +214,21 @@ public final class IRPrinter(Writer)
 
     private void printCommand(TextMetaEvent e)
     {
+        assert(e !is null);
+
         _writer.writeElement(
             "TextMetaEvent",
-            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Kind", e.kind.text), XMLAttribute("Text", e.text)]
+            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Kind", e.metaEventKind.text), XMLAttribute("Text", e.text)]
         );
     }
 
     private void printCommand(SystemReset r)
     {
+        assert(r !is null);
+
         _writer.writeElement(
             "SystemReset",
-            [XMLAttribute("NominalTime", r.nominalTime.text), XMLAttribute("Kind", r.kind.systemKindToString())]
+            [XMLAttribute("NominalTime", r.nominalTime.text), XMLAttribute("Kind", r.systemKind.systemKindToString())]
         );
     }
 
