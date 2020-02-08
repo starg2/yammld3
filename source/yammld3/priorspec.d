@@ -9,7 +9,7 @@ import std.typecons : isTuple, Tuple;
 package interface PriorSpec(T)
 {
     bool expired(int noteCount, float time);
-    T getValueFor(int noteCount, float time);
+    void apply(ref T value, int noteCount, float time);
 }
 
 private auto getKey(T)(T p)
@@ -130,9 +130,9 @@ package final class ConstantPriorSpec(T) : PriorSpec!T
         return false;
     }
 
-    public override T getValueFor(int noteCount, float time)
+    public override void apply(ref T value, int noteCount, float time)
     {
-        return _value;
+        value += _value;
     }
 
     private T _value;
@@ -154,10 +154,10 @@ package final class UniformRandomPriorSpec(RNG, T) : PriorSpec!T
         return false;
     }
 
-    public override T getValueFor(int noteCount, float time)
+    public override void apply(ref T value, int noteCount, float time)
     {
         import std.random : uniform;
-        return uniform!"[]"(_minValue, _maxValue, *_pRNG);
+        value += uniform!"[]"(_minValue, _maxValue, *_pRNG);
     }
 
     private RNG* _pRNG;
@@ -181,7 +181,7 @@ package final class NormalRandomPriorSpec(RNG, T) : PriorSpec!T
         return false;
     }
 
-    public override T getValueFor(int noteCount, float time)
+    public override void apply(ref T value, int noteCount, float time)
     {
         import std.math : cos, log, PI, sqrt;
         import std.random : uniform;
@@ -190,7 +190,7 @@ package final class NormalRandomPriorSpec(RNG, T) : PriorSpec!T
         float y = uniform!"()"(0.0f, 1.0f, *_pRNG);
 
         float z = sqrt(-2.0f * log(x)) * cos(2.0f * PI * y);
-        return (z * _stdDev + _mean).to!T;
+        value += (z * _stdDev + _mean).to!T;
     }
 
     private RNG* _pRNG;
@@ -211,9 +211,9 @@ package final class OnNotePriorSpec(T) : PriorSpec!T
         return _values.empty || _values.back[0] < noteCount - _startCount;
     }
 
-    public override T getValueFor(int noteCount, float time)
+    public override void apply(ref T value, int noteCount, float time)
     {
-        return interpolateNone!(int, T)(_values, noteCount - _startCount);
+        value += interpolateNone!(int, T)(_values, noteCount - _startCount);
     }
 
     private int _startCount;
@@ -234,15 +234,15 @@ package final class OnTimePriorSpec(T) : PriorSpec!T
         return _values.empty || _values.back[0] < time - _startTime;
     }
 
-    public override T getValueFor(int noteCount, float time)
+    public override void apply(ref T value, int noteCount, float time)
     {
         if (_linearInterpolation)
         {
-            return interpolateLinear!(float, T)(_values, time - _startTime);
+            value += interpolateLinear!(float, T)(_values, time - _startTime);
         }
         else
         {
-            return interpolateDiscrete!(float, T)(_values, time - _startTime);
+            value += interpolateDiscrete!(float, T)(_values, time - _startTime);
         }
     }
 

@@ -88,7 +88,7 @@ private struct TrackProperty(T)
 
     public T getValueFor(int noteCount, float time)
     {
-        import std.algorithm.iteration : filter, map, sum;
+        import std.algorithm.iteration : filter;
         import std.algorithm.searching : canFind;
 
         if (_priorSpecs.canFind!(x => x.expired(noteCount, time)))
@@ -96,7 +96,14 @@ private struct TrackProperty(T)
             _priorSpecs = _priorSpecs.filter!(x => !x.expired(noteCount, time)).array;
         }
 
-        return _priorSpecs.map!(x => x.getValueFor(noteCount, time)).sum(_baseValue);
+        auto value = _baseValue;
+
+        foreach (ps; _priorSpecs)
+        {
+            ps.apply(value, noteCount, time);
+        }
+
+        return value;
     }
 
     private T _baseValue = 0;
