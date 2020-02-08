@@ -361,6 +361,10 @@ public final class IRGenerator
 
         switch (c.name.value)
         {
+        case "assert_time":
+            assertTime(tb.compositionBuilder, c);
+            break;
+
         case "attack_time":
             compileControlChangeCommand(tb, ir.ControlChangeCode.attackTime, c);
             break;
@@ -593,6 +597,35 @@ public final class IRGenerator
         }
 
         cb.currentTime = endTime;
+    }
+
+    private void assertTime(CompositionBuilder cb, ast.ExtensionCommand c)
+    {
+        import std.math : abs;
+
+        assert(c !is null);
+        assert(c.name.value == "assert_time");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue time;
+        Option timeOpt;
+        timeOpt.position = 0;
+        timeOpt.valueType = OptionType.duration;
+        timeOpt.values = &time;
+
+        if (!_optionProc.processOptions([timeOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        if (abs(time.data.get!float - cb.currentTime) > 1.0f / ticksPerQuarterNote / 2.0f)
+        {
+            _diagnosticsHandler.timeAssertionFailed(time.location, "%" ~ c.name.value, cb.currentTime);
+        }
     }
 
     private void setChannel(MultiTrackBuilder tb, ast.ExtensionCommand c)
