@@ -489,6 +489,10 @@ public final class IRGenerator
         //    _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
         //    break;
 
+        case "clamp":
+            addClampPriorSpecs(tb, c);
+            break;
+
         case "clear":
             clearPriorSpecs(tb, c);
             break;
@@ -1219,6 +1223,84 @@ public final class IRGenerator
             else
             {
                 priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(value.data.get!float);
+            }
+
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+
+    private void addClampPriorSpecs(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "clamp");
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+
+        if (kind.isNull)
+        {
+            return;
+        }
+
+        compileBasicCommandIfItHasArgument(tb, c);
+
+        OptionValue minValue;
+        Option minValueOpt;
+        minValueOpt.key = "min";
+        minValueOpt.position = 0;
+        minValueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        minValueOpt.values = &minValue;
+
+        OptionValue maxValue;
+        Option maxValueOpt;
+        maxValueOpt.key = "max";
+        maxValueOpt.position = 1;
+        maxValueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        maxValueOpt.values = &maxValue;
+
+        if (!_optionProc.processOptions([minValueOpt, maxValueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        {
+            return;
+        }
+
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            if (maxValue.data.get!float < minValue.data.get!float)
+            {
+                _diagnosticsHandler.maxIsLessThanMin(minValue.location, maxValue.location, "!" ~ c.name.value);
+                return;
+            }
+
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
+                new ClampPriorSpec!float(minValue.data.get!float, maxValue.data.get!float)
+            );
+        }
+        else
+        {
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+
+            if (isIntegerProperty(kind.get))
+            {
+                if (maxValue.data.get!int < minValue.data.get!int)
+                {
+                    _diagnosticsHandler.maxIsLessThanMin(minValue.location, maxValue.location, "!" ~ c.name.value);
+                    return;
+                }
+
+                priorSpec = cast(PriorSpec!int)new ClampPriorSpec!int(
+                    minValue.data.get!int, maxValue.data.get!int
+                );
+            }
+            else
+            {
+                if (maxValue.data.get!float < minValue.data.get!float)
+                {
+                    _diagnosticsHandler.maxIsLessThanMin(minValue.location, maxValue.location, "!" ~ c.name.value);
+                    return;
+                }
+
+                priorSpec = cast(PriorSpec!float)new ClampPriorSpec!float(
+                    minValue.data.get!float, maxValue.data.get!float
+                );
             }
 
             tb.addPriorSpec(kind.get, priorSpec);

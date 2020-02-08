@@ -250,3 +250,26 @@ package final class OnTimePriorSpec(T) : PriorSpec!T
     private SortedPairRange!(float, T) _values;
     private bool _linearInterpolation;
 }
+
+package final class ClampPriorSpec(T) : PriorSpec!T
+{
+    public this(T minValue, T maxValue)
+    {
+        _minValue = minValue;
+        _maxValue = maxValue;
+    }
+
+    public override bool expired(int noteCount, float time)
+    {
+        return false;
+    }
+
+    public override void apply(ref T value, int noteCount, float time)
+    {
+        import std.algorithm.comparison : clamp;
+        value = value.clamp(_minValue, _maxValue);
+    }
+
+    private T _minValue;
+    private T _maxValue;
+}
