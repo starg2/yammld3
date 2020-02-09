@@ -334,6 +334,18 @@ public final class IRGenerator
                 value = _intEvaluator.evaluate(arg);
             }
         }
+        else if (kind == TrackPropertyKind.timeShift)
+        {
+            if (arg is null)
+            {
+                _diagnosticsHandler.expectedArgument(loc, "basic command");
+                return;
+            }
+            else
+            {
+                value = _durationEvaluator.evaluate(tb.compositionBuilder.currentTime, arg);
+            }
+        }
         else
         {
             if (arg is null)

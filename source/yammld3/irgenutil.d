@@ -32,13 +32,11 @@ package float toPercentage(TrackPropertyKind kind, float n)
     case TrackPropertyKind.duration:
     case TrackPropertyKind.octave:
     case TrackPropertyKind.keyShift:
+    case TrackPropertyKind.timeShift:
         assert(false);
 
     case TrackPropertyKind.velocity:
         return n / 127.0f;
-
-    case TrackPropertyKind.timeShift:
-        return n;
 
     case TrackPropertyKind.gateTime:
         return n / 100.0f;
