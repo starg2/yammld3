@@ -303,19 +303,19 @@ public final class Parser
 
                 //skipSpaces(s);
                 auto elist = parseParenthesizedExpressionList(s);
-                c = new ModifierCommand(SourceLocation(startOffset, s.sourceOffset), c, name, elist);
+                c = new ModifierCommand(SourceLocation(c.location.offset, s.sourceOffset), c, name, elist);
             }
             else if (s.scanChar('*'))
             {
                 //skipSpaces(s);
                 auto arg = parseCommandArgumentExpression(s);
-                c = new RepeatCommand(SourceLocation(startOffset, s.sourceOffset), c, arg);
+                c = new RepeatCommand(SourceLocation(c.location.offset, s.sourceOffset), c, arg);
             }
             else if (s.scanChar('/'))
             {
                 //skipSpaces(s);
                 auto arg = parseCommandArgumentExpression(s);
-                c = new TupletCommand(SourceLocation(startOffset, s.sourceOffset), c, arg);
+                c = new TupletCommand(SourceLocation(c.location.offset, s.sourceOffset), c, arg);
             }
             else
             {
