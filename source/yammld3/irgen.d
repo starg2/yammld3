@@ -1144,7 +1144,8 @@ public final class IRGenerator
 
     private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
-        import std.algorithm.comparison : cmp;
+        import std.algorithm.comparison : cmp, max;
+        import std.algorithm.iteration : chunkBy;
         //import std.algorithm.mutation : SwapStrategy;
         import std.algorithm.sorting : sort;
 
@@ -1167,9 +1168,21 @@ public final class IRGenerator
             (a, b) => cmp([a.location.column, a.location.line], [b.location.column, b.location.line]) < 0
         );
 
-        foreach (child; sortedByColumn)
+        auto cb = tb.compositionBuilder;
+
+        foreach (column; sortedByColumn.chunkBy!((a, b) => a.location.column == b.location.column))
         {
-            compileCommand(tb, child);
+            float startTime = cb.currentTime;
+            float endTime = startTime;
+
+            foreach (child; column)
+            {
+                cb.currentTime = startTime;
+                compileCommand(tb, child);
+                endTime = max(endTime, cb.currentTime);
+            }
+
+            cb.currentTime = endTime;
         }
     }
 
