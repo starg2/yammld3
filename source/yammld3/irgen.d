@@ -469,6 +469,18 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect2Depth, c);
             break;
 
+        case "vibrato_delay":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.vibratoDelay, c);
+            break;
+
+        case "vibrato_depth":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.vibratoDepth, c);
+            break;
+
+        case "vibrato_rate":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.vibratoRate, c);
+            break;
+
         case "volume":
             compileControlChangeCommand(tb, ir.ControlChangeCode.channelVolume, c);
             break;
