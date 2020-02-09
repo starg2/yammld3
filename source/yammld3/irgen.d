@@ -441,6 +441,10 @@ public final class IRGenerator
             addTextEventToConductorTrack(tb.compositionBuilder, ir.MetaEventKind.sequenceName, c);
             break;
 
+        case "table":
+            compileTableCommand(tb, c);
+            break;
+
         case "tempo":
             setTempo(tb.compositionBuilder, c);
             break;
@@ -1124,6 +1128,37 @@ public final class IRGenerator
         }
 
         cb.currentTime = endTime;
+    }
+
+    private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        import std.algorithm.comparison : cmp;
+        //import std.algorithm.mutation : SwapStrategy;
+        import std.algorithm.sorting : sort;
+
+        assert(c !is null);
+        assert(c.name.value == "table");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        //auto sortedByColumn = c.block.commands.dup.sort!((a, b) => a.location.column < b.location.column, SwapStrategy.stable);
+        auto sortedByColumn = c.block.commands.dup.sort!(
+            (a, b) => cmp([a.location.column, a.location.line], [b.location.column, b.location.line]) < 0
+        );
+
+        foreach (child; sortedByColumn)
+        {
+            compileCommand(tb, child);
+        }
     }
 
     private void compileTrackCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
