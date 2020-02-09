@@ -521,9 +521,9 @@ public final class IRGenerator
             addUniformRandomPriorSpec(tb, c);
             break;
 
-        //case "transition":
-        //    _diagnosticsHandler.notImplemented(c.location, "!" ~ c.name.value);
-        //    break;
+        case "transition":
+            addTransition(tb, c);
+            break;
 
         default:
             _diagnosticsHandler.undefinedModifierCommand(c.location, c.name.value);
@@ -1557,7 +1557,7 @@ public final class IRGenerator
         if (kind.get == TrackPropertyKind.duration)
         {
             tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
-                new OnTimePriorSpec!float(tb.compositionBuilder.currentNoteCount, getValues!float(), linearInterpolation)
+                new OnTimePriorSpec!float(tb.compositionBuilder.currentTime, getValues!float(), linearInterpolation)
             );
         }
         else
@@ -1567,16 +1567,89 @@ public final class IRGenerator
             if (isIntegerProperty(kind.get))
             {
                 priorSpec = cast(PriorSpec!int)new OnTimePriorSpec!int(
-                    tb.compositionBuilder.currentNoteCount, getValues!int(), linearInterpolation
+                    tb.compositionBuilder.currentTime, getValues!int(), linearInterpolation
                 );
             }
             else
             {
                 priorSpec = cast(PriorSpec!float)new OnTimePriorSpec!float(
-                    tb.compositionBuilder.currentNoteCount, getValues!float(), linearInterpolation
+                    tb.compositionBuilder.currentTime, getValues!float(), linearInterpolation
                 );
             }
 
+            tb.addPriorSpec(kind.get, priorSpec);
+        }
+    }
+
+    private void addTransition(MultiTrackBuilder tb, ast.ModifierCommand c)
+    {
+        import std.typecons : tuple;
+
+        assert(c !is null);
+        assert(c.name.value == "transition");
+
+        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
+
+        if (kind.isNull)
+        {
+            return;
+        }
+
+        compileBasicCommandIfItHasArgument(tb, c);
+
+        OptionValue targetValue;
+        Option targetValueOpt;
+        targetValueOpt.key = "target";
+        targetValueOpt.position = 0;
+        targetValueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
+        targetValueOpt.values = &targetValue;
+
+        OptionValue durationValue;
+        Option durationValueOpt;
+        durationValueOpt.key = "duration";
+        durationValueOpt.position = 1;
+        durationValueOpt.valueType = OptionType.duration;
+        durationValueOpt.values = &durationValue;
+
+        auto cb = tb.compositionBuilder;
+        auto cdb = cb.conductorTrackBuilder;
+
+        if (!_optionProc.processOptions([targetValueOpt, durationValueOpt], c.arguments, "!" ~ c.name.value, c.location, cb.currentTime))
+        {
+            return;
+        }
+
+        if (kind.get == TrackPropertyKind.duration)
+        {
+            float t = targetValue.data.get!float;
+            cdb.setDuration(OptionalSign.plus, t);
+            cdb.addDurationPriorSpec(
+                new OnTimePriorSpec!float(cb.currentTime, [tuple(0.0f, -t), tuple(durationValue.data.get!float, 0.0f)], true)
+            );
+        }
+        else
+        {
+            Algebraic!(int, float) target;
+            Algebraic!(PriorSpec!int, PriorSpec!float) priorSpec;
+
+            if (isIntegerProperty(kind.get))
+            {
+                int t = targetValue.data.get!int;
+                target = t;
+                priorSpec = cast(PriorSpec!int)new OnTimePriorSpec!int(
+                    cb.currentTime, [tuple(0.0f, -t), tuple(durationValue.data.get!float, 0)], true
+                );
+            }
+            else
+            {
+                float t = targetValue.data.get!float;
+                target = t;
+                priorSpec = cast(PriorSpec!float)new OnTimePriorSpec!float(
+                    cb.currentTime, [tuple(0.0f, -t), tuple(durationValue.data.get!float, 0.0f)], true
+                );
+            }
+
+            tb.setTrackProperty(kind.get, OptionalSign.plus, target);
             tb.addPriorSpec(kind.get, priorSpec);
         }
     }
