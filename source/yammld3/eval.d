@@ -19,59 +19,53 @@ package final class DurationExpressionEvaluator
 
     public float evaluate(float startTick, Expression expr)
     {
-        import std.math : pow;
         assert(expr !is null);
-
-        final switch (expr.kind)
-        {
-        case ExpressionKind.integerLiteral:
-            auto il = cast(IntegerLiteral)expr;
-            return il.value > 0 ? 4.0f / il.value.to!float : 0.0f;
-
-        case ExpressionKind.durationLiteral:
-            auto dl = cast(DurationLiteral)expr;
-            float n = dl.denominator > 0 ? 4.0f / dl.denominator.to!float : 0.0f;
-            return n * (2.0f - pow(0.5f, dl.dot.to!float));
-
-        case ExpressionKind.timeLiteral:
-            return _timeEval(startTick, cast(TimeLiteral)expr);
-
-        case ExpressionKind.unaryExpression:
-            auto ue = cast(UnaryExpression)expr;
-
-            final switch (ue.op.kind)
+        return expr.visit!(
+            (IntegerLiteral il) => il.value > 0 ? 4.0f / il.value.to!float : 0.0f,
+            (DurationLiteral dl)
             {
-            case OperatorKind.plus:
-                return +evaluate(startTick, ue.operand);
-
-            case OperatorKind.minus:
-                return -evaluate(startTick, ue.operand);
-
-            case OperatorKind.star:
-            case OperatorKind.slash:
-                assert(false);
-            }
-
-        case ExpressionKind.binaryExpression:
-            auto be = cast(BinaryExpression)expr;
-
-            if (be.op.kind == OperatorKind.plus)
+                import std.math : pow;
+                float n = dl.denominator > 0 ? 4.0f / dl.denominator.to!float : 0.0f;
+                return n * (2.0f - pow(0.5f, dl.dot.to!float));
+            },
+            (TimeLiteral tl) => _timeEval(startTick, tl),
+            (UnaryExpression ue)
             {
-                return evaluate(startTick, be.left) + evaluate(startTick, be.right);
-            }
-            else if (be.op.kind == OperatorKind.minus)
+                final switch (ue.op.kind)
+                {
+                case OperatorKind.plus:
+                    return +evaluate(startTick, ue.operand);
+
+                case OperatorKind.minus:
+                    return -evaluate(startTick, ue.operand);
+
+                case OperatorKind.star:
+                case OperatorKind.slash:
+                    assert(false);
+                }
+            },
+            (BinaryExpression be)
             {
-                return evaluate(startTick, be.left) - evaluate(startTick, be.right);
+                if (be.op.kind == OperatorKind.plus)
+                {
+                    return evaluate(startTick, be.left) + evaluate(startTick, be.right);
+                }
+                else if (be.op.kind == OperatorKind.minus)
+                {
+                    return evaluate(startTick, be.left) - evaluate(startTick, be.right);
+                }
+                else
+                {
+                    _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
+                    return 0.0f;
+                }
+            },
+            (x)
+            {
+                _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
+                return 0.0f;
             }
-
-            goto case;
-
-        case ExpressionKind.identifier:
-        case ExpressionKind.stringLiteral:
-        case ExpressionKind.callExpression:
-            _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
-            return 0.0f;
-        }
+        );
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
@@ -88,65 +82,56 @@ package final class NumericExpressionEvaluator(T)
     public T evaluate(Expression expr)
     {
         assert(expr !is null);
-
-        final switch (expr.kind)
-        {
-        case ExpressionKind.integerLiteral:
-            auto il = cast(IntegerLiteral)expr;
-            return il.value;
-
-        case ExpressionKind.unaryExpression:
-            auto ue = cast(UnaryExpression)expr;
-
-            final switch (ue.op.kind)
+        return expr.visit!(
+            (IntegerLiteral il) => il.value,
+            (UnaryExpression ue)
             {
-            case OperatorKind.plus:
-                return +evaluate(ue.operand);
+                final switch (ue.op.kind)
+                {
+                case OperatorKind.plus:
+                    return +evaluate(ue.operand);
 
-            case OperatorKind.minus:
-                return -evaluate(ue.operand);
+                case OperatorKind.minus:
+                    return -evaluate(ue.operand);
 
-            case OperatorKind.star:
-            case OperatorKind.slash:
-                assert(false);
-            }
-
-        case ExpressionKind.binaryExpression:
-            auto be = cast(BinaryExpression)expr;
-
-            final switch (be.op.kind)
+                case OperatorKind.star:
+                case OperatorKind.slash:
+                    assert(false);
+                }
+            },
+            (BinaryExpression be)
             {
-            case OperatorKind.plus:
-                return evaluate(be.left) + evaluate(be.right);
-
-            case OperatorKind.minus:
-                return evaluate(be.left) - evaluate(be.right);
-
-            case OperatorKind.star:
-                return evaluate(be.left) * evaluate(be.right);
-
-            case OperatorKind.slash:
-                T r = evaluate(be.right);
-
-                if (r == 0)
+                final switch (be.op.kind)
                 {
-                    _diagnosticsHandler.divideBy0(be.location);
-                    return evaluate(be.left);
+                case OperatorKind.plus:
+                    return evaluate(be.left) + evaluate(be.right);
+
+                case OperatorKind.minus:
+                    return evaluate(be.left) - evaluate(be.right);
+
+                case OperatorKind.star:
+                    return evaluate(be.left) * evaluate(be.right);
+
+                case OperatorKind.slash:
+                    T r = evaluate(be.right);
+
+                    if (r == 0)
+                    {
+                        _diagnosticsHandler.divideBy0(be.location);
+                        return evaluate(be.left);
+                    }
+                    else
+                    {
+                        return evaluate(be.left) / evaluate(be.right);
+                    }
                 }
-                else
-                {
-                    return evaluate(be.left) / evaluate(be.right);
-                }
+            },
+            (x)
+            {
+                _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
+                return 0;
             }
-
-        case ExpressionKind.identifier:
-        case ExpressionKind.durationLiteral:
-        case ExpressionKind.timeLiteral:
-        case ExpressionKind.stringLiteral:
-        case ExpressionKind.callExpression:
-            _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
-            return 0;
-        }
+        );
     }
 
     private DiagnosticsHandler _diagnosticsHandler;

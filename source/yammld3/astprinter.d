@@ -52,44 +52,10 @@ public final class ASTPrinter(Writer)
     private void printCommand(Command c)
     {
         assert(c !is null);
-
-        final switch (c.kind)
-        {
-        case CommandKind.basic:
-            printBasicCommand(cast(BasicCommand)c);
-            break;
-
-        case CommandKind.note:
-            printNoteCommand(cast(NoteCommand)c);
-            break;
-
-        case CommandKind.extension:
-            printExtensionCommand(cast(ExtensionCommand)c);
-            break;
-
-        case CommandKind.scoped:
-            printScopedCommand(cast(ScopedCommand)c);
-            break;
-
-        case CommandKind.modifier:
-            printModifierCommand(cast(ModifierCommand)c);
-            break;
-
-        case CommandKind.repeat:
-            printRepeatCommand(cast(RepeatCommand)c);
-            break;
-
-        case CommandKind.tuplet:
-            printTupletCommand(cast(TupletCommand)c);
-            break;
-
-        case CommandKind.chord:
-            printChordCommand(cast(ChordCommand)c);
-            break;
-        }
+        c.visit!(x => printCommand(x));
     }
 
-    private void printBasicCommand(BasicCommand c)
+    private void printCommand(BasicCommand c)
     {
         import yammld3.common : OptionalSign;
         assert(c !is null);
@@ -124,7 +90,7 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printNoteCommand(NoteCommand c)
+    private void printCommand(NoteCommand c)
     {
         import std.array : appender;
         import yammld3.common : KeyName;
@@ -192,7 +158,7 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printExtensionCommand(ExtensionCommand c)
+    private void printCommand(ExtensionCommand c)
     {
         assert(c !is null);
 
@@ -218,7 +184,7 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printScopedCommand(ScopedCommand c)
+    private void printCommand(ScopedCommand c)
     {
         assert(c !is null);
 
@@ -239,7 +205,7 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printModifierCommand(ModifierCommand c)
+    private void printCommand(ModifierCommand c)
     {
         assert(c !is null);
 
@@ -249,7 +215,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printRepeatCommand(RepeatCommand c)
+    private void printCommand(RepeatCommand c)
     {
         assert(c !is null);
 
@@ -263,7 +229,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printTupletCommand(TupletCommand c)
+    private void printCommand(TupletCommand c)
     {
         assert(c !is null);
 
@@ -280,7 +246,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printChordCommand(ChordCommand c)
+    private void printCommand(ChordCommand c)
     {
         assert(c !is null);
 
@@ -359,62 +325,28 @@ public final class ASTPrinter(Writer)
     private void printExpression(Expression expr)
     {
         assert(expr !is null);
-
-        final switch (expr.kind)
-        {
-        case ExpressionKind.identifier:
-            printIdentifier(cast(Identifier)expr);
-            break;
-
-        case ExpressionKind.integerLiteral:
-            printIntegerLiteral(cast(IntegerLiteral)expr);
-            break;
-
-        case ExpressionKind.stringLiteral:
-            printStringLiteral(cast(StringLiteral)expr);
-            break;
-
-        case ExpressionKind.timeLiteral:
-            printTimeLiteral(cast(TimeLiteral)expr);
-            break;
-
-        case ExpressionKind.durationLiteral:
-            printDurationLiteral(cast(DurationLiteral)expr);
-            break;
-
-        case ExpressionKind.unaryExpression:
-            printUnaryExpression(cast(UnaryExpression)expr);
-            break;
-
-        case ExpressionKind.binaryExpression:
-            printBinaryExpression(cast(BinaryExpression)expr);
-            break;
-
-        case ExpressionKind.callExpression:
-            printCallExpression(cast(CallExpression)expr);
-            break;
-        }
+        expr.visit!(x => printExpression(x));
     }
 
-    private void printIdentifier(Identifier id)
+    private void printExpression(Identifier id)
     {
         assert(id !is null);
         _writer.writeElement("Identifier", [XMLAttribute("Value", id.value)]);
     }
 
-    private void printIntegerLiteral(IntegerLiteral il)
+    private void printExpression(IntegerLiteral il)
     {
         assert(il !is null);
         _writer.writeElement("IntegerLiteral", [XMLAttribute("Value", il.value.text)]);
     }
 
-    private void printStringLiteral(StringLiteral sl)
+    private void printExpression(StringLiteral sl)
     {
         assert(sl !is null);
         _writer.writeElement("StringLiteral", [XMLAttribute("Value", sl.value)]);
     }
 
-    private void printTimeLiteral(TimeLiteral tl)
+    private void printExpression(TimeLiteral tl)
     {
         assert(tl !is null);
         _writer.writeElement(
@@ -427,7 +359,7 @@ public final class ASTPrinter(Writer)
         );
     }
 
-    private void printDurationLiteral(DurationLiteral dl)
+    private void printExpression(DurationLiteral dl)
     {
         assert(dl !is null);
         _writer.writeElement(
@@ -439,7 +371,7 @@ public final class ASTPrinter(Writer)
         );
     }
 
-    private void printUnaryExpression(UnaryExpression expr)
+    private void printExpression(UnaryExpression expr)
     {
         assert(expr !is null);
 
@@ -452,7 +384,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printBinaryExpression(BinaryExpression expr)
+    private void printExpression(BinaryExpression expr)
     {
         assert(expr !is null);
 
@@ -469,7 +401,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printCallExpression(CallExpression expr)
+    private void printExpression(CallExpression expr)
     {
         assert(expr !is null);
 

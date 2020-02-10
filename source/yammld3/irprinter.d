@@ -96,41 +96,7 @@ public final class IRPrinter(Writer)
     private void printCommand(Command c)
     {
         assert(c !is null);
-
-        final switch (c.kind)
-        {
-        case IRKind.note:
-            printCommand(cast(Note)c);
-            break;
-
-        case IRKind.controlChange:
-            printCommand(cast(ControlChange)c);
-            break;
-
-        case IRKind.programChange:
-            printCommand(cast(ProgramChange)c);
-            break;
-
-        case IRKind.setTempo:
-            printCommand(cast(SetTempoEvent)c);
-            break;
-
-        case IRKind.setMeter:
-            printCommand(cast(SetMeterEvent)c);
-            break;
-
-        case IRKind.setKeySig:
-            printCommand(cast(SetKeySigEvent)c);
-            break;
-
-        case IRKind.textMetaEvent:
-            printCommand(cast(TextMetaEvent)c);
-            break;
-
-        case IRKind.systemReset:
-            printCommand(cast(SystemReset)c);
-            break;
-        }
+        c.visit!(x => printCommand(x));
     }
 
     private void printCommand(Note note)

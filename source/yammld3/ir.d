@@ -361,6 +361,46 @@ public final class SystemReset : Command
     private SystemKind _systemKind;
 }
 
+public auto visit(Handlers...)(Command c)
+{
+    assert(c !is null);
+
+    static struct Overloaded
+    {
+        static foreach (h; Handlers)
+        {
+            alias opCall = h;
+        }
+    }
+
+    final switch (c.kind)
+    {
+    case IRKind.note:
+        return Overloaded(cast(Note)c);
+
+    case IRKind.controlChange:
+        return Overloaded(cast(ControlChange)c);
+
+    case IRKind.programChange:
+        return Overloaded(cast(ProgramChange)c);
+
+    case IRKind.setTempo:
+        return Overloaded(cast(SetTempoEvent)c);
+
+    case IRKind.setMeter:
+        return Overloaded(cast(SetMeterEvent)c);
+
+    case IRKind.setKeySig:
+        return Overloaded(cast(SetKeySigEvent)c);
+
+    case IRKind.textMetaEvent:
+        return Overloaded(cast(TextMetaEvent)c);
+
+    case IRKind.systemReset:
+        return Overloaded(cast(SystemReset)c);
+    }
+}
+
 public enum int conductorChannel = -1;
 public enum int virtualChannel = -2;
 

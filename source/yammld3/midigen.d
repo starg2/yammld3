@@ -111,41 +111,7 @@ public final class MIDIGenerator
         foreach (c; track.commands)
         {
             assert(c !is null);
-
-            final switch (c.kind)
-            {
-            case IRKind.note:
-                compileCommand(events, cast(Note)c);
-                break;
-
-            case IRKind.controlChange:
-                compileCommand(events, cast(ControlChange)c);
-                break;
-
-            case IRKind.programChange:
-                compileCommand(events, cast(ProgramChange)c);
-                break;
-
-            case IRKind.setTempo:
-                compileCommand(events, cast(SetTempoEvent)c);
-                break;
-
-            case IRKind.setMeter:
-                compileCommand(events, cast(SetMeterEvent)c);
-                break;
-
-            case IRKind.setKeySig:
-                compileCommand(events, cast(SetKeySigEvent)c);
-                break;
-
-            case IRKind.textMetaEvent:
-                compileCommand(events, cast(TextMetaEvent)c);
-                break;
-
-            case IRKind.systemReset:
-                compileCommand(events, cast(SystemReset)c);
-                break;
-            }
+            c.visit!(x => compileCommand(events, x));
         }
 
         mt.events.sort!((a, b) => a.time < b.time, SwapStrategy.stable);

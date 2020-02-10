@@ -59,45 +59,12 @@ public final class IRGenerator
 
     private void compileCommand(MultiTrackBuilder tb, ast.Command c)
     {
+        import yammld3.ast : visit;
         assert(c !is null);
-
-        final switch (c.kind)
-        {
-        case ast.CommandKind.basic:
-            compileBasicCommand(tb, cast(ast.BasicCommand)c);
-            break;
-
-        case ast.CommandKind.note:
-            compileNoteCommand(tb, cast(ast.NoteCommand)c);
-            break;
-
-        case ast.CommandKind.extension:
-            compileExtensionCommand(tb, cast(ast.ExtensionCommand)c);
-            break;
-
-        case ast.CommandKind.scoped:
-            compileScopedCommand(tb, cast(ast.ScopedCommand)c);
-            break;
-
-        case ast.CommandKind.modifier:
-            compileModifierCommand(tb, cast(ast.ModifierCommand)c);
-            break;
-
-        case ast.CommandKind.repeat:
-            compileRepeatCommand(tb, cast(ast.RepeatCommand)c);
-            break;
-
-        case ast.CommandKind.tuplet:
-            compileTupletCommand(tb, cast(ast.TupletCommand)c);
-            break;
-
-        case ast.CommandKind.chord:
-            compileChordCommand(tb, cast(ast.ChordCommand)c);
-            break;
-        }
+        c.visit!(x => compileCommand(tb, x));
     }
 
-    private void compileBasicCommand(MultiTrackBuilder tb, ast.BasicCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.BasicCommand c)
     {
         assert(c !is null);
 
@@ -178,7 +145,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileNoteCommand(MultiTrackBuilder tb, ast.NoteCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.NoteCommand c)
     {
         assert(c !is null);
 
@@ -362,7 +329,7 @@ public final class IRGenerator
         tb.setTrackProperty(kind, sign, value);
     }
 
-    private void compileExtensionCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
 
@@ -495,7 +462,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileScopedCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
     {
         assert(c !is null);
         auto context = tb.saveContext();
@@ -503,7 +470,7 @@ public final class IRGenerator
         tb.restoreContext(context);
     }
 
-    private void compileModifierCommand(MultiTrackBuilder tb, ast.ModifierCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.ModifierCommand c)
     {
         // Currently, modifier commands are available exclusively for note-specific track property commands
         // (e.g. `l` and `v`).
@@ -559,7 +526,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileRepeatCommand(MultiTrackBuilder tb, ast.RepeatCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.RepeatCommand c)
     {
         assert(c !is null);
 
@@ -584,7 +551,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileTupletCommand(MultiTrackBuilder tb, ast.TupletCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.TupletCommand c)
     {
         assert(c !is null);
         auto cb = tb.compositionBuilder;
@@ -611,7 +578,7 @@ public final class IRGenerator
         tb.restoreContext(context);
     }
 
-    private void compileChordCommand(MultiTrackBuilder tb, ast.ChordCommand c)
+    private void compileCommand(MultiTrackBuilder tb, ast.ChordCommand c)
     {
         assert(c !is null);
 
@@ -1808,7 +1775,7 @@ public final class IRGenerator
 
         if (bc !is null && bc.argument !is null)
         {
-            compileBasicCommand(tb, bc);
+            compileCommand(tb, bc);
         }
     }
 

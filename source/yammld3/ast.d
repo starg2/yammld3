@@ -343,6 +343,46 @@ public final class CallExpression : Expression
     private ExpressionList _parameters;
 }
 
+public auto visit(Handlers...)(Expression expr)
+{
+    assert(expr !is null);
+
+    static struct Overloaded
+    {
+        static foreach (h; Handlers)
+        {
+            alias opCall = h;
+        }
+    }
+
+    final switch (expr.kind)
+    {
+    case ExpressionKind.identifier:
+        return Overloaded(cast(Identifier)expr);
+
+    case ExpressionKind.integerLiteral:
+        return Overloaded(cast(IntegerLiteral)expr);
+
+    case ExpressionKind.stringLiteral:
+        return Overloaded(cast(StringLiteral)expr);
+
+    case ExpressionKind.timeLiteral:
+        return Overloaded(cast(TimeLiteral)expr);
+
+    case ExpressionKind.durationLiteral:
+        return Overloaded(cast(DurationLiteral)expr);
+
+    case ExpressionKind.unaryExpression:
+        return Overloaded(cast(UnaryExpression)expr);
+
+    case ExpressionKind.binaryExpression:
+        return Overloaded(cast(BinaryExpression)expr);
+
+    case ExpressionKind.callExpression:
+        return Overloaded(cast(CallExpression)expr);
+    }
+}
+
 public final class ExpressionListItem : ASTNode
 {
     public this(Expression value)
@@ -735,6 +775,46 @@ public final class ChordCommand : Command
     }
 
     private Command[] _children;
+}
+
+public auto visit(Handlers...)(Command c)
+{
+    assert(c !is null);
+
+    static struct Overloaded
+    {
+        static foreach (h; Handlers)
+        {
+            alias opCall = h;
+        }
+    }
+
+    final switch (c.kind)
+    {
+    case CommandKind.basic:
+        return Overloaded(cast(BasicCommand)c);
+
+    case CommandKind.note:
+        return Overloaded(cast(NoteCommand)c);
+
+    case CommandKind.extension:
+        return Overloaded(cast(ExtensionCommand)c);
+
+    case CommandKind.scoped:
+        return Overloaded(cast(ScopedCommand)c);
+
+    case CommandKind.modifier:
+        return Overloaded(cast(ModifierCommand)c);
+
+    case CommandKind.repeat:
+        return Overloaded(cast(RepeatCommand)c);
+
+    case CommandKind.tuplet:
+        return Overloaded(cast(TupletCommand)c);
+
+    case CommandKind.chord:
+        return Overloaded(cast(ChordCommand)c);
+    }
 }
 
 public final class CommandBlock : ASTNode
