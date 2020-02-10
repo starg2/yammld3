@@ -151,7 +151,7 @@ public struct SourceLocation
 
         assert(length <= source.contents.length);
     }
-    
+
     this(SourceLocation from, SourceLocation to)
     {
         assert(from.source is to.source);
@@ -229,15 +229,13 @@ public final class SourceManager
 
     private Source tryLoadSource(string path)
     {
-        import std.file : FileException;
-
         SourceInput input;
 
         try
         {
             input = new FileInput(path);
         }
-        catch (FileException)
+        catch (Exception)
         {
             return null;
         }
