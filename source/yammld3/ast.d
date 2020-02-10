@@ -27,12 +27,12 @@ public final class Operator : ASTNode
         _kind = kind;
     }
 
-    public override SourceLocation location()
+    public override @property SourceLocation location()
     {
         return _loc;
     }
 
-    public OperatorKind kind()
+    public @property OperatorKind kind()
     {
         return _kind;
     }
