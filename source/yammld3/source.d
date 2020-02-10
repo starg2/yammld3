@@ -223,8 +223,7 @@ public final class SourceManager
 
     private Source tryGetSource(string path)
     {
-        auto p = path in _pathToSourceMap;
-        return p is null ? null : *p;
+        return _pathToSourceMap.get(path, null);
     }
 
     private Source tryLoadSource(string path)
