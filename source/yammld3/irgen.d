@@ -703,7 +703,7 @@ public final class IRGenerator
 
         if (abs(time.data.get!float - cb.currentTime) > 1.0f / ticksPerQuarterNote / 2.0f)
         {
-            _diagnosticsHandler.timeAssertionFailed(time.location, "%" ~ c.name.value, cb.currentTime);
+            _diagnosticsHandler.timeAssertionFailed(time.location, "%" ~ c.name.value, time.data.get!float, cb.currentTime);
         }
     }
 

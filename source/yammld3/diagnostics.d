@@ -41,7 +41,7 @@ public interface DiagnosticsHandler
     void divideBy0(SourceLocation loc);
     void maxIsLessThanMin(SourceLocation minLoc, SourceLocation maxLoc, string context);
     void negativeStdDev(SourceLocation loc, string context);
-    void timeAssertionFailed(SourceLocation loc, string context, float currentTime);
+    void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime);
 
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
@@ -262,9 +262,11 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
-    public override void timeAssertionFailed(SourceLocation loc, string context, float currentTime)
+    public override void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime)
     {
-        writeMessage(loc, "error: '%s': time assertion failed; current time is %.4f", context, currentTime);
+        writeMessage(
+            loc, "error: '%s': time assertion failed; current time '%.4f' is different from expectation '%.4f'", context, actualTime, expectedTime
+        );
         incrementErrorCount();
     }
 
