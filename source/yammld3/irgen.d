@@ -392,6 +392,14 @@ public final class IRGenerator
             setKeySignature(tb.compositionBuilder, c);
             break;
 
+        case "lyrics":
+            addTextEventToConductorTrack(tb.compositionBuilder, ir.MetaEventKind.lyrics, c);
+            break;
+
+        case "marker":
+            addTextEventToConductorTrack(tb.compositionBuilder, ir.MetaEventKind.marker, c);
+            break;
+
         case "meter":
             setMeter(tb.compositionBuilder, c);
             break;
