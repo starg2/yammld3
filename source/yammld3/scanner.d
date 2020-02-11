@@ -56,7 +56,7 @@ package struct Scanner
     {
         return _sourceOffset;
     }
-    
+
     public bool scanString(string str)
     {
         import std.algorithm.searching : startsWith;

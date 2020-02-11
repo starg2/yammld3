@@ -49,7 +49,7 @@ c&d&e
     {
         %trackeffect(Bar) { n+3 }
 
-        // table syntax (not implemented yet)
+        // table syntax
         %table
         {
             l8  l16                l8             l16

@@ -543,7 +543,7 @@ public final class IRGenerator
             }
         }
 
-        foreach(i; 0..repeatCount)
+        foreach (i; 0..repeatCount)
         {
             auto context = tb.saveContext();
             compileCommand(tb, c.command);
