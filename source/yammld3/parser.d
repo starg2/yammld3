@@ -311,15 +311,27 @@ public final class Parser
                 auto arg = parseCommandArgumentExpression(s);
                 c = new RepeatCommand(SourceLocation(c.location.offset, s.sourceOffset), c, arg);
             }
-            else if (s.scanChar('/'))
-            {
-                //skipSpaces(s);
-                auto arg = parseCommandArgumentExpression(s);
-                c = new TupletCommand(SourceLocation(c.location.offset, s.sourceOffset), c, arg);
-            }
             else
             {
-                break;
+                //skipSpaces(s);
+
+                auto s2 = s.save;
+
+                // don't parse comments as a tuplet command
+                if (s2.scanString("//") || s2.scanString("/*"))
+                {
+                    break;
+                }
+
+                if (s.scanChar('/'))
+                {
+                    auto arg = parseCommandArgumentExpression(s);
+                    c = new TupletCommand(SourceLocation(c.location.offset, s.sourceOffset), c, arg);
+                }
+                else
+                {
+                    break;
+                }
             }
         }
 
