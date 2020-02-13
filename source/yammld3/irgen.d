@@ -428,6 +428,10 @@ public final class IRGenerator
             addTextEventToConductorTrack(tb.compositionBuilder, ir.MetaEventKind.sequenceName, c);
             break;
 
+        case "srand":
+            seedRNG(c);
+            break;
+
         case "table":
             compileTableCommand(tb, c);
             break;
@@ -1127,6 +1131,30 @@ public final class IRGenerator
         }
 
         cb.currentTime = endTime;
+    }
+
+    private void seedRNG(ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "srand");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.integer;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        _rng.seed(value.data.get!int);
     }
 
     private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
