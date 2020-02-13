@@ -49,7 +49,7 @@ package final class XMLWriter(Writer)
 
         if (!_wroteRoot)
         {
-            throw new XMLException("oot element was not written yet");
+            throw new XMLException("root element was not written yet");
         }
 
         writeNewLineAndIndent();
