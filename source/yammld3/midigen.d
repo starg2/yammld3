@@ -205,7 +205,7 @@ public final class MIDIGenerator
     private void compileCommand(RefAppender!(MIDIEvent[]) events, SetKeySigEvent ks)
     {
         MetaEventData mev;
-        mev.kind = MetaEventKind.setTempo;
+        mev.kind = MetaEventKind.keySignature;
         mev.bytes = [cast(ubyte)(countSharp(ks.tonic, ks.isMinor).to!byte), ks.isMinor.to!ubyte];
 
         MIDIEvent ev;
