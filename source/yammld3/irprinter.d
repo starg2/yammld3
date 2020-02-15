@@ -174,7 +174,7 @@ public final class IRPrinter(Writer)
 
         _writer.writeElement(
             "SetKeySigEvent",
-            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("KeySig", e.tonic.keyNameToString() ~ (e.isMinor ? " Maj" : " Min"))]
+            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("KeySig", e.tonic.keyNameToString() ~ (e.isMinor ? " Min" : " Maj"))]
         );
     }
 
