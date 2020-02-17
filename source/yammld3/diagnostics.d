@@ -47,6 +47,8 @@ public interface DiagnosticsHandler
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
 
+    void overflowInTrack(string filePath, string trackName);
+
     void tooManyTracks(string filePath);
     void vlvIsOutOfRange(string filePath);
 }
@@ -288,6 +290,13 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     {
         writeMessage(loc, "error: '%s': undefined key signature", context);
         incrementErrorCount();
+    }
+
+    public override void overflowInTrack(string filePath, string trackName)
+    {
+        _output.writefln("%s: fatal error: overflow error occurred while compiling track '%s'", filePath, trackName);
+        incrementErrorCount();
+        throw new FatalErrorException("overflow");
     }
 
     public override void tooManyTracks(string filePath)

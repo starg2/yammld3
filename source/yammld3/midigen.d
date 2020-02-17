@@ -2,7 +2,7 @@
 module yammld3.midigen;
 
 import std.algorithm.comparison : clamp, max;
-import std.conv : to;
+import std.conv : ConvOverflowException, to;
 import std.range.primitives;
 
 import yammld3.common;
@@ -87,18 +87,18 @@ public final class MIDIGenerator
 
         if (!conductorTrack.empty)
         {
-            tracks.put(compileTrack(conductorTrack.front));
+            tracks.put(compileTrack(composition.name, conductorTrack.front));
         }
 
         foreach (t; composition.tracks.filter!(a => a.channel >= 0))
         {
-            tracks.put(compileTrack(t));
+            tracks.put(compileTrack(composition.name, t));
         }
 
         return tracks[];
     }
 
-    private MIDITrack compileTrack(Track track)
+    private MIDITrack compileTrack(string fileName, Track track)
     {
         import std.algorithm.mutation : SwapStrategy;
         import std.algorithm.sorting : sort;
@@ -108,10 +108,17 @@ public final class MIDIGenerator
 
         auto events = appender(&mt.events);
 
-        foreach (c; track.commands)
+        try
         {
-            assert(c !is null);
-            c.visit!(x => compileCommand(events, x));
+            foreach (c; track.commands)
+            {
+                assert(c !is null);
+                c.visit!(x => compileCommand(events, x));
+            }
+        }
+        catch (ConvOverflowException e)
+        {
+            _diagnosticsHandler.overflowInTrack(fileName, track.name);
         }
 
         mt.events.sort!((a, b) => a.time < b.time, SwapStrategy.stable);
