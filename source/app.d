@@ -2,6 +2,8 @@
 import std.range.primitives;
 import std.stdio;
 
+import core.time;
+
 import yammld3;
 
 private class CommandLineErrorException : Exception
@@ -22,9 +24,10 @@ private enum OperationMode
 
 private struct CommandLineInfo
 {
-	OperationMode mode;
+	OperationMode mode = OperationMode.compile;
 	string inputFile;
 	string outputFile;
+	bool timePasses;
 }
 
 private CommandLineInfo parseCommandLine(string[] args)
@@ -59,6 +62,10 @@ private CommandLineInfo parseCommandLine(string[] args)
 			{
 			    arg = "-r";
 			}
+			else if (arg == "/t")
+			{
+			    arg = "-t";
+			}
 		}
 
 		if (arg == "-h" || arg == "-help" || arg == "--help")
@@ -92,6 +99,10 @@ private CommandLineInfo parseCommandLine(string[] args)
 		else if (arg == "-r")
 		{
 		    cmdInfo.mode = OperationMode.printIR;
+		}
+		else if (arg == "-t")
+		{
+		    cmdInfo.timePasses = true;
 		}
 		else
 		{
@@ -168,7 +179,26 @@ Options:
     -h                 print this help message
     -o <output file>   specify output file
     -r                 print intermediate representation
+    -t                 report timing information
 `);
+}
+
+private struct PassTimingInfo
+{
+    string name;
+    Duration duration;
+}
+
+private void printTimingInfo(PassTimingInfo[] info)
+{
+    stderr.writeln();
+
+    foreach (i; info)
+    {
+        stderr.writefln("%-12s: %10.3f ms", i.name, i.duration.total!"usecs" / 1000.0f);
+    }
+
+    stderr.writeln();
 }
 
 int main(string[] args)
@@ -185,6 +215,8 @@ int main(string[] args)
 		else
 		{
 			import std.exception : enforce, ErrnoException;
+
+			auto timeStart = MonoTime.currTime;
 
 			if (cmdInfo.inputFile.empty)
 			{
@@ -227,8 +259,14 @@ int main(string[] args)
 			    assert(false);
 			}
 
+			auto timeBeforeParse = MonoTime.currTime;
+			auto timingInfo = [PassTimingInfo("init", timeBeforeParse - timeStart)];
+
 			auto parser = new Parser(diagnosticsHandler);
 			auto astModule = parser.parseModule(src).enforce!FatalErrorException("failed to parse file");
+
+			auto timeAfterParse = MonoTime.currTime;
+			timingInfo ~= PassTimingInfo("parse", timeAfterParse - timeBeforeParse);
 
             if (cmdInfo.mode == OperationMode.printAST)
             {
@@ -240,11 +278,23 @@ int main(string[] args)
                 auto fileWriter = outFile.lockingTextWriter();
                 auto astPrinter = new ASTPrinter!(typeof(fileWriter))(fileWriter, "  ");
                 astPrinter.printModule(astModule);
+
+    			auto timeEnd = MonoTime.currTime;
+    			timingInfo ~= PassTimingInfo("print ast", timeEnd - timeAfterParse);
+
+    			if (cmdInfo.timePasses)
+    			{
+    			    printTimingInfo(timingInfo);
+    			}
+
                 return 0;
             }
 
             auto irGenerator = new IRGenerator(diagnosticsHandler);
             auto ir = irGenerator.compileModule(astModule).enforce!FatalErrorException("failed to generate IR");
+
+			auto timeAfterIRGen = MonoTime.currTime;
+			timingInfo ~= PassTimingInfo("irgen", timeAfterIRGen - timeAfterParse);
 
             if (cmdInfo.mode == OperationMode.printIR)
             {
@@ -256,11 +306,24 @@ int main(string[] args)
                 auto fileWriter = outFile.lockingTextWriter();
                 auto irPrinter = new IRPrinter!(typeof(fileWriter))(fileWriter, "  ");
                 irPrinter.printComposition(ir);
+
+    			auto timeEnd = MonoTime.currTime;
+                timingInfo ~= PassTimingInfo("print ir", timeEnd - timeAfterIRGen);
+
+    			if (cmdInfo.timePasses)
+    			{
+    			    printTimingInfo(timingInfo);
+    			}
+
+
                 return 0;
             }
 
             auto midiGenerator = new MIDIGenerator(diagnosticsHandler);
             auto midiEvents = midiGenerator.generateMIDI(ir).enforce!FatalErrorException("failed to generate MIDI events");
+
+			auto timeAfterMIDIGen = MonoTime.currTime;
+			timingInfo ~= PassTimingInfo("midigen", timeAfterMIDIGen - timeAfterIRGen);
 
             if (diagnosticsHandler.hasErrors)
             {
@@ -270,6 +333,14 @@ int main(string[] args)
 			auto fileWriter = outFile.lockingBinaryWriter();
 			auto midiWriter = new MIDIWriter!(typeof(fileWriter))(diagnosticsHandler, fileWriter);
 			midiWriter.writeMIDI(cmdInfo.inputFile, midiEvents);
+
+			auto timeEnd = MonoTime.currTime;
+			timingInfo ~= PassTimingInfo("write midi", timeEnd - timeAfterMIDIGen);
+
+			if (cmdInfo.timePasses)
+			{
+			    printTimingInfo(timingInfo);
+			}
 
 			return 0;
 		}
