@@ -932,13 +932,18 @@ public final class IRGenerator
         m.numerator = _intEvaluator.evaluate(be.left);
         m.denominator = _intEvaluator.evaluate(be.right);
 
-        if (m.denominator == 0)
+        if (!(1 <= m.denominator && m.denominator <= 64))
         {
-            _diagnosticsHandler.divideBy0(be.right.location);
+            _diagnosticsHandler.valueIsOutOfRange(be.right.location, "%" ~ c.name.value, 1, 64, m.denominator);
             return;
         }
 
-        // TODO: clamp value
+        if (!(1 <= m.numerator && m.numerator <= 64))
+        {
+            _diagnosticsHandler.valueIsOutOfRange(be.right.location, "%" ~ c.name.value, 1, 64, m.numerator);
+            return;
+        }
+
         cb.conductorTrackBuilder.setMeter(cb.currentTime, m);
     }
 
