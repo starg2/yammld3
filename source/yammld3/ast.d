@@ -118,8 +118,6 @@ public final class StringLiteral : Expression
 {
     public this(SourceLocation loc, string value)
     {
-        assert(value !is null);
-
         _loc = loc;
         _value = value;
     }
