@@ -56,6 +56,13 @@ private int countSharp(KeyName tonic, bool isMinor)
     }
 }
 
+private ubyte[] makeGSSysex(ubyte[] data)
+{
+    import std.algorithm.iteration : sum;
+    ubyte checksum = (128 - data.sum(0) % 128).to!ubyte;
+    return [0xF0, 0x41, 0x10, 0x42, 0x12].to!(ubyte[]) ~ data ~ checksum ~ 0xF7;
+}
+
 public final class MIDIGenerator
 {
     import std.array : appender, RefAppender;
@@ -113,7 +120,7 @@ public final class MIDIGenerator
             foreach (c; track.commands)
             {
                 assert(c !is null);
-                c.visit!(x => compileCommand(events, x));
+                c.visit!(x => compileCommand(events, track.channel, x));
             }
         }
         catch (ConvOverflowException e)
@@ -125,7 +132,7 @@ public final class MIDIGenerator
         return mt;
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, Note note)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, Note note)
     {
         if (!note.isRest)
         {
@@ -144,7 +151,7 @@ public final class MIDIGenerator
         }
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, ControlChange cc)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, ControlChange cc)
     {
         ControlChangeEventData cev;
         cev.code = cc.code;
@@ -156,7 +163,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, ProgramChange pc)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, ProgramChange pc)
     {
         MIDIEvent ev;
         ev.time = convertTime(pc.nominalTime);
@@ -178,7 +185,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, PitchBendEvent pb)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, PitchBendEvent pb)
     {
         PitchBendEventData pbev;
         pbev.bend = (pb.bend * (pb.bend <= 0.0f ? 8192.0f : 8191.0f) + 8192.0f).clamp(0, 16383).to!short;
@@ -189,7 +196,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, SetTempoEvent te)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SetTempoEvent te)
     {
         uint usecPerQuarter = (60.0f * 1_000_000.0f / te.tempo).to!uint;
 
@@ -203,7 +210,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, SetMeterEvent me)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SetMeterEvent me)
     {
         import core.bitop : bsr;
 
@@ -220,7 +227,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, SetKeySigEvent ks)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SetKeySigEvent ks)
     {
         MetaEventData mev;
         mev.kind = MetaEventKind.keySignature;
@@ -232,7 +239,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, TextMetaEvent tm)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, TextMetaEvent tm)
     {
         MetaEventData mev;
         mev.kind = tm.metaEventKind;
@@ -244,7 +251,7 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
-    private void compileCommand(RefAppender!(MIDIEvent[]) events, SystemReset sr)
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SystemReset sr)
     {
         SysExEventData sysex;
 
@@ -265,6 +272,43 @@ public final class MIDIGenerator
 
         MIDIEvent ev;
         ev.time = convertTime(sr.nominalTime);
+        ev.data = MIDIEventData(sysex);
+        events.put(ev);
+    }
+
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectOn ie)
+    {
+        SysExEventData sysex;
+        sysex.bytes = makeGSSysex(
+            [0x40, channel == 9 ? 0x40 : channel < 9 ? 0x41 + channel : 0x40 + channel, 0x22, ie.on ? 0x01 : 0x00].to!(ubyte[])
+        );
+
+        MIDIEvent ev;
+        ev.time = convertTime(ie.nominalTime);
+        ev.data = MIDIEventData(sysex);
+        events.put(ev);
+    }
+
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectSetType ie)
+    {
+        ushort type = cast(ushort)ie.type;
+
+        SysExEventData sysex;
+        sysex.bytes = makeGSSysex([0x40, 0x03, 0x00, type >> 8, type & 0xFF].to!(ubyte[]));
+
+        MIDIEvent ev;
+        ev.time = convertTime(ie.nominalTime);
+        ev.data = MIDIEventData(sysex);
+        events.put(ev);
+    }
+
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectSetParam ie)
+    {
+        SysExEventData sysex;
+        sysex.bytes = makeGSSysex([0x40, 0x03, ie.index + 0x03, ie.value].to!(ubyte[]));
+
+        MIDIEvent ev;
+        ev.time = convertTime(ie.nominalTime);
         ev.data = MIDIEventData(sysex);
         events.put(ev);
     }

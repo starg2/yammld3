@@ -14,7 +14,10 @@ public enum IRKind
     setMeter,
     setKeySig,
     textMetaEvent,
-    systemReset
+    systemReset,
+    gsInsertionEffectOn,
+    gsInsertionEffectSetType,
+    gsInsertionEffectSetParam
 }
 
 public interface Command
@@ -69,19 +72,9 @@ public final class Note : Command
         return _noteInfo.get;
     }
 
-    package @property void noteInfo(NoteInfo ni)
-    {
-        _noteInfo = ni;
-    }
-
     public @property float nominalDuration()
     {
         return _nominalDuration;
-    }
-
-    package @property void nominalDuration(float d)
-    {
-        _nominalDuration = d;
     }
 
     private float _nominalTime;
@@ -389,6 +382,166 @@ public final class SystemReset : Command
     private SystemKind _systemKind;
 }
 
+public final class GSInsertionEffectOn : Command
+{
+    public this(float nominalTime, bool on)
+    {
+        _nominalTime = nominalTime;
+        _on = on;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.gsInsertionEffectOn;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property bool on()
+    {
+        return _on;
+    }
+
+    private float _nominalTime;
+    private bool _on;
+}
+
+// http://www.eiji-s.info/88proie.html
+public enum GSInsertionEffectType : ushort
+{
+    thru = 0x0000,
+    stereoEQ = 0x0100,
+    spectrum = 0x0101,
+    enhancer = 0x0102,
+    humanizer = 0x0103,
+    overdrive = 0x0110,
+    distortion = 0x0111,
+    phaser = 0x0120,
+    autoWah = 0x0121,
+    rotary = 0x0122,
+    stereoFlanger = 0x0123,
+    stepFlanger = 0x0124,
+    tremolo = 0x0125,
+    autoPan = 0x0126,
+    compressor = 0x0130,
+    limiter = 0x0131,
+    hexaChorus = 0x0140,
+    tremoloChorus = 0x0141,
+    stereoChorus = 0x0142,
+    spaceD = 0x0143,
+    _3dChorus = 0x0144,
+    stereoDelay = 0x0150,
+    modDelay = 0x0151,
+    _3TapDelay = 0x0152,
+    _4TapDelay = 0x0153,
+    tmCtrlDelay = 0x0154,
+    reverb = 0x0155,
+    gateReverb = 0x0156,
+    _3dDelay = 0x0157,
+    _2PitchShifter = 0x0160,
+    fbPShifter = 0x0161,
+    _3dAuto = 0x0170,
+    _3dManual = 0x0171,
+    loFi1 = 0x0172,
+    loFi2 = 0x0173,
+    odChorus = 0x0200,
+    odFlanger = 0x0201,
+    odDelay = 0x0202,
+    dsChorus = 0x0203,
+    dsFlanger = 0x0204,
+    dsDelay = 0x0205,
+    ehChorus = 0x0206,
+    ehFlanger = 0x0207,
+    ehDelay = 0x0208,
+    choDelay = 0x0209,
+    flDelay = 0x020A,
+    choFlanger = 0x020B,
+    rotaryMulti = 0x0300,
+    gtrMulti1 = 0x0400,
+    gtrMulti2 = 0x0401,
+    gtrMulti3 = 0x0402,
+    cleanGtMulti1 = 0x0403,
+    cleanGtMulti2 = 0x0404,
+    bassMulti = 0x0405,
+    rhodesMulti = 0x0406,
+    keyboardMulti = 0x0500,
+    choPlusDelay = 0x1100,
+    flPlusDelay = 0x1101,
+    choPlusFlanger = 0x1102,
+    od1PlusOd2 = 0x1103,
+    odPlusRotary = 0x1104,
+    odPlusPhaser = 0x1105,
+    odPlusAutoWah = 0x1106,
+    phPlusRotary = 0x1107,
+    phPlusAutoWah = 0x1108
+}
+
+public final class GSInsertionEffectSetType : Command
+{
+    public this(float nominalTime, GSInsertionEffectType type)
+    {
+        _nominalTime = nominalTime;
+        _type = type;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.gsInsertionEffectSetType;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property GSInsertionEffectType type()
+    {
+        return _type;
+    }
+
+    private float _nominalTime;
+    private GSInsertionEffectType _type;
+}
+
+public final class GSInsertionEffectSetParam : Command
+{
+    public this(float nominalTime, byte index, byte value)
+    {
+        assert(0 <= index && index < 20);
+
+        _nominalTime = nominalTime;
+        _index = index;
+        _value = value;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.gsInsertionEffectSetParam;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property byte index()
+    {
+        return _index;
+    }
+
+    public @property byte value()
+    {
+        return _value;
+    }
+
+    private float _nominalTime;
+    private byte _index;    // 0-based
+    private byte _value;
+}
+
 public auto visit(Handlers...)(Command c)
 {
     assert(c !is null);
@@ -429,6 +582,15 @@ public auto visit(Handlers...)(Command c)
 
     case IRKind.systemReset:
         return Overloaded(cast(SystemReset)c);
+
+    case IRKind.gsInsertionEffectOn:
+        return Overloaded(cast(GSInsertionEffectOn)c);
+
+    case IRKind.gsInsertionEffectSetType:
+        return Overloaded(cast(GSInsertionEffectSetType)c);
+
+    case IRKind.gsInsertionEffectSetParam:
+        return Overloaded(cast(GSInsertionEffectSetParam)c);
     }
 }
 

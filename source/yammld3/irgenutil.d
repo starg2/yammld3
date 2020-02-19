@@ -3,6 +3,7 @@ module yammld3.irgenutil;
 
 import std.array;
 import std.conv : to;
+import std.typecons : Nullable;
 import std.variant;
 
 import yammld3.common;
@@ -158,22 +159,10 @@ private final class TrackBuilder
         return new Track(_name, _channel, _commands[]);
     }
 
-    public void setProgram(ProgramChange pc)
+    public void putCommand(Command c)
     {
         flush();
-        _commands.put(pc);
-    }
-
-    public void setControlChange(ControlChange cc)
-    {
-        flush();
-        _commands.put(cc);
-    }
-
-    public void setPitchBend(PitchBendEvent pb)
-    {
-        flush();
-        _commands.put(pb);
+        _commands.put(c);
     }
 
     public void putNote(int noteCount, float time, Note note)
@@ -190,10 +179,12 @@ private final class TrackBuilder
             noteInfo.timeShift += _context.timeShift.getValueFor(noteCount, time);
             noteInfo.gateTime += _context.gateTime.getValueFor(noteCount, time);
 
-            note.noteInfo = noteInfo;
+            _queuedNote = new Note(note.nominalTime, noteInfo, note.nominalDuration);
         }
-
-        _queuedNote = note;
+        else
+        {
+            _queuedNote = note;
+        }
     }
 
     public bool extendPreviousNote(int noteCount, float time, float duration)
@@ -210,10 +201,13 @@ private final class TrackBuilder
             noteInfo.lastNominalDuration = duration;
             noteInfo.gateTime = _context.gateTime.getValueFor(noteCount, time);
 
-            _queuedNote.noteInfo = noteInfo;
+            _queuedNote = new Note(_queuedNote.nominalTime, noteInfo, _queuedNote.nominalDuration + duration);
+        }
+        else
+        {
+            _queuedNote = new Note(_queuedNote.nominalTime, _queuedNote.nominalDuration + duration);
         }
 
-        _queuedNote.nominalDuration = _queuedNote.nominalDuration + duration;
         return true;
     }
 
@@ -564,27 +558,11 @@ package final class MultiTrackBuilder
         }
     }
 
-    public void setProgram(ProgramChange pc)
+    public void putCommand(Command c)
     {
         foreach (t; _tracks)
         {
-            t.setProgram(pc);
-        }
-    }
-
-    public void setControlChange(ControlChange cc)
-    {
-        foreach (t; _tracks)
-        {
-            t.setControlChange(cc);
-        }
-    }
-
-    public void setPitchBend(PitchBendEvent pb)
-    {
-        foreach (t; _tracks)
-        {
-            t.setPitchBend(pb);
+            t.putCommand(c);
         }
     }
 
@@ -785,5 +763,209 @@ package SetKeySigEvent makeKeySigEvent(float time, string text)
 
     default:
         return null;
+    }
+}
+
+package Nullable!GSInsertionEffectType getGSInsertionEffectTypeFromString(string str)
+{
+    switch (str)
+    {
+    case "Thru":
+        return typeof(return)(GSInsertionEffectType.thru);
+
+    case "Stereo-EQ":
+        return typeof(return)(GSInsertionEffectType.stereoEQ);
+
+    case "Spectrum":
+        return typeof(return)(GSInsertionEffectType.spectrum);
+
+    case "Enhancer":
+        return typeof(return)(GSInsertionEffectType.enhancer);
+
+    case "Humanizer":
+        return typeof(return)(GSInsertionEffectType.humanizer);
+
+    case "Overdrive":
+        return typeof(return)(GSInsertionEffectType.overdrive);
+
+    case "Distortion":
+        return typeof(return)(GSInsertionEffectType.distortion);
+
+    case "Phaser":
+        return typeof(return)(GSInsertionEffectType.phaser);
+
+    case "Auto Wah":
+        return typeof(return)(GSInsertionEffectType.autoWah);
+
+    case "Rotary":
+        return typeof(return)(GSInsertionEffectType.rotary);
+
+    case "Stereo Flanger":
+        return typeof(return)(GSInsertionEffectType.stereoFlanger);
+
+    case "Step Flanger":
+        return typeof(return)(GSInsertionEffectType.stepFlanger);
+
+    case "Tremolo":
+        return typeof(return)(GSInsertionEffectType.tremolo);
+
+    case "Auto Pan":
+        return typeof(return)(GSInsertionEffectType.autoPan);
+
+    case "Compressor":
+        return typeof(return)(GSInsertionEffectType.compressor);
+
+    case "Limiter":
+        return typeof(return)(GSInsertionEffectType.limiter);
+
+    case "Hexa Chorus":
+        return typeof(return)(GSInsertionEffectType.hexaChorus);
+
+    case "Tremolo Chorus":
+        return typeof(return)(GSInsertionEffectType.tremoloChorus);
+
+    case "Stereo Chorus":
+        return typeof(return)(GSInsertionEffectType.stereoChorus);
+
+    case "Space D":
+        return typeof(return)(GSInsertionEffectType.spaceD);
+
+    case "3D Chorus":
+        return typeof(return)(GSInsertionEffectType._3dChorus);
+
+    case "Stereo Delay":
+        return typeof(return)(GSInsertionEffectType.stereoDelay);
+
+    case "Mod Delay":
+        return typeof(return)(GSInsertionEffectType.modDelay);
+
+    case "3 Tap Delay":
+        return typeof(return)(GSInsertionEffectType._3TapDelay);
+
+    case "4 Tap Delay":
+        return typeof(return)(GSInsertionEffectType._4TapDelay);
+
+    case "Tm Ctrl Delay":
+        return typeof(return)(GSInsertionEffectType.tmCtrlDelay);
+
+    case "Reverb":
+        return typeof(return)(GSInsertionEffectType.reverb);
+
+    case "Gate Reverb":
+        return typeof(return)(GSInsertionEffectType.gateReverb);
+
+    case "3D Delay":
+        return typeof(return)(GSInsertionEffectType._3dDelay);
+
+    case "2 Pitch Shifter":
+        return typeof(return)(GSInsertionEffectType._2PitchShifter);
+
+    case "Fb P.Shifter":
+        return typeof(return)(GSInsertionEffectType.fbPShifter);
+
+    case "3D Auto":
+        return typeof(return)(GSInsertionEffectType._3dAuto);
+
+    case "3D Manual":
+        return typeof(return)(GSInsertionEffectType._3dManual);
+
+    case "Lo-Fi 1":
+        return typeof(return)(GSInsertionEffectType.loFi1);
+
+    case "Lo-Fi 2":
+        return typeof(return)(GSInsertionEffectType.loFi2);
+
+    case "OD->Chorus":
+        return typeof(return)(GSInsertionEffectType.odChorus);
+
+    case "OD->Flanger":
+        return typeof(return)(GSInsertionEffectType.odFlanger);
+
+    case "OD->Delay":
+        return typeof(return)(GSInsertionEffectType.odDelay);
+
+    case "DS->Chorus":
+        return typeof(return)(GSInsertionEffectType.dsChorus);
+
+    case "DS->Flanger":
+        return typeof(return)(GSInsertionEffectType.dsFlanger);
+
+    case "DS->Delay":
+        return typeof(return)(GSInsertionEffectType.dsDelay);
+
+    case "EH->Chorus":
+        return typeof(return)(GSInsertionEffectType.ehChorus);
+
+    case "EH->Flanger":
+        return typeof(return)(GSInsertionEffectType.ehFlanger);
+
+    case "EH->Delay":
+        return typeof(return)(GSInsertionEffectType.ehDelay);
+
+    case "Cho->Delay":
+        return typeof(return)(GSInsertionEffectType.choDelay);
+
+    case "FL->Delay":
+        return typeof(return)(GSInsertionEffectType.flDelay);
+
+    case "Cho->Flanger":
+        return typeof(return)(GSInsertionEffectType.choFlanger);
+
+    case "Rotary Multi":
+        return typeof(return)(GSInsertionEffectType.rotaryMulti);
+
+    case "GTR Multi 1":
+        return typeof(return)(GSInsertionEffectType.gtrMulti1);
+
+    case "GTR Multi 2":
+        return typeof(return)(GSInsertionEffectType.gtrMulti2);
+
+    case "GTR Multi 3":
+        return typeof(return)(GSInsertionEffectType.gtrMulti3);
+
+    case "Clean Gt Multi 1":
+        return typeof(return)(GSInsertionEffectType.cleanGtMulti1);
+
+    case "Clean Gt Multi 2":
+        return typeof(return)(GSInsertionEffectType.cleanGtMulti2);
+
+    case "Bass Multi":
+        return typeof(return)(GSInsertionEffectType.bassMulti);
+
+    case "Rhodes Multi":
+        return typeof(return)(GSInsertionEffectType.rhodesMulti);
+
+    case "Keyboard Multi":
+        return typeof(return)(GSInsertionEffectType.keyboardMulti);
+
+    case "Cho/Delay":
+        return typeof(return)(GSInsertionEffectType.choPlusDelay);
+
+    case "FL/Delay":
+        return typeof(return)(GSInsertionEffectType.flPlusDelay);
+
+    case "Cho/Flanger":
+        return typeof(return)(GSInsertionEffectType.choPlusFlanger);
+
+    case "OD1/Od2":
+        return typeof(return)(GSInsertionEffectType.od1PlusOd2);
+
+    case "OD/Rotary":
+        return typeof(return)(GSInsertionEffectType.odPlusRotary);
+
+    case "OD/Phaser":
+        return typeof(return)(GSInsertionEffectType.odPlusPhaser);
+
+    case "OD/AutoWah":
+        return typeof(return)(GSInsertionEffectType.odPlusAutoWah);
+
+    case "PH/Rotary":
+        return typeof(return)(GSInsertionEffectType.phPlusRotary);
+
+    case "PH/AutoWah":
+        return typeof(return)(GSInsertionEffectType.phPlusAutoWah);
+
+    default:
+        return typeof(return).init;
     }
 }

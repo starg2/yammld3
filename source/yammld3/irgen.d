@@ -279,7 +279,7 @@ public final class IRGenerator
             _floatEvaluator.evaluate(c.argument) / 8192.0f
         );
 
-        tb.setPitchBend(pb);
+        tb.putCommand(pb);
     }
 
     private void setDuration(MultiTrackBuilder tb, SourceLocation loc, OptionalSign sign, ast.Expression arg)
@@ -405,6 +405,18 @@ public final class IRGenerator
 
         case "gm_reset":
             resetSystem(tb.compositionBuilder, ir.SystemKind.gm, c);
+            break;
+
+        case "gs_effect_on":
+            setGSInsertionEffectOn(tb, c);
+            break;
+
+        case "gs_effect_param":
+            setGSInsertionEffectParam(tb, c);
+            break;
+
+        case "gs_effect_type":
+            setGSInsertionEffectType(tb, c);
             break;
 
         case "gs_reset":
@@ -807,7 +819,7 @@ public final class IRGenerator
             value.data.get!byte
         );
 
-        tb.setControlChange(cc);
+        tb.putCommand(cc);
     }
 
     private void compileControlChangeCommand(MultiTrackBuilder tb, ir.ControlChangeCode code, ast.ExtensionCommand c)
@@ -836,7 +848,7 @@ public final class IRGenerator
             value.data.get!byte
         );
 
-        tb.setControlChange(cc);
+        tb.putCommand(cc);
     }
 
     private void compileControlChangeCommand(MultiTrackBuilder tb, ir.ControlChangeCode code, ast.BasicCommand c, bool isBinary)
@@ -868,7 +880,7 @@ public final class IRGenerator
             isBinary && value.get > 0 ? 127 : value.get
         );
 
-        tb.setControlChange(cc);
+        tb.putCommand(cc);
     }
 
     private void resetSystem(CompositionBuilder cb, ir.SystemKind kind, ast.ExtensionCommand c)
@@ -886,6 +898,107 @@ public final class IRGenerator
         }
 
         cb.conductorTrackBuilder.resetSystem(cb.currentTime, kind);
+    }
+
+    private void setGSInsertionEffectOn(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "gs_effect_on");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue onFlag;
+        Option onFlagOpt;
+        onFlagOpt.key = "on";
+        onFlagOpt.valueType = OptionType.flag;
+        onFlagOpt.values = &onFlag;
+
+        OptionValue offFlag;
+        Option offFlagOpt;
+        offFlagOpt.key = "off";
+        offFlagOpt.valueType = OptionType.flag;
+        offFlagOpt.values = &offFlag;
+
+        if (!_optionProc.processOptions([onFlagOpt, offFlagOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        tb.putCommand(new ir.GSInsertionEffectOn(tb.compositionBuilder.currentTime, !offFlag.data.hasValue));
+    }
+
+    private void setGSInsertionEffectParam(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "gs_effect_param");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue indexValue;
+        Option indexValueOpt;
+        indexValueOpt.key = "index";
+        indexValueOpt.position = 0;
+        indexValueOpt.valueType = OptionType.int7b;
+        indexValueOpt.values = &indexValue;
+
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.key = "value";
+        valueOpt.position = 1;
+        valueOpt.valueType = OptionType.int7b;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([indexValueOpt, valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        if (indexValue.data.get!byte >= 20)
+        {
+            _diagnosticsHandler.valueIsOutOfRange(indexValue.location, "%" ~ c.name.value, 0, 20, indexValue.data.get!byte);
+            return;
+        }
+
+        tb.putCommand(
+            new ir.GSInsertionEffectSetParam(tb.compositionBuilder.currentTime, indexValue.data.get!byte, value.data.get!byte)
+        );
+    }
+
+    private void setGSInsertionEffectType(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "gs_effect_type");
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue typeValue;
+        Option typeValueOpt;
+        typeValueOpt.position = 0;
+        typeValueOpt.valueType = OptionType.text;
+        typeValueOpt.values = &typeValue;
+
+        if (!_optionProc.processOptions([typeValueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto type = getGSInsertionEffectTypeFromString(typeValue.data.get!string);
+
+        if (type.isNull)
+        {
+            _diagnosticsHandler.undefinedGSInsertionEffectType(typeValue.location, "%" ~ c.name.value);
+            return;
+        }
+
+        tb.putCommand(new ir.GSInsertionEffectSetType(tb.compositionBuilder.currentTime, type.get));
     }
 
     private void setTempo(CompositionBuilder cb, ast.ExtensionCommand c)
@@ -1076,7 +1189,7 @@ public final class IRGenerator
             prog.data.get!byte
         );
 
-        tb.setProgram(pc);
+        tb.putCommand(pc);
     }
 
     private void compileForkCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)

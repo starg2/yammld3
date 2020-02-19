@@ -46,6 +46,7 @@ public interface DiagnosticsHandler
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
+    void undefinedGSInsertionEffectType(SourceLocation loc, string context);
 
     void overflowInTrack(string filePath, string trackName);
 
@@ -289,6 +290,12 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void undefinedKeySignature(SourceLocation loc, string context)
     {
         writeMessage(loc, "error: '%s': undefined key signature", context);
+        incrementErrorCount();
+    }
+
+    public override void undefinedGSInsertionEffectType(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': undefined GS insertion effect type", context);
         incrementErrorCount();
     }
 
