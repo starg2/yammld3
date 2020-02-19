@@ -9,6 +9,7 @@ public enum IRKind
     note,
     controlChange,
     programChange,
+    pitchBend,
     setTempo,
     setMeter,
     setKeySig,
@@ -161,6 +162,33 @@ public final class ProgramChange : Command
     private byte _bankLSB;
     private byte _bankMSB;
     private byte _program;
+}
+
+public final class PitchBendEvent : Command
+{
+    public this(float nominalTime, float bend)
+    {
+        _nominalTime = nominalTime;
+        _bend = bend;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.pitchBend;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property float bend()
+    {
+        return _bend;
+    }
+
+    private float _nominalTime;
+    private float _bend;
 }
 
 public final class SetTempoEvent : Command
@@ -383,6 +411,9 @@ public auto visit(Handlers...)(Command c)
 
     case IRKind.programChange:
         return Overloaded(cast(ProgramChange)c);
+
+    case IRKind.pitchBend:
+        return Overloaded(cast(PitchBendEvent)c);
 
     case IRKind.setTempo:
         return Overloaded(cast(SetTempoEvent)c);

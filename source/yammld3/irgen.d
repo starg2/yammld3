@@ -84,8 +84,7 @@ public final class IRGenerator
             break;
 
         case "i":
-            // pitch bend
-            _diagnosticsHandler.notImplemented(c.location, "i command");
+            compilePitchBendCommand(tb, c);
             break;
 
         case "l":
@@ -257,6 +256,30 @@ public final class IRGenerator
 
         tb.extendPreviousNote(noteCount, curTime, duration);
         cb.currentTime = curTime + duration;
+    }
+
+    private void compilePitchBendCommand(MultiTrackBuilder tb, ast.BasicCommand c)
+    {
+        assert(c !is null);
+
+        if (c.sign != OptionalSign.none)
+        {
+            _diagnosticsHandler.unexpectedSign(c.location, c.name);
+            return;
+        }
+
+        if (c.argument is null)
+        {
+            _diagnosticsHandler.expectedArgument(c.location, c.name);
+            return;
+        }
+
+        auto pb = new ir.PitchBendEvent(
+            tb.compositionBuilder.currentTime,
+            _floatEvaluator.evaluate(c.argument) / 8192.0f
+        );
+
+        tb.setPitchBend(pb);
     }
 
     private void setDuration(MultiTrackBuilder tb, SourceLocation loc, OptionalSign sign, ast.Expression arg)

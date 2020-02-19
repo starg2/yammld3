@@ -170,6 +170,12 @@ private final class TrackBuilder
         _commands.put(cc);
     }
 
+    public void setPitchBend(PitchBendEvent pb)
+    {
+        flush();
+        _commands.put(pb);
+    }
+
     public void putNote(int noteCount, float time, Note note)
     {
         flush();
@@ -571,6 +577,14 @@ package final class MultiTrackBuilder
         foreach (t; _tracks)
         {
             t.setControlChange(cc);
+        }
+    }
+
+    public void setPitchBend(PitchBendEvent pb)
+    {
+        foreach (t; _tracks)
+        {
+            t.setPitchBend(pb);
         }
     }
 

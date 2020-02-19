@@ -294,7 +294,7 @@ public final class MIDIWriter(Writer)
         writeTime(time);
         put(
             _trackBuffer,
-            [0xE0 | (channelNumber & 0xF), data.bend & 0x7F, data.bend >> 7].to!(ubyte[])
+            [0xE0 | (channelNumber & 0xF), data.bend & 0x7F, (data.bend >> 7) & 0x7F].to!(ubyte[])
         );
     }
 

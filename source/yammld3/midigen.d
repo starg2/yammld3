@@ -178,6 +178,17 @@ public final class MIDIGenerator
         events.put(ev);
     }
 
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, PitchBendEvent pb)
+    {
+        PitchBendEventData pbev;
+        pbev.bend = (pb.bend * (pb.bend <= 0.0f ? 8192.0f : 8191.0f) + 8192.0f).clamp(0, 16383).to!short;
+
+        MIDIEvent ev;
+        ev.time = convertTime(pb.nominalTime);
+        ev.data = MIDIEventData(pbev);
+        events.put(ev);
+    }
+
     private void compileCommand(RefAppender!(MIDIEvent[]) events, SetTempoEvent te)
     {
         uint usecPerQuarter = (60.0f * 1_000_000.0f / te.tempo).to!uint;

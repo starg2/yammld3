@@ -83,7 +83,8 @@ public final class IRPrinter(Writer)
 
             foreach (c; track.commands)
             {
-                printCommand(c);
+                assert(c !is null);
+                c.visit!(x => printCommand(x));
             }
 
             _writer.endElement();
@@ -91,12 +92,6 @@ public final class IRPrinter(Writer)
 
         _writer.endElement();
         _writer.endDocument();
-    }
-
-    private void printCommand(Command c)
-    {
-        assert(c !is null);
-        c.visit!(x => printCommand(x));
     }
 
     private void printCommand(Note note)
@@ -145,6 +140,16 @@ public final class IRPrinter(Writer)
                 XMLAttribute("BankMSB", pc.bankMSB.text),
                 XMLAttribute("Program", pc.program.text)
             ]
+        );
+    }
+
+    private void printCommand(PitchBendEvent pb)
+    {
+        assert(pb !is null);
+
+        _writer.writeElement(
+            "PitchBendEvent",
+            [XMLAttribute("NominalTime", pb.nominalTime.text), XMLAttribute("Bend", pb.bend.text)]
         );
     }
 
