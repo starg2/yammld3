@@ -191,13 +191,17 @@ private struct PassTimingInfo
 
 private void printTimingInfo(PassTimingInfo[] info)
 {
+    assert(!info.empty);
+
     stderr.writeln();
 
-    foreach (i; info)
+    foreach (i; info[0..($ - 1)])
     {
         stderr.writefln("%-12s: %10.3f ms", i.name, i.duration.total!"usecs" / 1000.0f);
     }
 
+    stderr.writeln();
+    stderr.writefln("%-12s: %10.3f ms", info.back.name, info.back.duration.total!"usecs" / 1000.0f);
     stderr.writeln();
 }
 
@@ -260,7 +264,7 @@ int main(string[] args)
 			}
 
 			auto timeBeforeParse = MonoTime.currTime;
-			auto timingInfo = [PassTimingInfo("init", timeBeforeParse - timeStart)];
+			auto timingInfo = [PassTimingInfo("load", timeBeforeParse - timeStart)];
 
 			auto parser = new Parser(diagnosticsHandler);
 			auto astModule = parser.parseModule(src).enforce!FatalErrorException("failed to parse file");
@@ -281,6 +285,7 @@ int main(string[] args)
 
     			auto timeEnd = MonoTime.currTime;
     			timingInfo ~= PassTimingInfo("print ast", timeEnd - timeAfterParse);
+    			timingInfo ~= PassTimingInfo("total", timeEnd - timeStart);
 
     			if (cmdInfo.timePasses)
     			{
@@ -309,6 +314,7 @@ int main(string[] args)
 
     			auto timeEnd = MonoTime.currTime;
                 timingInfo ~= PassTimingInfo("print ir", timeEnd - timeAfterIRGen);
+    			timingInfo ~= PassTimingInfo("total", timeEnd - timeStart);
 
     			if (cmdInfo.timePasses)
     			{
@@ -336,6 +342,7 @@ int main(string[] args)
 
 			auto timeEnd = MonoTime.currTime;
 			timingInfo ~= PassTimingInfo("write midi", timeEnd - timeAfterMIDIGen);
+			timingInfo ~= PassTimingInfo("total", timeEnd - timeStart);
 
 			if (cmdInfo.timePasses)
 			{
