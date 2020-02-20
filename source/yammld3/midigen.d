@@ -304,6 +304,8 @@ public final class MIDIGenerator
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectSetParam ie)
     {
+        assert(0 <= ie.index && ie.index <= 19);
+
         SysExEventData sysex;
         sysex.bytes = makeGSSysex([0x40, 0x03, ie.index + 0x03, ie.value].to!(ubyte[]));
 

@@ -959,14 +959,18 @@ public final class IRGenerator
             return;
         }
 
-        if (indexValue.data.get!byte >= 20)
+        if (!(1 <= indexValue.data.get!byte && indexValue.data.get!byte <= 20))
         {
-            _diagnosticsHandler.valueIsOutOfRange(indexValue.location, "%" ~ c.name.value, 0, 20, indexValue.data.get!byte);
+            _diagnosticsHandler.valueIsOutOfRange(indexValue.location, "%" ~ c.name.value, 1, 20, indexValue.data.get!byte);
             return;
         }
 
         tb.putCommand(
-            new ir.GSInsertionEffectSetParam(tb.compositionBuilder.currentTime, indexValue.data.get!byte, value.data.get!byte)
+            new ir.GSInsertionEffectSetParam(
+                tb.compositionBuilder.currentTime,
+                (indexValue.data.get!byte - 1).to!byte,
+                value.data.get!byte
+            )
         );
     }
 
