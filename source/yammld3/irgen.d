@@ -262,12 +262,6 @@ public final class IRGenerator
     {
         assert(c !is null);
 
-        if (c.sign != OptionalSign.none)
-        {
-            _diagnosticsHandler.unexpectedSign(c.location, c.name);
-            return;
-        }
-
         if (c.argument is null)
         {
             _diagnosticsHandler.expectedArgument(c.location, c.name);
@@ -276,7 +270,7 @@ public final class IRGenerator
 
         auto pb = new ir.PitchBendEvent(
             tb.compositionBuilder.currentTime,
-            _floatEvaluator.evaluate(c.argument) / 8192.0f
+            _floatEvaluator.evaluate(c.argument) * (c.sign == OptionalSign.minus ? -1.0f : 1.0f) / 8192.0f
         );
 
         tb.putCommand(pb);
