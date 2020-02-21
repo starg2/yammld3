@@ -405,15 +405,15 @@ public final class IRGenerator
             resetSystem(tb.compositionBuilder, ir.SystemKind.gm, c);
             break;
 
-        case "gs_effect_on":
+        case "gs_ieffect_on":
             setGSInsertionEffectOn(tb, c);
             break;
 
-        case "gs_effect_param":
+        case "gs_ieffect_param":
             setGSInsertionEffectParam(tb, c);
             break;
 
-        case "gs_effect_type":
+        case "gs_ieffect_type":
             setGSInsertionEffectType(tb, c);
             break;
 
@@ -905,7 +905,7 @@ public final class IRGenerator
     private void setGSInsertionEffectOn(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
-        assert(c.name.value == "gs_effect_on");
+        assert(c.name.value == "gs_ieffect_on");
 
         if (c.block !is null)
         {
@@ -935,7 +935,7 @@ public final class IRGenerator
     private void setGSInsertionEffectParam(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
-        assert(c.name.value == "gs_effect_param");
+        assert(c.name.value == "gs_ieffect_param");
 
         if (c.block !is null)
         {
@@ -979,7 +979,7 @@ public final class IRGenerator
     private void setGSInsertionEffectType(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
-        assert(c.name.value == "gs_effect_type");
+        assert(c.name.value == "gs_ieffect_type");
         if (c.block !is null)
         {
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
