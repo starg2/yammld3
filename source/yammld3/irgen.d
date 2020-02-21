@@ -369,6 +369,10 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.brightness, c);
             break;
 
+        case "celeste":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.effect4Depth, c);
+            break;
+
         case "channel":
             setChannel(tb, c);
             break;
@@ -435,6 +439,10 @@ public final class IRGenerator
 
         case "pan":
             compileControlChangeCommand(tb, ir.ControlChangeCode.pan, c);
+            break;
+
+        case "phaser":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.effect5Depth, c);
             break;
 
         case "program":
