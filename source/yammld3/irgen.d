@@ -506,7 +506,7 @@ public final class IRGenerator
             break;
 
         default:
-            _diagnosticsHandler.undefinedExtensionCommand(c.location, c.name.value);
+            _diagnosticsHandler.undefinedExtensionCommand(c.name.location, c.name.value);
             break;
         }
     }
@@ -570,7 +570,7 @@ public final class IRGenerator
             break;
 
         default:
-            _diagnosticsHandler.undefinedModifierCommand(c.location, c.name.value);
+            _diagnosticsHandler.undefinedModifierCommand(c.name.location, c.name.value);
             break;
         }
     }

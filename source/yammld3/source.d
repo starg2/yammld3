@@ -127,10 +127,10 @@ public struct SourceOffset
 /// Represents the source location.
 public struct SourceLocation
 {
-    this(SourceOffset from, size_t length)
+    this(SourceOffset from, size_t len)
     {
         offset = from;
-        length = length;
+        length = len;
     }
 
     this(SourceOffset from, SourceOffset to)
