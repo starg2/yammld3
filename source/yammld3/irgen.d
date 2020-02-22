@@ -980,6 +980,7 @@ public final class IRGenerator
     {
         assert(c !is null);
         assert(c.name.value == "gs_ieffect_type");
+
         if (c.block !is null)
         {
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);

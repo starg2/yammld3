@@ -1075,7 +1075,7 @@ public final class Parser
 
                 return new TimeLiteral(SourceLocation(startOffset, s.sourceOffset), ints[0], ints[1], ints[2]);
             }
-            catch (ConvException)
+            catch (ConvException e)
             {
                 _diagnosticsHandler.overflow(SourceLocation(startOffset, s.sourceOffset), "literal");
                 return null;
