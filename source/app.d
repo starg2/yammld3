@@ -132,7 +132,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 
 private string makeOutputFilePath(CommandLineInfo cmdInfo)
 {
-    import std.path : setExtension;
+    import std.path : baseName, setExtension;
 
     if (!cmdInfo.outputFile.empty)
     {
@@ -142,7 +142,7 @@ private string makeOutputFilePath(CommandLineInfo cmdInfo)
     final switch (cmdInfo.mode)
     {
     case OperationMode.compile:
-        return cmdInfo.inputFile.setExtension("mid");
+        return cmdInfo.inputFile.setExtension("mid").baseName();
 
     case OperationMode.printAST:
     case OperationMode.printIR:
@@ -320,7 +320,6 @@ int main(string[] args)
     			{
     			    printTimingInfo(timingInfo);
     			}
-
 
                 return 0;
             }
