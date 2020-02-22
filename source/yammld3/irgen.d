@@ -171,9 +171,7 @@ public final class IRGenerator
         noteInfo.lastNominalDuration = duration;
         noteInfo.gateTime = 0.0f;
 
-        auto note = new ir.Note(curTime, noteInfo, duration);
-
-        tb.putNote(noteCount, curTime, note);
+        tb.putNote(noteCount, curTime, noteInfo, duration);
         cb.currentTime = curTime + duration;
     }
 
@@ -198,9 +196,7 @@ public final class IRGenerator
             duration = _durationEvaluator.evaluate(curTime, c.argument);
         }
 
-        auto note = new ir.Note(curTime, duration);
-
-        tb.putNote(noteCount, curTime, note);
+        tb.putRest(noteCount, curTime, duration);
         cb.currentTime = curTime + duration;
     }
 
