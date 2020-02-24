@@ -43,6 +43,12 @@ public interface DiagnosticsHandler
     void negativeStdDev(SourceLocation loc, string context);
     void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime);
 
+    void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
+    void parameterRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
+    void undefinedTemplate(SourceLocation loc, string name);
+    void undefinedTemplateParameter(SourceLocation loc, string paramName, string templateName, SourceLocation defLoc);
+    void unexpectedCommandInCommand(SourceLocation loc, string parentCommand, string expectedCommand);
+
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
@@ -270,6 +276,39 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(
             loc, "error: '%s': time assertion failed; current time '%.4f' is different from expectation '%.4f'", context, actualTime, expectedTime
         );
+        incrementErrorCount();
+    }
+
+    public override void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
+    {
+        writeMessage(loc, "error: '%s': template redefinition", name);
+        writeMessage(prevLoc, "note: see previous definition of template '%s'", name);
+        incrementErrorCount();
+    }
+
+    public override void parameterRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
+    {
+        writeMessage(loc, "error: '%s': parameter redefinition", name);
+        writeMessage(prevLoc, "note: see previous definition of '%s'", name);
+        incrementErrorCount();
+    }
+
+    public override void undefinedTemplate(SourceLocation loc, string name)
+    {
+        writeMessage(loc, "error: '%s': undefined template", name);
+        incrementErrorCount();
+    }
+
+    public override void undefinedTemplateParameter(SourceLocation loc, string paramName, string templateName, SourceLocation defLoc)
+    {
+        writeMessage(loc, "error: template '%s' does not accept template parameter '%s'", templateName, paramName);
+        writeMessage(defLoc, "note: see definition of template '%s'", templateName);
+        incrementErrorCount();
+    }
+
+    public override void unexpectedCommandInCommand(SourceLocation loc, string parentCommand, string expectedCommand)
+    {
+        writeMessage(loc, "error: this command is not expected inside '%s'; expected '%s'", parentCommand, expectedCommand);
         incrementErrorCount();
     }
 
