@@ -48,6 +48,7 @@ public interface DiagnosticsHandler
     void undefinedTemplate(SourceLocation loc, string name);
     void undefinedTemplateParameter(SourceLocation loc, string paramName, string templateName, SourceLocation defLoc);
     void unexpectedCommandInCommand(SourceLocation loc, string parentCommand, string expectedCommand);
+    void unexpectedCommandOutsideCommand(SourceLocation loc, string childCommand, string parentCommand);
 
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
@@ -309,6 +310,12 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void unexpectedCommandInCommand(SourceLocation loc, string parentCommand, string expectedCommand)
     {
         writeMessage(loc, "error: this command is not expected inside '%s'; expected '%s'", parentCommand, expectedCommand);
+        incrementErrorCount();
+    }
+
+    public override void unexpectedCommandOutsideCommand(SourceLocation loc, string childCommand, string parentCommand)
+    {
+        writeMessage(loc, "error: command '%s' is not expected outside '%s'", childCommand, parentCommand);
         incrementErrorCount();
     }
 

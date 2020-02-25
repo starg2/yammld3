@@ -12,13 +12,6 @@ private struct TemplateParameter
     SourceLocation location;
 }
 
-private struct TemplateParameterDefinition
-{
-    string name;
-    SourceLocation location;
-    Command[] definition;
-}
-
 private struct TemplateDefinition
 {
     string name;
@@ -35,7 +28,6 @@ package struct TemplateManagerContext
 package final class TemplateManager
 {
     import std.algorithm.searching : canFind, find;
-    import std.array : Appender, appender;
 
     import yammld3.diagnostics : DiagnosticsHandler;
 
@@ -44,7 +36,7 @@ package final class TemplateManager
         _diagnosticsHandler = handler;
     }
 
-    public void defineTemplate(ExtensionCommand c)
+    public void compileDefineTemplateCommand(ExtensionCommand c)
     {
         assert(c !is null);
         assert(c.name.value == "template");
@@ -76,21 +68,15 @@ package final class TemplateManager
         _definedTemplates[ident.value] = TemplateDefinition(ident.value, c.location, parameters, commands);
     }
 
-    public Command[] expandTemplate(ExtensionCommand c)
-    {
-        auto expanded = appender!(Command[]);
-        expandTemplate(expanded, c);
-        return expanded[];
-    }
-
-    private void expandTemplate(ref Appender!(Command[]) expanded, ExtensionCommand c)
+    // Call saveContext() beforehand!
+    public Command[] compileExpandTemplateCommand(ExtensionCommand c)
     {
         assert(c !is null);
         assert(c.name.value == "expand");
 
         if (!hasSingleIdentifierInExpressionList(c))
         {
-            return;
+            return null;
         }
 
         auto ident = cast(Identifier)c.arguments.items[0].value;
@@ -101,45 +87,27 @@ package final class TemplateManager
         if (pDefinition is null)
         {
             _diagnosticsHandler.undefinedTemplate(c.location, ident.value);
-            return;
+            return null;
         }
 
         auto paramDefs = extractTemplateParameterDefinitions(c);
 
         if (!verifyParameters(pDefinition, paramDefs))
         {
-            return;
+            return null;
         }
 
         addDefaultParameterDefinitions(pDefinition, paramDefs);
 
+        // Remove the definition of the current template to avoid recursion.
+        _definedTemplates.remove(ident.value);
+
         foreach (pd; paramDefs)
         {
-            pd.definition = expandTemplatesInCommands(pd.definition);
+            _definedTemplates[pd.name] = pd;
         }
 
-        
-    }
-
-    private Command[] expandTemplatesInCommands(Command[] commands)
-    {
-        auto expanded = appender!(Command[]);
-
-        foreach (c; commands)
-        {
-            auto ec = cast(ExtensionCommand)c;
-
-            if (ec !is null && ec.name.value == "expand")
-            {
-                expandTemplate(expanded, ec); 
-            }
-            else
-            {
-                expanded.put(c);
-            }
-        }
-
-        return expanded[];
+        return pDefinition.definition;
     }
 
     public TemplateManagerContext saveContext()
@@ -222,11 +190,11 @@ package final class TemplateManager
         return params;
     }
 
-    private TemplateParameterDefinition[] extractTemplateParameterDefinitions(ExtensionCommand c)
+    private TemplateDefinition[] extractTemplateParameterDefinitions(ExtensionCommand c)
     {
         assert(c !is null);
 
-        TemplateParameterDefinition[] defs;
+        TemplateDefinition[] defs;
 
         if (c.block !is null)
         {
@@ -249,7 +217,7 @@ package final class TemplateManager
                         }
                         else
                         {
-                            defs ~= TemplateParameterDefinition(ident.value, ec.location, ec.block is null ? null : ec.block.commands);
+                            defs ~= TemplateDefinition(ident.value, ec.location, null, ec.block is null ? null : ec.block.commands);
                         }
                     }
                 }
@@ -263,7 +231,7 @@ package final class TemplateManager
         return defs;
     }
 
-    private bool verifyParameters(TemplateDefinition* pDefinition, TemplateParameterDefinition[] paramDefs)
+    private bool verifyParameters(TemplateDefinition* pDefinition, TemplateDefinition[] paramDefs)
     {
         assert(pDefinition !is null);
         bool valid = true;
@@ -280,7 +248,7 @@ package final class TemplateManager
         return valid;
     }
 
-    private void addDefaultParameterDefinitions(TemplateDefinition* pDefinition, ref TemplateParameterDefinition[] paramDefs)
+    private void addDefaultParameterDefinitions(TemplateDefinition* pDefinition, ref TemplateDefinition[] paramDefs)
     {
         assert(pDefinition !is null);
 
@@ -289,7 +257,7 @@ package final class TemplateManager
             if (!paramDefs.canFind!(x => x.name == pm.name))
             {
                 // add empty definition
-                paramDefs ~= TemplateParameterDefinition(pm.name, pm.location, null);
+                paramDefs ~= TemplateDefinition(pm.name, pm.location, null, null);
             }
         }
     }
