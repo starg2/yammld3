@@ -385,6 +385,10 @@ public final class IRGenerator
             compileControlChangeCommand(tb, c);
             break;
 
+        case "cutoff":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.brightness, c);
+            break;
+
         case "decay_time":
             compileControlChangeCommand(tb, ir.ControlChangeCode.decayTime, c);
             break;
@@ -417,6 +421,10 @@ public final class IRGenerator
             resetSystem(tb.compositionBuilder, ir.SystemKind.gs, c);
             break;
 
+        case "harmonic":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.harmonicIntensity, c);
+            break;
+
         case "key":
             setKeySignature(tb.compositionBuilder, c);
             break;
@@ -447,6 +455,10 @@ public final class IRGenerator
 
         case "release_time":
             compileControlChangeCommand(tb, ir.ControlChangeCode.releaseTime, c);
+            break;
+
+        case "resonance":
+            compileControlChangeCommand(tb, ir.ControlChangeCode.harmonicIntensity, c);
             break;
 
         case "reverb":
