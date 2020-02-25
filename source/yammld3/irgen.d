@@ -522,9 +522,15 @@ public final class IRGenerator
     private void compileCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
     {
         assert(c !is null);
+
         auto context = tb.saveContext();
+
+        scope (exit)
+        {
+            tb.restoreContext(context);
+        }
+
         compileCommands(tb, c.commands);
-        tb.restoreContext(context);
     }
 
     private void compileCommand(MultiTrackBuilder tb, ast.ModifierCommand c)
@@ -603,8 +609,13 @@ public final class IRGenerator
         foreach (i; 0..repeatCount)
         {
             auto context = tb.saveContext();
+
+            scope (exit)
+            {
+                tb.restoreContext(context);
+            }
+
             compileCommand(tb, c.command);
-            tb.restoreContext(context);
         }
     }
 
@@ -630,9 +641,14 @@ public final class IRGenerator
         int noteLikeCommandCount = countNoteLikeCommands(c.command, c.location, "tuplet command");
 
         auto context = tb.saveContext();
+
+        scope (exit)
+        {
+            tb.restoreContext(context);
+        }
+
         cdb.setDuration(OptionalSign.none, noteLikeCommandCount > 0 ? duration / noteLikeCommandCount : duration);
         compileCommand(tb, c.command);
-        tb.restoreContext(context);
     }
 
     private void compileCommand(MultiTrackBuilder tb, ast.ChordCommand c)
