@@ -350,6 +350,14 @@ public final class IRGenerator
 
         switch (c.name.value)
         {
+        case "all_notes_off":
+            compileChannelModeCommand(tb, ir.ControlChangeCode.allNotesOff, c);
+            break;
+
+        case "all_sound_off":
+            compileChannelModeCommand(tb, ir.ControlChangeCode.allSoundOff, c);
+            break;
+
         case "arp":
         case "arpeggio":
             compileArpeggioCommand(tb, c);
@@ -469,6 +477,10 @@ public final class IRGenerator
 
         case "release_time":
             compileControlChangeCommand(tb, ir.ControlChangeCode.releaseTime, c);
+            break;
+
+        case "reset_all_controllers":
+            compileChannelModeCommand(tb, ir.ControlChangeCode.resetAllControllers, c);
             break;
 
         case "resonance":
@@ -926,6 +938,29 @@ public final class IRGenerator
             tb.compositionBuilder.currentTime,
             code,
             isBinary && value.get > 0 ? 127 : value.get
+        );
+
+        tb.putCommand(cc);
+    }
+
+    private void compileChannelModeCommand(MultiTrackBuilder tb, ir.ControlChangeCode code, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto cc = new ir.ControlChange(
+            tb.compositionBuilder.currentTime,
+            code,
+            0
         );
 
         tb.putCommand(cc);

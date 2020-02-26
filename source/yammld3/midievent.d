@@ -66,7 +66,15 @@ public enum ControlChangeCode : byte
     nonRegisteredParameterNumberMSB = 99,
     nonRegisteredParameterNumberLSB = 98,
     registeredParameterNumberLSB = 100,
-    registeredParameterNumberMSB = 101
+    registeredParameterNumberMSB = 101,
+    allSoundOff = 120,
+    resetAllControllers = 121,
+    localControl = 122,
+    allNotesOff = 123,
+    omniOn = 124,
+    omniOff = 125,
+    mono = 126,
+    poly = 127
 }
 
 public struct ControlChangeEventData
