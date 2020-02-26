@@ -2,7 +2,7 @@
 import std.range.primitives;
 import std.stdio;
 
-import core.time;
+import core.time : Duration, MonoTime;
 
 import yammld3;
 
@@ -207,6 +207,9 @@ private void printTimingInfo(PassTimingInfo[] info)
 
 int main(string[] args)
 {
+	import std.exception : enforce, ErrnoException;
+	import std.file : exists, remove;
+
 	try
 	{
 		auto cmdInfo = parseCommandLine(args);
@@ -218,8 +221,6 @@ int main(string[] args)
 		}
 		else
 		{
-			import std.exception : enforce, ErrnoException;
-
 			auto timeStart = MonoTime.currTime;
 
 			if (cmdInfo.inputFile.empty)
@@ -232,8 +233,6 @@ int main(string[] args)
 
 			scope (failure)
 			{
-				import std.file : exists, remove;
-
 				if (!outFilePath.empty && exists(outFilePath))
 				{
 					remove(outFilePath);

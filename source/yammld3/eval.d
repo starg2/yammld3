@@ -5,7 +5,7 @@ import std.conv : to;
 
 import yammld3.ast;
 import yammld3.common;
-import yammld3.diagnostics;
+import yammld3.diagnostics : DiagnosticsHandler;
 
 package alias TimeEvaluator = float delegate(float startTime, TimeLiteral t);
 

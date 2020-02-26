@@ -3,10 +3,12 @@ module yammld3.irgen;
 
 public final class IRGenerator
 {
+    import std.algorithm.comparison : cmp, max, min;
+    import std.algorithm.iteration : map, sum;
     import std.array;
     import std.conv : to;
     import std.random : Random;
-    import std.typecons : Nullable;
+    import std.typecons : Nullable, tuple;
     import std.variant : Algebraic;
 
     import ast = yammld3.ast;
@@ -695,8 +697,6 @@ public final class IRGenerator
 
         foreach (child; c.children)
         {
-            import std.algorithm.comparison : max;
-
             cb.currentTime = startTime;
             compileCommand(tb, child);
             endTime = max(endTime, cb.currentTime);
@@ -707,10 +707,7 @@ public final class IRGenerator
 
     private void compileArpeggioCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
-        import std.algorithm.comparison : max, min;
-        import std.algorithm.iteration : map, sum;
         import std.range : iota;
-        import std.typecons : tuple;
 
         assert(c !is null);
         assert(c.name.value == "arp" || c.name.value == "arpeggio");
@@ -1330,8 +1327,7 @@ public final class IRGenerator
 
     private void compileFormatCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
-        import std.algorithm.comparison : max;
-        import std.algorithm.iteration : fold, map;
+        import std.algorithm.searching : maxElement;
 
         assert(c !is null);
         assert(c.name.value == "format");
@@ -1361,7 +1357,7 @@ public final class IRGenerator
             return;
         }
 
-        int maxScale = siList.map!(x => x.scale).fold!max(0);
+        int maxScale = siList.map!(x => x.scale).maxElement(0);
         size_t maxN = maxScale > 0 ? (c.block.commands.length + maxScale - 1) / maxScale : 0;
 
         auto commandList = appender!(ast.Command[]);
@@ -1423,8 +1419,6 @@ IntLoop:
 
         foreach (command; c.block.commands)
         {
-            import std.algorithm.comparison : max;
-
             cb.currentTime = startTime;
             compileCommand(tb, command);
             endTime = max(endTime, cb.currentTime);
@@ -1459,7 +1453,6 @@ IntLoop:
 
     private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
-        import std.algorithm.comparison : cmp, max;
         import std.algorithm.iteration : chunkBy;
         //import std.algorithm.mutation : SwapStrategy;
         import std.algorithm.sorting : sort;
@@ -1503,7 +1496,6 @@ IntLoop:
 
     private void compileTrackCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
-        import std.algorithm.iteration : map;
         assert(c !is null);
         assert(c.name.value == "track");
 
@@ -1839,9 +1831,7 @@ IntLoop:
 
     private void addOnNotePriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
     {
-        import std.algorithm.iteration : map;
         import std.range : enumerate;
-        import std.typecons : tuple;
 
         assert(c !is null);
         assert(c.name.value == "on_note");
@@ -1898,9 +1888,8 @@ IntLoop:
 
     private void addOnTimePriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c, bool linearInterpolation)
     {
-        import std.algorithm.iteration : map;
         import std.range : slide;
-        import std.typecons : No, tuple;
+        import std.typecons : No;
 
         assert(c !is null);
         assert(c.name.value == "on_time" || c.name.value == "on_time_l");
@@ -1958,8 +1947,6 @@ IntLoop:
 
     private void addTransition(MultiTrackBuilder tb, ast.ModifierCommand c)
     {
-        import std.typecons : tuple;
-
         assert(c !is null);
         assert(c.name.value == "transition");
 
@@ -2046,7 +2033,6 @@ IntLoop:
 
     private int countNoteLikeCommands(ast.Command c, SourceLocation requestLoc, string requestContext)
     {
-        import std.algorithm.iteration : map, sum;
         assert(c !is null);
 
         switch (c.kind)

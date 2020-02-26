@@ -375,6 +375,9 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     private void writeMessage(T...)(SourceLocation loc, string msg, T args)
     {
+        import std.algorithm.comparison : min;
+        import std.algorithm.mutation : copy;
+        import std.range : repeat;
         import std.utf : count;
 
         string lineStr = loc.getLine();
@@ -384,10 +387,6 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
         if (_printAnnotatedLine)
         {
-            import std.algorithm.comparison : min;
-            import std.algorithm.mutation : copy;
-            import std.range : repeat;
-
             _output.writeln(lineStr);
             ' '.repeat(startColumn).copy(_output.lockingTextWriter());
             _output.write('^');

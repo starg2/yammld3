@@ -191,13 +191,14 @@ package final class XMLWriter(Writer)
 
     private void writeNewLineAndIndent()
     {
+        import std.range : repeat;
+
         if (!_wroteRoot)
         {
             put(_output, "\n");
         }
         else if (!_indent.empty)
         {
-            import std.range : repeat;
             put(_output, "\n");
             put(_output, _indent.repeat(_elementStack.length));
         }
