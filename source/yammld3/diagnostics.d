@@ -42,6 +42,7 @@ public interface DiagnosticsHandler
     void maxIsLessThanMin(SourceLocation minLoc, SourceLocation maxLoc, string context);
     void negativeStdDev(SourceLocation loc, string context);
     void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime);
+    void invalidFormatSpecifier(SourceLocation loc, string context);
 
     void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
     void parameterRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
@@ -277,6 +278,12 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(
             loc, "error: '%s': time assertion failed; current time '%.4f' is different from expectation '%.4f'", context, actualTime, expectedTime
         );
+        incrementErrorCount();
+    }
+
+    public override void invalidFormatSpecifier(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': invalid format specifier", context);
         incrementErrorCount();
     }
 

@@ -407,6 +407,10 @@ public final class IRGenerator
             compileForkCommand(tb, c);
             break;
 
+        case "format":
+            compileFormatCommand(tb, c);
+            break;
+
         case "gm_reset":
             resetSystem(tb.compositionBuilder, ir.SystemKind.gm, c);
             break;
@@ -1287,6 +1291,65 @@ public final class IRGenerator
 
         compileCommands(tb, c.block.commands);
         cb.currentTime = prevTime;
+    }
+
+    private void compileFormatCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        import std.algorithm.comparison : max;
+        import std.algorithm.iteration : fold, map;
+
+        assert(c !is null);
+        assert(c.name.value == "format");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        OptionValue formatSpec;
+        Option formatSpecOpt;
+        formatSpecOpt.position = 0;
+        formatSpecOpt.valueType = OptionType.text;
+        formatSpecOpt.values = &formatSpec;
+
+        if (!_optionProc.processOptions([formatSpecOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto siList = parseScaledIndexList(formatSpec.data.get!string);
+
+        if (siList is null)
+        {
+            _diagnosticsHandler.invalidFormatSpecifier(formatSpec.location, "%" ~ c.name.value);
+            return;
+        }
+
+        int maxScale = siList.map!(x => x.scale).fold!max(0);
+        size_t maxN = maxScale > 0 ? (c.block.commands.length + maxScale - 1) / maxScale : 0;
+
+        auto commandList = appender!(ast.Command[]);
+
+IntLoop:
+        foreach (n; 0..(maxN + 1))
+        {
+            commandList.clear();
+
+            foreach (si; siList)
+            {
+                size_t index = si.scale * n + si.offset - 1;
+
+                if (index >= c.block.commands.length)
+                {
+                    break IntLoop;
+                }
+
+                commandList.put(c.block.commands[index]);
+            }
+
+            compileCommands(tb, commandList[]);
+        }
     }
 
     private void compileSectionCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)

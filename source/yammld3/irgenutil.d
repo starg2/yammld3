@@ -1,8 +1,9 @@
 
 module yammld3.irgenutil;
 
+import std.algorithm.iteration;
 import std.array;
-import std.conv : to;
+import std.conv;
 import std.typecons : Nullable;
 import std.variant;
 
@@ -87,7 +88,6 @@ private struct TrackProperty(T)
 
     public T getValueFor(int noteCount, float time)
     {
-        import std.algorithm.iteration : filter;
         import std.algorithm.searching : canFind;
 
         if (_priorSpecs.canFind!(x => x.expired(noteCount, time)))
@@ -535,8 +535,6 @@ package final class MultiTrackBuilder
 
     public MultiTrackContext saveContext()
     {
-        import std.algorithm.iteration : map;
-
         return MultiTrackContext(
             _composition.conductorTrackBuilder.saveContext(),
             _tracks.map!(t => t.saveContext()).array
@@ -624,8 +622,6 @@ package final class MultiTrackBuilder
 
 package final class CompositionBuilder
 {
-    import std.algorithm.iteration : map;
-
     public this(string name)
     {
         _name = name;
@@ -688,6 +684,54 @@ package final class CompositionBuilder
     private TrackBuilder[string] _tracks;
     private float _currentTime = 0.0f;
     private int _noteCount = 0;
+}
+
+package struct ScaledIndex
+{
+    int scale;
+    int offset;
+}
+
+package ScaledIndex[] parseScaledIndexList(string str)
+{
+    import std.ascii : isDigit, isWhite;
+
+    try
+    {
+        auto indices = appender!(ScaledIndex[]);
+
+        foreach (i; str.filter!(x => !isWhite(x)).array.splitter(','))
+        {
+            ScaledIndex si;
+
+            foreach (j; i.splitter('+'))
+            {
+                if (!j.empty && j.back == 'n')
+                {
+                    if (isDigit(j.front))
+                    {
+                        si.scale += parse!int(j);
+                    }
+                    else
+                    {
+                        si.scale++;
+                    }
+                }
+                else
+                {
+                    si.offset += parse!int(j);
+                }
+            }
+
+            indices.put(si);
+        }
+
+        return indices[];
+    }
+    catch (ConvException e)
+    {
+        return null;
+    }
 }
 
 package SetKeySigEvent makeKeySigEvent(float time, string text)
