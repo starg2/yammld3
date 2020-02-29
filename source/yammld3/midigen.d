@@ -138,7 +138,7 @@ public final class MIDIGenerator
         {
             NoteEventData nev;
             nev.note = note.noteInfo.key.clamp(0, 127).to!byte;
-            nev.velocity = (note.noteInfo.velocity * 127.0f).to!int.clamp(0, 127).to!byte;
+            nev.velocity = (note.noteInfo.velocity * 127.0f).to!int.clamp(1, 127).to!byte;
             nev.duration = convertTime(
                 note.noteInfo.timeShift + note.nominalDuration - note.noteInfo.lastNominalDuration
                     + note.noteInfo.lastNominalDuration * note.noteInfo.gateTime
