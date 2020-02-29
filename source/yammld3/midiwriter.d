@@ -6,98 +6,6 @@ import std.stdint;
 
 import yammld3.midievent;
 
-private struct NoteOffEvent
-{
-    int time;
-    byte note;
-}
-
-private struct PriorityQueue(T, alias comp = (a, b) => a < b)
-{
-    import std.algorithm.mutation : swap;
-
-    public @property bool empty() const
-    {
-        return _buffer.empty;
-    }
-
-    public @property T front() const
-    {
-        assert(!empty);
-        return _buffer.front;
-    }
-
-    public void popFront()
-    {
-        assert(!empty);
-
-        swap(_buffer[0], _buffer[$ - 1]);
-        _buffer.popBack();
-
-        size_t i = 0;
-
-        while (true)
-        {
-            // n => 2n + 1, 2n + 2
-            size_t left = (i << 1) + 1;
-            size_t right = (i << 1) + 2;
-
-            if (right < _buffer.length)
-            {
-                size_t target = comp(_buffer[left], _buffer[right]) ? right : left;
-
-                if (comp(_buffer[i], _buffer[target]))
-                {
-                    swap(_buffer[i], _buffer[target]);
-                    i = target;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            else if (left < _buffer.length)
-            {
-                if (comp(_buffer[i], _buffer[left]))
-                {
-                    swap(_buffer[i], _buffer[left]);
-                    //i = left;
-                }
-
-                break;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    public void insert(T value)
-    {
-        _buffer.assumeSafeAppend() ~= value;
-        size_t i = _buffer.length - 1;
-
-        while (i >= 1)
-        {
-            // (n - 1)/2 <= n
-            size_t parent = (i - 1) >> 1;
-
-            if (comp(_buffer[parent], _buffer[i]))
-            {
-                swap(_buffer[parent], _buffer[i]);
-                i = parent;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    private T[] _buffer;
-}
-
 private bool isTextMetaEvent(MetaEventKind kind)
 {
     switch (kind)
@@ -184,19 +92,7 @@ public final class MIDIWriter(Writer)
 
         foreach (ev; track.events)
         {
-            while (!_noteOffEventQueue.empty && _noteOffEventQueue.front.time < ev.time)
-            {
-                writeNoteOffEvent(track.channel, _noteOffEventQueue.front);
-                _noteOffEventQueue.popFront();
-            }
-
             ev.data.visit!(d => writeEvent(track.channel, ev.time, d));
-        }
-
-        while (!_noteOffEventQueue.empty)
-        {
-            writeNoteOffEvent(track.channel, _noteOffEventQueue.front);
-            _noteOffEventQueue.popFront();
         }
 
         // write end of track
@@ -235,16 +131,14 @@ public final class MIDIWriter(Writer)
         _lastEventTime = time;
     }
 
-    private void writeNoteOffEvent(int channelNumber, NoteOffEvent ev)
+    private void writeEvent(int channelNumber, int time, NoteOffEventData data)
     {
-        writeTime(ev.time);
-        put(_trackBuffer, [0x80 | (channelNumber & 0xF), ev.note, 0].to!(ubyte[]));
+        writeTime(time);
+        put(_trackBuffer, [0x80 | (channelNumber & 0xF), data.note, 0].to!(ubyte[]));
     }
 
-    private void writeEvent(int channelNumber, int time, NoteEventData data)
+    private void writeEvent(int channelNumber, int time, NoteOnEventData data)
     {
-        _noteOffEventQueue.insert(NoteOffEvent(time + data.duration, data.note));
-
         writeTime(time);
         put(
             _trackBuffer,
@@ -333,6 +227,4 @@ public final class MIDIWriter(Writer)
     private string _filePath;
     private Appender!(ubyte[]) _trackBuffer;
     private int _lastEventTime;
-
-    private PriorityQueue!(NoteOffEvent, (a, b) => a.time > b.time) _noteOffEventQueue;
 }

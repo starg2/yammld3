@@ -137,18 +137,38 @@ public final class MIDIGenerator
     {
         if (!note.isRest)
         {
-            NoteEventData nev;
-            nev.note = note.noteInfo.key.clamp(0, 127).to!byte;
-            nev.velocity = (note.noteInfo.velocity * 127.0f).to!int.clamp(1, 127).to!byte;
-            nev.duration = convertTime(
-                note.noteInfo.timeShift + note.nominalDuration - note.noteInfo.lastNominalDuration
-                    + note.noteInfo.lastNominalDuration * note.noteInfo.gateTime
-            );
+            byte velocity = (note.noteInfo.velocity * 127.0f).to!int.clamp(0, 127).to!byte;
 
-            MIDIEvent ev;
-            ev.time = convertTime(note.nominalTime + note.noteInfo.timeShift);
-            ev.data = MIDIEventData(nev);
-            events.put(ev);
+            if (velocity > 0)
+            {
+                int onTime = convertTime(note.nominalTime + note.noteInfo.timeShift);
+                int offTime = convertTime(
+                    note.nominalTime
+                        + note.nominalDuration - note.noteInfo.lastNominalDuration
+                        + note.noteInfo.lastNominalDuration * note.noteInfo.gateTime
+                );
+
+                if (onTime < offTime)
+                {
+                    byte key = note.noteInfo.key.clamp(0, 127).to!byte;
+
+                    NoteOnEventData onev;
+                    onev.note = key;
+                    onev.velocity = velocity;
+
+                    MIDIEvent ev;
+                    ev.time = onTime;
+                    ev.data = MIDIEventData(onev);
+                    events.put(ev);
+
+                    NoteOffEventData offev;
+                    offev.note = key;
+
+                    ev.time = offTime;
+                    ev.data = MIDIEventData(offev);
+                    events.put(ev);
+                }
+            }
         }
     }
 

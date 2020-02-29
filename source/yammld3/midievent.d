@@ -3,11 +3,15 @@ module yammld3.midievent;
 
 import std.variant;
 
-public struct NoteEventData
+public struct NoteOffEventData
 {
     byte note;
-    byte velocity;   // [0, 127]
-    int duration;   // in ticks
+}
+
+public struct NoteOnEventData
+{
+    byte note;
+    byte velocity;   // [1, 127]
 }
 
 public struct PolyphonicAfterTouchEventData
@@ -129,7 +133,8 @@ public struct MetaEventData
 }
 
 public alias MIDIEventData = Algebraic!(
-    NoteEventData,
+    NoteOffEventData,
+    NoteOnEventData,
     PolyphonicAfterTouchEventData,
     ControlChangeEventData,
     ProgramChangeEventData,
