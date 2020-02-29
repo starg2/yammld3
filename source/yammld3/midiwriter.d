@@ -164,11 +164,11 @@ public final class MIDIWriter(Writer)
 
         foreach (t; tracks)
         {
-            writeTrack(t.channel, t.events);
+            writeTrack(t);
         }
     }
 
-    private void writeTrack(int channelNumber, MIDIEvent[] events)
+    private void writeTrack(MIDITrack track)
     {
         import std.variant : visit;
 
@@ -176,36 +176,35 @@ public final class MIDIWriter(Writer)
         put(_output, "MTrk");
         _trackBuffer.clear();
 
-        if (channelNumber >= 16)
+        if (track.channel >= 16)
         {
             // set port
-            put(_trackBuffer, [0, 0xFF, 0x21, 1, channelNumber >> 4].to!(ubyte[]));
+            put(_trackBuffer, [0, 0xFF, 0x21, 1, track.channel >> 4].to!(ubyte[]));
         }
 
-        foreach (ev; events)
+        foreach (ev; track.events)
         {
             while (!_noteOffEventQueue.empty && _noteOffEventQueue.front.time < ev.time)
             {
-                writeNoteOffEvent(channelNumber, _noteOffEventQueue.front);
+                writeNoteOffEvent(track.channel, _noteOffEventQueue.front);
                 _noteOffEventQueue.popFront();
             }
 
-            ev.data.visit!(d => writeEvent(channelNumber, ev.time, d));
+            ev.data.visit!(d => writeEvent(track.channel, ev.time, d));
         }
 
         while (!_noteOffEventQueue.empty)
         {
-            writeNoteOffEvent(channelNumber, _noteOffEventQueue.front);
+            writeNoteOffEvent(track.channel, _noteOffEventQueue.front);
             _noteOffEventQueue.popFront();
         }
 
         // write end of track
-        writeTime(_lastEventTime);
+        writeTime(track.endOfTrackTime);
         put(_trackBuffer, [0xFF, 0x2F, 0].to!(ubyte[]));
 
         put(_output, _trackBuffer[].length.to!uint32_t.nativeToBigEndian!uint32_t[]);
         put(_output, _trackBuffer[]);
-        _trackBuffer.clear();
     }
 
     private void writeVLV(int value)

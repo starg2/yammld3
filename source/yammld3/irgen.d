@@ -501,6 +501,10 @@ public final class IRGenerator
             addTextEventToConductorTrack(tb.compositionBuilder, ir.MetaEventKind.sequenceName, c);
             break;
 
+        case "set_trailing_blank":
+            setTrailingBlankCommand(tb, c);
+            break;
+
         case "srand":
             seedRNG(c);
             break;
@@ -1449,6 +1453,30 @@ IntLoop:
         }
 
         _rng.seed(value.data.get!int);
+    }
+
+    private void setTrailingBlankCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "set_trailing_blank");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.duration;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        {
+            return;
+        }
+
+        tb.setTrailingBlankTime(value.data.get!float);
     }
 
     private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)

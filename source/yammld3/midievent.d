@@ -149,4 +149,5 @@ public struct MIDITrack
 {
     int channel;
     MIDIEvent[] events;
+    int endOfTrackTime;   // absolute time in ticks
 }

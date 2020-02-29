@@ -599,11 +599,12 @@ public enum int virtualChannel = -2;
 
 public final class Track
 {
-    public this(string name, int channel, Command[] commands)
+    public this(string name, int channel, Command[] commands, float trailingBlankTime)
     {
         _name = name;
         _channel = channel;
         _commands = commands;
+        _trailingBlankTime = trailingBlankTime;
     }
 
     public @property string name()
@@ -621,9 +622,15 @@ public final class Track
         return _commands;
     }
 
+    public @property float trailingBlankTime()
+    {
+        return _trailingBlankTime;
+    }
+
     private string _name;
     private int _channel;
     private Command[] _commands;
+    private float _trailingBlankTime;
 }
 
 public final class Composition

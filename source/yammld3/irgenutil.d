@@ -143,6 +143,16 @@ private final class TrackBuilder
         _channel = ch;
     }
 
+    public @property float trailingBlankTime()
+    {
+        return _trailingBlankTime;
+    }
+
+    public @property void trailingBlankTime(float t)
+    {
+        _trailingBlankTime = trailingBlankTime;
+    }
+
     public TrackBuilderContext saveContext()
     {
         return _context;
@@ -156,7 +166,7 @@ private final class TrackBuilder
     public Track build()
     {
         flush();
-        return new Track(_name, _channel, _commands[]);
+        return new Track(_name, _channel, _commands[], _trailingBlankTime);
     }
 
     public void putCommand(Command c)
@@ -315,10 +325,11 @@ private final class TrackBuilder
     }
 
     private string _name;
-    private int _channel;
+    private int _channel = 0;
     private TrackBuilderContext _context;
     private Appender!(Command[]) _commands;
     private Note _queuedNote;
+    private float _trailingBlankTime = 4.0f;
 }
 
 private struct MeterInfo
@@ -498,7 +509,7 @@ package final class ConductorTrackBuilder
 
     public Track build()
     {
-        return new Track(".conductor", conductorChannel, _commands[]);
+        return new Track(".conductor", conductorChannel, _commands[], 0.0f);
     }
 
     private MeterMap _meterMap;
@@ -530,6 +541,14 @@ package final class MultiTrackBuilder
         foreach (t; _tracks)
         {
             t.channel = ch;
+        }
+    }
+
+    public void setTrailingBlankTime(float time)
+    {
+        foreach (t; _tracks)
+        {
+            t.trailingBlankTime = time;
         }
     }
 

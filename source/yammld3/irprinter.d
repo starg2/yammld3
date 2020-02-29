@@ -280,7 +280,14 @@ public final class IRPrinter(Writer)
 
         foreach (track; composition.tracks)
         {
-            _writer.startElement("Track", [XMLAttribute("Name", track.name), XMLAttribute("Channel", track.channel.text)]);
+            _writer.startElement(
+                "Track",
+                [
+                    XMLAttribute("Name", track.name),
+                    XMLAttribute("Channel", track.channel.text),
+                    XMLAttribute("TrailingBlankTime", track.trailingBlankTime.text)
+                ]
+            );
 
             foreach (c; track.commands)
             {

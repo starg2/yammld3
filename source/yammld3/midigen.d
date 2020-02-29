@@ -129,6 +129,7 @@ public final class MIDIGenerator
         }
 
         mt.events.sort!((a, b) => a.time < b.time, SwapStrategy.stable);
+        mt.endOfTrackTime = (mt.events.empty ? 0 : mt.events.back.time) + convertTime(track.trailingBlankTime);
         return mt;
     }
 
