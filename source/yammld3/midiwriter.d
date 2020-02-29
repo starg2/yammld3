@@ -200,7 +200,7 @@ public final class MIDIWriter(Writer)
         }
 
         // write end of track
-        writeTime(_lastEventTime + ticksPerQuarterNote * 4);
+        writeTime(_lastEventTime);
         put(_trackBuffer, [0xFF, 0x2F, 0].to!(ubyte[]));
 
         put(_output, _trackBuffer[].length.to!uint32_t.nativeToBigEndian!uint32_t[]);
