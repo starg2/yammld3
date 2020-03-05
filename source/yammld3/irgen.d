@@ -27,6 +27,7 @@ public final class IRGenerator
         _diagnosticsHandler = handler;
         _intEvaluator = new NumericExpressionEvaluator!int(handler);
         _floatEvaluator = new NumericExpressionEvaluator!float(handler);
+        _strEval = new StringExpressionEvaluator(handler);
         _templateManager = new TemplateManager(handler);
     }
 
@@ -44,7 +45,8 @@ public final class IRGenerator
             _diagnosticsHandler,
             _durationEvaluator,
             _intEvaluator,
-            _floatEvaluator
+            _floatEvaluator,
+            _strEval
         );
 
         auto tb = cb.selectDefaultTrack();
@@ -2153,6 +2155,7 @@ IntLoop:
     private DurationExpressionEvaluator _durationEvaluator;
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
+    private StringExpressionEvaluator _strEval;
     private OptionProcessor _optionProc;
     private Random _rng;
     private TemplateManager _templateManager;

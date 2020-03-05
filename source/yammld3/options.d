@@ -48,19 +48,21 @@ package final class OptionProcessor
 {
     import yammld3.ast;
     import yammld3.diagnostics : DiagnosticsHandler;
-    import yammld3.eval : DurationExpressionEvaluator, NumericExpressionEvaluator, TimeEvaluator;
+    import yammld3.eval : DurationExpressionEvaluator, NumericExpressionEvaluator, StringExpressionEvaluator, TimeEvaluator;
 
     public this(
         DiagnosticsHandler handler,
         DurationExpressionEvaluator durationEval,
         NumericExpressionEvaluator!int intEval,
-        NumericExpressionEvaluator!float floatEval
+        NumericExpressionEvaluator!float floatEval,
+        StringExpressionEvaluator strEval
     )
     {
         _diagnosticsHandler = handler;
         _durationEvaluator = durationEval;
         _intEvaluator = intEval;
         _floatEvaluator = floatEval;
+        _strEval = strEval;
     }
 
     public bool processOptions(
@@ -321,15 +323,8 @@ package final class OptionProcessor
             return typeof(return)(OptionValueData(n / 127.0f));
 
         case OptionType.text:
-            auto strLit = cast(StringLiteral)expr;
-
-            if (strLit is null)
-            {
-                _diagnosticsHandler.expectedStringLiteral(expr.location, context);
-                return typeof(return).init;
-            }
-
-            return typeof(return)(OptionValueData(strLit.value));
+            string str = _strEval.evaluate(expr);
+            return typeof(return)(OptionValueData(str));
         }
     }
 
@@ -337,4 +332,5 @@ package final class OptionProcessor
     private DurationExpressionEvaluator _durationEvaluator;
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
+    private StringExpressionEvaluator _strEval;
 }

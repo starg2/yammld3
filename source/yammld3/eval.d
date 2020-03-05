@@ -136,3 +136,52 @@ package final class NumericExpressionEvaluator(T)
 
     private DiagnosticsHandler _diagnosticsHandler;
 }
+
+package final class StringExpressionEvaluator
+{
+    import std.array : Appender, appender;
+
+    public this(DiagnosticsHandler handler)
+    {
+        _diagnosticsHandler = handler;
+    }
+
+    public string evaluate(Expression expr)
+    {
+        assert(expr !is null);
+
+        auto str = appender!string();
+        evaluate(str, expr);
+        return str[];
+    }
+
+    public void evaluate(Appender!string str, Expression expr)
+    {
+        assert(expr !is null);
+
+        expr.visit!(
+            (StringLiteral sl)
+            {
+                str.put(sl.value);
+            },
+            (BinaryExpression be)
+            {
+                if (be.op.kind == OperatorKind.plus)
+                {
+                    evaluate(str, be.left);
+                    evaluate(str, be.right);
+                }
+                else
+                {
+                    _diagnosticsHandler.unexpectedExpressionKind(expr.location, "string");
+                }
+            },
+            (x)
+            {
+                _diagnosticsHandler.unexpectedExpressionKind(expr.location, "string");
+            }
+        );
+    }
+
+    private DiagnosticsHandler _diagnosticsHandler;
+}
