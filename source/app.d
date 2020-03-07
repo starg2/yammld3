@@ -104,6 +104,11 @@ private CommandLineInfo parseCommandLine(string[] args)
 		{
 		    cmdInfo.timePasses = true;
 		}
+		else if (arg != "--" && !arg.empty && arg.front == '-')
+		{
+			stderr.writefln("command line error: unrecognized option '%s'", arg);
+			throw new CommandLineErrorException();
+		}
 		else
 		{
 			if (arg == "--")
