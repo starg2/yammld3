@@ -1882,8 +1882,23 @@ IntLoop:
         valueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
         valueOpt.values = appender(&values);
 
-        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
+        OptionValue repeatCountValue;
+        Option repeatCountValueOpt;
+        repeatCountValueOpt.optional = true;
+        repeatCountValueOpt.key = "repeat";
+        repeatCountValueOpt.valueType = OptionType.integer;
+        repeatCountValueOpt.values = &repeatCountValue;
+
+        if (!_optionProc.processOptions([valueOpt, repeatCountValueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
         {
+            return;
+        }
+
+        int repeatCount = repeatCountValue.data.hasValue ? repeatCountValue.data.get!int : 1;
+
+        if (repeatCount < 0)
+        {
+            _diagnosticsHandler.negativeRepeatCount(repeatCountValue.location, "!" ~ c.name.value);
             return;
         }
 
@@ -1892,7 +1907,7 @@ IntLoop:
         if (kind.get == TrackPropertyKind.duration)
         {
             tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(
-                new OnNotePriorSpec!float(tb.compositionBuilder.currentNoteCount, getValues!float())
+                new OnNotePriorSpec!float(tb.compositionBuilder.currentNoteCount, repeatCount, getValues!float())
             );
         }
         else
@@ -1902,13 +1917,13 @@ IntLoop:
             if (isIntegerProperty(kind.get))
             {
                 priorSpec = cast(PriorSpec!int)new OnNotePriorSpec!int(
-                    tb.compositionBuilder.currentNoteCount, getValues!int()
+                    tb.compositionBuilder.currentNoteCount, repeatCount, getValues!int()
                 );
             }
             else
             {
                 priorSpec = cast(PriorSpec!float)new OnNotePriorSpec!float(
-                    tb.compositionBuilder.currentNoteCount, getValues!float()
+                    tb.compositionBuilder.currentNoteCount, repeatCount, getValues!float()
                 );
             }
 

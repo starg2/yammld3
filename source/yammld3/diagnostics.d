@@ -40,6 +40,7 @@ public interface DiagnosticsHandler
     void unexpectedSign(SourceLocation loc, string context);
     void divideBy0(SourceLocation loc);
     void maxIsLessThanMin(SourceLocation minLoc, SourceLocation maxLoc, string context);
+    void negativeRepeatCount(SourceLocation loc, string context);
     void negativeStdDev(SourceLocation loc, string context);
     void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime);
     void invalidFormatSpecifier(SourceLocation loc, string context);
@@ -264,6 +265,12 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     {
         writeMessage(maxLoc, "error: maximun value must be larger than or equal to minimum value");
         writeMessage(minLoc, "note: minimum value was defined here");
+        incrementErrorCount();
+    }
+
+    public override void negativeRepeatCount(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "error: '%s': repeat count may be negative", context);
         incrementErrorCount();
     }
 

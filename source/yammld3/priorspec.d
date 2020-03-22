@@ -202,21 +202,31 @@ package final class OnNotePriorSpec(T) : PriorSpec!T
 {
     public this(int startCount, Tuple!(int, T)[] values)
     {
+        this(startCount, 1, values);
+    }
+
+    public this(int startCount, int repeatCount, Tuple!(int, T)[] values)
+    {
         _startCount = startCount;
+        _repeatCount = repeatCount;
         _values = values.dup.sort!lessKeyThan();
     }
 
     public override bool expired(int noteCount, float time)
     {
-        return _values.empty || _values.back[0] < noteCount - _startCount;
+        return _values.empty || (_values.back[0] + 1) * _repeatCount <= noteCount - _startCount;
     }
 
     public override void apply(ref T value, int noteCount, float time)
     {
-        value += interpolateNone!(int, T)(_values, noteCount - _startCount);
+        if (!_values.empty)
+        {
+            value += interpolateNone!(int, T)(_values, (noteCount - _startCount) % (_values.back[0] + 1));
+        }
     }
 
     private int _startCount;
+    private int _repeatCount;
     private SortedPairRange!(int, T) _values;
 }
 
