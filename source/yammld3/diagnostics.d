@@ -17,6 +17,7 @@ public interface DiagnosticsHandler
     void noCloseCharacters(SourceLocation loc, SourceLocation openLoc, string openCharacters, string closeCharacters);
     void overflow(SourceLocation loc, string context);
     void unterminatedStringLiteral(SourceLocation loc);
+    void recursionLimitExceeded(SourceLocation loc);
 
     void undefinedBasicCommand(SourceLocation loc, string name);
     void undefinedExtensionCommand(SourceLocation loc, string name);
@@ -130,6 +131,13 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     {
         writeMessage(loc, "error: unterminated string literal");
         incrementErrorCount();
+    }
+
+    public override void recursionLimitExceeded(SourceLocation loc)
+    {
+        writeMessage(loc, "fatal error: recursion limit exceeded");
+        incrementErrorCount();
+        throw new FatalErrorException("recursion limit exceeded");
     }
 
     public override void undefinedBasicCommand(SourceLocation loc, string name)

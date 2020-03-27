@@ -140,6 +140,8 @@ c&d&e
 
 */
 
+private immutable int recursionLimit = 50;
+
 private struct ParseLiteralOptions
 {
     bool allowHex;
@@ -215,6 +217,19 @@ public final class Parser
 
     private Command parseCommand(ref Scanner s)
     {
+        _recursionDepth++;
+
+        scope (exit)
+        {
+            _recursionDepth--;
+        }
+
+        if (_recursionDepth > recursionLimit)
+        {
+            _diagnosticsHandler.recursionLimitExceeded(SourceLocation(s.sourceOffset, 1));
+            assert(false);
+        }
+
         return parseChordCommand(s);
     }
 
@@ -687,6 +702,19 @@ public final class Parser
 
     private Expression parseExpression(ref Scanner s)
     {
+        _recursionDepth++;
+
+        scope (exit)
+        {
+            _recursionDepth--;
+        }
+
+        if (_recursionDepth > recursionLimit)
+        {
+            _diagnosticsHandler.recursionLimitExceeded(SourceLocation(s.sourceOffset, 1));
+            assert(false);
+        }
+
         return parseAddSubExpression(s);
     }
 
@@ -1220,4 +1248,5 @@ public final class Parser
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
+    private int _recursionDepth = 0;
 }
