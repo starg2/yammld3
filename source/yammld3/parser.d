@@ -1011,7 +1011,7 @@ public final class Parser
     private Expression parseLiteral(ref Scanner s, ParseLiteralOptions options)
     {
         import std.ascii : isDigit, isHexDigit;
-        import std.conv : ConvException, parse;
+        import std.conv : ConvOverflowException, parse;
 
         // skipSpaces(s);
 
@@ -1033,31 +1033,31 @@ public final class Parser
         auto startOffset = s.sourceOffset;
         auto startView = s.view;
 
-        if (options.allowHex && (s.scanString("0x") || s.scanString("0X")))
+        try
         {
-            int value;
-
-            if (!s.empty && isHexDigit(s.front))
+            if (options.allowHex && (s.scanString("0x") || s.scanString("0X")))
             {
-                value = parse!int(s, 16);
+                int value;
+
+                if (!s.empty && isHexDigit(s.front))
+                {
+                    value = parse!int(s, 16);
+                }
+                else
+                {
+                    _diagnosticsHandler.expectedAfter(
+                        SourceLocation(startOffset, 2),
+                        "hexadecimal integer literal",
+                        "xdigit",
+                        startView[0..2]
+                    );
+
+                    value = 0;
+                }
+
+                return new IntegerLiteral(SourceLocation(startOffset, s.sourceOffset), value);
             }
             else
-            {
-                _diagnosticsHandler.expectedAfter(
-                    SourceLocation(startOffset, 2),
-                    "hexadecimal integer literal",
-                    "xdigit",
-                    startView[0..2]
-                );
-
-                value = 0;
-            }
-
-            return new IntegerLiteral(SourceLocation(startOffset, s.sourceOffset), value);
-        }
-        else
-        {
-            try
             {
                 int[3] ints;
 
@@ -1103,11 +1103,11 @@ public final class Parser
 
                 return new TimeLiteral(SourceLocation(startOffset, s.sourceOffset), ints[0], ints[1], ints[2]);
             }
-            catch (ConvException e)
-            {
-                _diagnosticsHandler.overflow(SourceLocation(startOffset, s.sourceOffset), "literal");
-                return null;
-            }
+        }
+        catch (ConvOverflowException e)
+        {
+            _diagnosticsHandler.overflow(SourceLocation(startOffset, s.sourceOffset), "literal");
+            return null;
         }
     }
 
