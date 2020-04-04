@@ -46,6 +46,8 @@ public interface DiagnosticsHandler
     void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime);
     void invalidFormatSpecifier(SourceLocation loc, string context);
 
+    void printTime(SourceLocation loc, string context, float currentTime);
+
     void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
     void parameterRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
     void undefinedTemplate(SourceLocation loc, string name);
@@ -300,6 +302,11 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     {
         writeMessage(loc, "error: '%s': invalid format specifier", context);
         incrementErrorCount();
+    }
+
+    public override void printTime(SourceLocation loc, string context, float currentTime)
+    {
+        writeMessage(loc, "info: '%s': current time is '%.4f'", context, currentTime);
     }
 
     public override void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)

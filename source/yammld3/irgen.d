@@ -475,6 +475,10 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect5Depth, c);
             break;
 
+        case "print_time":
+            printTime(tb.compositionBuilder, c);
+            break;
+
         case "program":
             setProgram(tb, c);
             break;
@@ -1233,6 +1237,24 @@ public final class IRGenerator
         );
 
         cb.conductorTrackBuilder.addTextEvent(te);
+    }
+
+    private void printTime(CompositionBuilder cb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "print_time");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        _diagnosticsHandler.printTime(c.location, '%' ~ c.name.value, cb.currentTime);
     }
 
     private void setProgram(MultiTrackBuilder tb, ast.ExtensionCommand c)
