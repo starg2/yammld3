@@ -415,11 +415,12 @@ public final class Parser
 
             // skipSpaces(s);
             auto argList = parseParenthesizedExpressionList(s);
+            auto argListEndOffset = s.sourceOffset;
             skipSpaces(s);
             auto block = parseCommandBlock(s);
 
             return new ExtensionCommand(
-                SourceLocation(startOffset, s.sourceOffset),
+                SourceLocation(startOffset, block is null ? argListEndOffset : s.sourceOffset),
                 name,
                 argList,
                 block
