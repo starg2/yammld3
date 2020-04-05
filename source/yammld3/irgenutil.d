@@ -384,7 +384,7 @@ private struct MeterMap
                 int availableMeasures = divUp(tp[1].time - curTime, tp[0].measureLength);
                 int actualMeasures = min(remainingTime.measures, availableMeasures);
                 remainingTime.measures -= actualMeasures;
-                curTime += actualMeasures * tp[0].measureLength;
+                curTime = min(curTime + actualMeasures * tp[0].measureLength, tp[1].time);
             }
 
             if (curTime < tp[1].time && remainingTime.beats > 0)
@@ -392,7 +392,7 @@ private struct MeterMap
                 int availableBeats = divUp(tp[1].time - curTime, tp[0].beatLength);
                 int actualBeats = min(remainingTime.beats, availableBeats);
                 remainingTime.beats -= actualBeats;
-                curTime += actualBeats * tp[0].beatLength;
+                curTime = min(curTime + actualBeats * tp[0].beatLength, tp[1].time);
             }
 
             if (curTime < tp[1].time && remainingTime.ticks > 0)
@@ -413,8 +413,19 @@ private struct MeterMap
     public void setMeter(float time, Fraction!int meter)
     {
         auto r = getSorted();
-        size_t pos = r.length - r.upperBound(MeterInfo(time)).length;
-        _timePoints.insertInPlace(pos, MeterInfo(time, meter));
+        auto ts = r.trisect(MeterInfo(time));
+
+        if (ts[1].empty)
+        {
+            size_t pos = r.length - ts[2].length;
+            _timePoints.insertInPlace(pos, MeterInfo(time, meter));
+        }
+        else
+        {
+            assert(ts[1].length == 1);
+            size_t pos = ts[0].length;
+            _timePoints[pos].meter = meter;
+        }
     }
 
     private auto getSorted() const
