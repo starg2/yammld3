@@ -410,6 +410,60 @@ private struct MeterMap
         return curTime - startTime;
     }
 
+    public Time toMeasures(float time) const
+    {
+        import std.algorithm.comparison : min;
+        import std.math : floor;
+        import std.range : slide;
+        import std.typecons : No;
+
+        auto r = getSorted();
+        assert(!r.empty);
+
+        Time ret;
+
+        foreach (tp; r.slide!(No.withPartial)(2))
+        {
+            if (time <= tp[0].time)
+            {
+                return ret;
+            }
+
+            if (ret.beats > 0 || ret.ticks > 0)
+            {
+                ret.measures++;
+                ret.beats = 0;
+                ret.ticks = 0;
+            }
+
+            float dt = min(time, tp[1].time) - tp[0].time;
+            int measures = floor(dt / tp[0].measureLength).to!int;
+            dt -= tp[0].measureLength * measures;
+            int beats = floor(dt / tp[0].beatLength).to!int;
+            dt -= tp[0].beatLength * beats;
+            ret.measures += measures;
+            ret.beats += beats;
+            ret.ticks += (dt * ticksPerQuarterNote).to!int;
+        }
+
+        if (ret.beats > 0 || ret.ticks > 0)
+        {
+            ret.measures++;
+            ret.beats = 0;
+            ret.ticks = 0;
+        }
+
+        float dt = time - r.back.time;
+        int measures = floor(dt / r.back.measureLength).to!int;
+        dt -= r.back.measureLength * measures;
+        int beats = floor(dt / r.back.beatLength).to!int;
+        dt -= r.back.beatLength * beats;
+        ret.measures += measures;
+        ret.beats += beats;
+        ret.ticks += (dt * ticksPerQuarterNote).to!int;
+        return ret;
+    }
+
     public void setMeter(float time, Fraction!int meter)
     {
         auto r = getSorted();
@@ -458,6 +512,11 @@ package final class ConductorTrackBuilder
     public float toTime(float startTime, Time time) const
     {
         return _meterMap.toTime(startTime, time);
+    }
+
+    public Time toMeasures(float time) const
+    {
+        return _meterMap.toMeasures(time);
     }
 
     public float getDurationFor(int noteCount, float time)

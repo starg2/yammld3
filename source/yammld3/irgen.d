@@ -817,7 +817,14 @@ public final class IRGenerator
 
         if (abs(time.data.get!float - cb.currentTime) > 1.0f / ticksPerQuarterNote / 2.0f)
         {
-            _diagnosticsHandler.timeAssertionFailed(time.location, "%" ~ c.name.value, time.data.get!float, cb.currentTime);
+            _diagnosticsHandler.timeAssertionFailed(
+                time.location,
+                "%" ~ c.name.value,
+                cb.conductorTrackBuilder.toMeasures(time.data.get!float),
+                time.data.get!float,
+                cb.conductorTrackBuilder.toMeasures(cb.currentTime),
+                cb.currentTime
+            );
         }
     }
 
@@ -1254,7 +1261,12 @@ public final class IRGenerator
             return;
         }
 
-        _diagnosticsHandler.printTime(c.location, '%' ~ c.name.value, cb.currentTime);
+        _diagnosticsHandler.printTime(
+            c.location,
+            '%' ~ c.name.value,
+            cb.conductorTrackBuilder.toMeasures(cb.currentTime),
+            cb.currentTime
+        );
     }
 
     private void setProgram(MultiTrackBuilder tb, ast.ExtensionCommand c)

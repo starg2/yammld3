@@ -1,6 +1,7 @@
 
 module yammld3.diagnostics;
 
+import yammld3.common : Time;
 import yammld3.source : SourceLocation;
 
 public interface DiagnosticsHandler
@@ -43,10 +44,10 @@ public interface DiagnosticsHandler
     void maxIsLessThanMin(SourceLocation minLoc, SourceLocation maxLoc, string context);
     void negativeRepeatCount(SourceLocation loc, string context);
     void negativeStdDev(SourceLocation loc, string context);
-    void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime);
+    void timeAssertionFailed(SourceLocation loc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
     void invalidFormatSpecifier(SourceLocation loc, string context);
 
-    void printTime(SourceLocation loc, string context, float currentTime);
+    void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
 
     void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
     void parameterRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
@@ -290,11 +291,22 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
-    public override void timeAssertionFailed(SourceLocation loc, string context, float expectedTime, float actualTime)
+    public override void timeAssertionFailed(SourceLocation loc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime)
     {
         writeMessage(
-            loc, "error: '%s': time assertion failed; current time '%.4f' is different from expectation '%.4f'", context, actualTime, expectedTime
+            loc,
+            "error: '%s': time assertion failed; current time %d:%d:%d (%.4f) is different from expectation %d:%d:%d (%.4f)",
+            context,
+            actualMeasure.measures,
+            actualMeasure.beats,
+            actualMeasure.ticks,
+            actualTime,
+            expectedMeasure.measures,
+            expectedMeasure.beats,
+            expectedMeasure.ticks,
+            expectedTime
         );
+
         incrementErrorCount();
     }
 
@@ -304,9 +316,17 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
-    public override void printTime(SourceLocation loc, string context, float currentTime)
+    public override void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime)
     {
-        writeMessage(loc, "info: '%s': current time is '%.4f'", context, currentTime);
+        writeMessage(
+            loc,
+            "info: '%s': current time is %d:%d:%d (%.4f)",
+            context,
+            currentMeasure.measures,
+            currentMeasure.beats,
+            currentMeasure.ticks,
+            currentTime
+        );
     }
 
     public override void templateRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
