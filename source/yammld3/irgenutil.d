@@ -118,6 +118,14 @@ private struct TrackBuilderContext
     TrackProperty!float gateTime;     // [0, 1]
 }
 
+package struct NoteSetInfo
+{
+    float nominalTime;
+    KeyInfo[] keys;
+    float nominalDuration;
+    float lastNominalDuration;
+}
+
 private final class TrackBuilder
 {
     public this(string name)
@@ -175,44 +183,42 @@ private final class TrackBuilder
         _commands.put(c);
     }
 
-    public void putNote(int noteCount, float nominalTime, NoteInfo noteInfo, float nominalDuration)
+    public void putNote(int noteCount, NoteSetInfo noteSetInfo)
     {
         flush();
 
-        noteInfo.key += _context.octave.getValueFor(noteCount, nominalTime) * 12;
-        noteInfo.key += _context.keyShift.getValueFor(noteCount, nominalTime);
-        noteInfo.velocity += _context.velocity.getValueFor(noteCount, nominalTime);
-        noteInfo.timeShift += _context.timeShift.getValueFor(noteCount, nominalTime);
-        noteInfo.gateTime += _context.gateTime.getValueFor(noteCount, nominalTime);
+        int keyDelta = _context.octave.getValueFor(noteCount, noteSetInfo.nominalTime) * 12
+            + _context.keyShift.getValueFor(noteCount, noteSetInfo.nominalTime);
+        float velocity = _context.velocity.getValueFor(noteCount, noteSetInfo.nominalTime);
+        float timeShift = _context.timeShift.getValueFor(noteCount, noteSetInfo.nominalTime);
+        float gateTime = _context.gateTime.getValueFor(noteCount, noteSetInfo.nominalTime);
 
-        _queuedNote = new Note(nominalTime, noteInfo, nominalDuration);
-    }
+        foreach (ref k; noteSetInfo.keys)
+        {
+            k.key += keyDelta;
+            k.velocity = velocity;
+            k.timeShift = timeShift;
+            k.gateTime = gateTime;
+        }
 
-    public void putRest(int noteCount, float nominalTime, float nominalDuration)
-    {
-        flush();
-        _queuedNote = new Note(nominalTime, nominalDuration);
+        _queuedNote = noteSetInfo;
     }
 
     public bool extendPreviousNote(int noteCount, float time, float duration)
     {
-        if (_queuedNote is null)
+        if (_queuedNote.isNull)
         {
             return false;
         }
 
-        if (!_queuedNote.isRest)
-        {
-            auto noteInfo = _queuedNote.noteInfo;
+        _queuedNote.get.nominalDuration += duration;
+        _queuedNote.get.lastNominalDuration = duration;
 
-            noteInfo.lastNominalDuration = duration;
-            noteInfo.gateTime = _context.gateTime.getValueFor(noteCount, time);
+        float gateTime = _context.gateTime.getValueFor(noteCount, time);
 
-            _queuedNote = new Note(_queuedNote.nominalTime, noteInfo, _queuedNote.nominalDuration + duration);
-        }
-        else
+        foreach (ref k; _queuedNote.get.keys)
         {
-            _queuedNote = new Note(_queuedNote.nominalTime, _queuedNote.nominalDuration + duration);
+            k.gateTime = gateTime;
         }
 
         return true;
@@ -317,10 +323,21 @@ private final class TrackBuilder
 
     private void flush()
     {
-        if (_queuedNote !is null)
+        if (!_queuedNote.isNull)
         {
-            _commands.put(_queuedNote);
-            _queuedNote = null;
+            foreach (k; _queuedNote.get.keys)
+            {
+                auto n = new Note(
+                    _queuedNote.get.nominalTime,
+                    _queuedNote.get.nominalDuration,
+                    _queuedNote.get.lastNominalDuration,
+                    k
+                );
+
+                _commands.put(n);
+            }
+
+            _queuedNote.nullify();
         }
     }
 
@@ -328,7 +345,7 @@ private final class TrackBuilder
     private int _channel = 0;
     private TrackBuilderContext _context;
     private Appender!(Command[]) _commands;
-    private Note _queuedNote;
+    private Nullable!NoteSetInfo _queuedNote;
     private float _trailingBlankTime = 4.0f;
 }
 
@@ -650,19 +667,11 @@ package final class MultiTrackBuilder
         }
     }
 
-    public void putNote(int noteCount, float nominalTime, NoteInfo noteInfo, float nominalDuration)
+    public void putNote(int noteCount, NoteSetInfo noteSetInfo)
     {
         foreach (t; _tracks)
         {
-            t.putNote(noteCount, nominalTime, noteInfo, nominalDuration);
-        }
-    }
-
-    public void putRest(int noteCount, float nominalTime, float nominalDuration)
-    {
-        foreach (t; _tracks)
-        {
-            t.putRest(noteCount, nominalTime, nominalDuration);
+            t.putNote(noteCount, noteSetInfo);
         }
     }
 

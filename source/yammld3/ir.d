@@ -26,30 +26,22 @@ public interface Command
     @property float nominalTime();
 }
 
-public struct NoteInfo
+public struct KeyInfo
 {
     int key;
     float velocity;
     float timeShift;
-    float lastNominalDuration;
     float gateTime;
 }
 
 public final class Note : Command
 {
-    import std.typecons : Nullable;
-
-    public this(float nominalTime, float nominalDuration)
+    public this(float nominalTime, float nominalDuration, float lastNominalDuration, KeyInfo keyInfo)
     {
         _nominalTime = nominalTime;
         _nominalDuration = nominalDuration;
-    }
-
-    public this(float nominalTime, NoteInfo noteInfo, float nominalDuration)
-    {
-        _nominalTime = nominalTime;
-        _noteInfo = noteInfo;
-        _nominalDuration = nominalDuration;
+        _lastNominalDuration = lastNominalDuration;
+        _keyInfo = keyInfo;
     }
 
     public override @property IRKind kind()
@@ -62,24 +54,25 @@ public final class Note : Command
         return _nominalTime;
     }
 
-    public @property bool isRest()
-    {
-        return _noteInfo.isNull;
-    }
-
-    public @property NoteInfo noteInfo()
-    {
-        return _noteInfo.get;
-    }
-
     public @property float nominalDuration()
     {
         return _nominalDuration;
     }
 
+    public @property float lastNominalDuration()
+    {
+        return _lastNominalDuration;
+    }
+
+    public @property KeyInfo keyInfo()
+    {
+        return _keyInfo;
+    }
+
     private float _nominalTime;
-    private Nullable!NoteInfo _noteInfo;
     private float _nominalDuration;
+    private float _lastNominalDuration;
+    private KeyInfo _keyInfo;
 }
 
 public final class ControlChange : Command

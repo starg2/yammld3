@@ -452,8 +452,7 @@ public enum CommandKind
     scoped,
     modifier,
     repeat,
-    tuplet,
-    chord
+    tuplet
 }
 
 public interface Command : ASTNode
@@ -506,29 +505,21 @@ public final class BasicCommand : Command
     private Expression _argument;
 }
 
-public final class NoteCommand : Command
+public final class KeyLiteral : ASTNode
 {
     import yammld3.common : KeyName;
 
-    public this(SourceLocation loc, int octaveShift, KeyName baseKey, int accidental, Expression duration)
+    public this(SourceLocation loc, int octaveShift, KeyName baseKey, int accidental)
     {
-        // duration may be null
-
         _loc = loc;
         _octaveShift = octaveShift;
         _baseKey = baseKey;
         _accidental = accidental;
-        _duration = duration;
     }
 
     public override @property SourceLocation location()
     {
         return _loc;
-    }
-
-    public override @property CommandKind kind()
-    {
-        return CommandKind.note;
     }
 
     public @property int octaveShift()
@@ -546,15 +537,47 @@ public final class NoteCommand : Command
         return _accidental;
     }
 
+    private SourceLocation _loc;
+    private int _octaveShift;
+    private KeyName _baseKey;
+    private int _accidental;
+}
+
+public final class NoteCommand : Command
+{
+    import yammld3.common : KeyName;
+
+    public this(SourceLocation loc, KeyLiteral[] keys, Expression duration)
+    {
+        // duration may be null
+
+        _loc = loc;
+        _keys = keys;
+        _duration = duration;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property CommandKind kind()
+    {
+        return CommandKind.note;
+    }
+
+    public @property KeyLiteral[] keys()
+    {
+        return _keys;
+    }
+
     public @property Expression duration()
     {
         return _duration;
     }
 
     private SourceLocation _loc;
-    private int _octaveShift;
-    private KeyName _baseKey;
-    private int _accidental;
+    private KeyLiteral[] _keys;
     private Expression _duration;
 }
 
@@ -749,32 +772,6 @@ public final class TupletCommand : Command
     private Expression _duration;
 }
 
-public final class ChordCommand : Command
-{
-    public this(Command[] children)
-    {
-        _children = children;
-    }
-
-    public override @property SourceLocation location()
-    {
-        import std.algorithm.iteration : fold;
-        return _children[1..$].fold!((a, b) => SourceLocation(a, b.location))(_children[0].location);
-    }
-
-    public override @property CommandKind kind()
-    {
-        return CommandKind.chord;
-    }
-
-    public Command[] children()
-    {
-        return _children;
-    }
-
-    private Command[] _children;
-}
-
 public auto visit(Handlers...)(Command c)
 {
     assert(c !is null);
@@ -809,9 +806,6 @@ public auto visit(Handlers...)(Command c)
 
     case CommandKind.tuplet:
         return Overloaded(cast(TupletCommand)c);
-
-    case CommandKind.chord:
-        return Overloaded(cast(ChordCommand)c);
     }
 }
 

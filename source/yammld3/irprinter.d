@@ -306,24 +306,18 @@ public final class IRPrinter(Writer)
     {
         assert(note !is null);
 
-        auto attr = [
-            XMLAttribute("NominalTime", note.nominalTime.text),
-            XMLAttribute("NominalDuration", note.nominalDuration.text),
-            XMLAttribute("IsRest", note.isRest.text)
-        ];
-
-        if (!note.isRest)
-        {
-            attr ~= [
-                XMLAttribute("Key", note.noteInfo.key.text),
-                XMLAttribute("Velocity", note.noteInfo.velocity.text),
-                XMLAttribute("TimeShift", note.noteInfo.timeShift.text),
-                XMLAttribute("LastNominalDuration", note.noteInfo.lastNominalDuration.text),
-                XMLAttribute("GateTime", note.noteInfo.gateTime.text)
-            ];
-        }
-
-        _writer.writeElement("Note", attr);
+        _writer.writeElement(
+            "Note",
+            [
+                XMLAttribute("NominalTime", note.nominalTime.text),
+                XMLAttribute("NominalDuration", note.nominalDuration.text),
+                XMLAttribute("LastNominalDuration", note.lastNominalDuration.text),
+                XMLAttribute("Key", note.keyInfo.key.text),
+                XMLAttribute("Velocity", note.keyInfo.velocity.text),
+                XMLAttribute("TimeShift", note.keyInfo.timeShift.text),
+                XMLAttribute("GateTime", note.keyInfo.gateTime.text)
+            ]
+        );
     }
 
     private void printCommand(ControlChange cc)

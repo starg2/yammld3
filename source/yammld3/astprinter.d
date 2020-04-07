@@ -96,66 +96,71 @@ public final class ASTPrinter(Writer)
         import yammld3.common : KeyName;
 
         assert(c !is null);
+        assert(!c.keys.empty);
+
+        _writer.startElement("NoteCommand");
 
         auto attr = appender!(XMLAttribute[]);
 
-        if (c.octaveShift != 0)
+        foreach (k; c.keys)
         {
-            attr.put(XMLAttribute("OctaveShift", c.octaveShift.text));
+            if (k.octaveShift != 0)
+            {
+                attr.put(XMLAttribute("OctaveShift", k.octaveShift.text));
+            }
+
+            switch (k.baseKey)
+            {
+            case KeyName.c:
+                attr.put(XMLAttribute("BaseKey", "C"));
+                break;
+
+            case KeyName.d:
+                attr.put(XMLAttribute("BaseKey", "D"));
+                break;
+
+            case KeyName.e:
+                attr.put(XMLAttribute("BaseKey", "E"));
+                break;
+
+            case KeyName.f:
+                attr.put(XMLAttribute("BaseKey", "F"));
+                break;
+
+            case KeyName.g:
+                attr.put(XMLAttribute("BaseKey", "G"));
+                break;
+
+            case KeyName.a:
+                attr.put(XMLAttribute("BaseKey", "A"));
+                break;
+
+            case KeyName.b:
+                attr.put(XMLAttribute("BaseKey", "B"));
+                break;
+
+            default:
+                attr.put(XMLAttribute("BaseKey", (cast(int)k.baseKey).text));
+                break;
+            }
+
+            if (k.accidental != 0)
+            {
+                attr.put(XMLAttribute("Accidental", k.accidental.text));
+            }
+
+            _writer.writeElement("KeyLiteral", attr[]);
+            attr.clear();
         }
 
-        switch (c.baseKey)
+        if (c.duration !is null)
         {
-        case KeyName.c:
-            attr.put(XMLAttribute("BaseKey", "C"));
-            break;
-
-        case KeyName.d:
-            attr.put(XMLAttribute("BaseKey", "D"));
-            break;
-
-        case KeyName.e:
-            attr.put(XMLAttribute("BaseKey", "E"));
-            break;
-
-        case KeyName.f:
-            attr.put(XMLAttribute("BaseKey", "F"));
-            break;
-
-        case KeyName.g:
-            attr.put(XMLAttribute("BaseKey", "G"));
-            break;
-
-        case KeyName.a:
-            attr.put(XMLAttribute("BaseKey", "A"));
-            break;
-
-        case KeyName.b:
-            attr.put(XMLAttribute("BaseKey", "B"));
-            break;
-
-        default:
-            attr.put(XMLAttribute("BaseKey", (cast(int)c.baseKey).text));
-            break;
-        }
-
-        if (c.accidental != 0)
-        {
-            attr.put(XMLAttribute("Accidental", c.accidental.text));
-        }
-
-        if (c.duration is null)
-        {
-            _writer.writeElement("NoteCommand", attr[]);
-        }
-        else
-        {
-            _writer.startElement("NoteCommand", attr[]);
             _writer.startElement("Duration");
             printExpression(c.duration);
             _writer.endElement();
-            _writer.endElement();
         }
+
+        _writer.endElement();
     }
 
     private void printCommand(ExtensionCommand c)
@@ -244,27 +249,6 @@ public final class ASTPrinter(Writer)
         }
 
         _writer.endElement();
-    }
-
-    private void printCommand(ChordCommand c)
-    {
-        assert(c !is null);
-
-        if (c.children.empty)
-        {
-            _writer.writeElement("ChordCommand");
-        }
-        else
-        {
-            _writer.startElement("ChordCommand");
-
-            foreach (i; c.children)
-            {
-                printCommand(i);
-            }
-
-            _writer.endElement();
-        }
     }
 
     private void printCommandBlock(CommandBlock b)

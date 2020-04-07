@@ -67,9 +67,7 @@ c&d&e
 
 <Module> ::= <Command>*
 
-<Command> ::= <ChordCommand>
-
-<ChordCommand> ::= <PostfixCommand> ('&' <PostfixCommand>)*
+<Command> ::= <PostfixCommand>
 
 <PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand> | <TupletCommand>)*
 
@@ -87,7 +85,9 @@ c&d&e
 
 <ExtensionCommand> ::= '%' <Identifier> <ParenthesizedExpressionList>? <CommandBlock>?
 
-<NoteCommand> ::= ('>' | '<')* ('c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b') ('+' | '-')* <CommandArgumentExpression>?
+<NoteCommand> ::= <KeyLiteral> ('&' <KeyLiteral>)* <CommandArgumentExpression>?
+
+<KeyLiteral> ::= ('>' | '<')* ('c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b') ('+' | '-')*
 
 <BasicCommand> ::= IDSTART ('+' | '-')? <CommandArgumentExpression>?
 
@@ -230,60 +230,7 @@ public final class Parser
             assert(false);
         }
 
-        return parseChordCommand(s);
-    }
-
-    private Command parseChordCommand(ref Scanner s)
-    {
-        auto firstChild = parsePostfixCommand(s);
-
-        if (firstChild is null)
-        {
-            return null;
-        }
-
-        Command[] restChildren;
-
-        while (true)
-        {
-            skipSpaces(s);
-
-            auto startOffset = s.sourceOffset;
-
-            if (s.scanChar('&'))
-            {
-                skipSpaces(s);
-                auto c = parsePostfixCommand(s);
-
-                if (c is null)
-                {
-                    _diagnosticsHandler.expectedAfter(
-                        SourceLocation(startOffset, 1),
-                        "chord command",
-                        "postfix command",
-                        "&"
-                    );
-                    break;
-                }
-                else
-                {
-                    restChildren ~= c;
-                }
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        if (restChildren.empty)
-        {
-            return firstChild;
-        }
-        else
-        {
-            return new ChordCommand(firstChild ~ restChildren);
-        }
+        return parsePostfixCommand(s);
     }
 
     private Command parsePostfixCommand(ref Scanner s)
@@ -430,7 +377,7 @@ public final class Parser
         return null;
     }
 
-    private NoteCommand parseNoteCommand(ref Scanner s)
+    private KeyLiteral parseKeyLiteral(ref Scanner s)
     {
         import yammld3.common : KeyName;
 
@@ -527,12 +474,64 @@ public final class Parser
             }
         }
 
-        auto dur = parseCommandArgumentExpression(s);
-        return new NoteCommand(
+        return new KeyLiteral(
             SourceLocation(startOffset, s.sourceOffset),
             rightCount - leftCount,
             baseKey,
-            accidental,
+            accidental
+        );
+    }
+
+    private NoteCommand parseNoteCommand(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+        auto k = parseKeyLiteral(s);
+
+        if (k is null)
+        {
+            return null;
+        }
+
+        auto keys = appender!(KeyLiteral[]);
+        keys.put(k);
+
+        while (true)
+        {
+            //skipSpaces(s);
+
+            auto keyStartOffset = s.sourceOffset;
+
+            if (s.scanChar('&'))
+            {
+                //skipSpaces(s);
+                k = parseKeyLiteral(s);
+
+                if (k is null)
+                {
+                    _diagnosticsHandler.expectedAfter(
+                        SourceLocation(keyStartOffset, 1),
+                        "note command",
+                        "key expression",
+                        "&"
+                    );
+                    break;
+                }
+                else
+                {
+                    keys.put(k);
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        auto dur = parseCommandArgumentExpression(s);
+
+        return new NoteCommand(
+            SourceLocation(startOffset, s.sourceOffset),
+            keys[],
             dur
         );
     }

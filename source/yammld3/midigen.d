@@ -135,39 +135,36 @@ public final class MIDIGenerator
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, Note note)
     {
-        if (!note.isRest)
+        byte velocity = (note.keyInfo.velocity * 127.0f).to!int.clamp(0, 127).to!byte;
+
+        if (velocity > 0)
         {
-            byte velocity = (note.noteInfo.velocity * 127.0f).to!int.clamp(0, 127).to!byte;
+            int onTime = convertTime(note.nominalTime + note.keyInfo.timeShift);
+            int offTime = convertTime(
+                note.nominalTime
+                    + note.nominalDuration - note.lastNominalDuration
+                    + note.lastNominalDuration * note.keyInfo.gateTime
+            );
 
-            if (velocity > 0)
+            if (onTime < offTime)
             {
-                int onTime = convertTime(note.nominalTime + note.noteInfo.timeShift);
-                int offTime = convertTime(
-                    note.nominalTime
-                        + note.nominalDuration - note.noteInfo.lastNominalDuration
-                        + note.noteInfo.lastNominalDuration * note.noteInfo.gateTime
-                );
+                byte key = note.keyInfo.key.clamp(0, 127).to!byte;
 
-                if (onTime < offTime)
-                {
-                    byte key = note.noteInfo.key.clamp(0, 127).to!byte;
+                NoteOnEventData onev;
+                onev.note = key;
+                onev.velocity = velocity;
 
-                    NoteOnEventData onev;
-                    onev.note = key;
-                    onev.velocity = velocity;
+                MIDIEvent ev;
+                ev.time = onTime;
+                ev.data = MIDIEventData(onev);
+                events.put(ev);
 
-                    MIDIEvent ev;
-                    ev.time = onTime;
-                    ev.data = MIDIEventData(onev);
-                    events.put(ev);
+                NoteOffEventData offev;
+                offev.note = key;
 
-                    NoteOffEventData offev;
-                    offev.note = key;
-
-                    ev.time = offTime;
-                    ev.data = MIDIEventData(offev);
-                    events.put(ev);
-                }
+                ev.time = offTime;
+                ev.data = MIDIEventData(offev);
+                events.put(ev);
             }
         }
     }

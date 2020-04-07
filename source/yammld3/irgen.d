@@ -153,6 +153,7 @@ public final class IRGenerator
     private void compileCommand(MultiTrackBuilder tb, ast.NoteCommand c)
     {
         assert(c !is null);
+        assert(!c.keys.empty);
 
         auto cb = tb.compositionBuilder;
         auto cdb = cb.conductorTrackBuilder;
@@ -170,14 +171,26 @@ public final class IRGenerator
             duration = _durationEvaluator.evaluate(curTime, c.duration);
         }
 
-        ir.NoteInfo noteInfo;
-        noteInfo.key = c.octaveShift * 12 + cast(int)c.baseKey + c.accidental;
-        noteInfo.velocity = 0.0f;
-        noteInfo.timeShift = 0.0f;
-        noteInfo.lastNominalDuration = duration;
-        noteInfo.gateTime = 0.0f;
+        NoteSetInfo noteSetInfo;
+        noteSetInfo.nominalTime = curTime;
+        noteSetInfo.nominalDuration = duration;
+        noteSetInfo.lastNominalDuration = duration;
 
-        tb.putNote(noteCount, curTime, noteInfo, duration);
+        auto keys = appender(&noteSetInfo.keys);
+        keys.reserve(c.keys.length);
+
+        foreach (kl; c.keys)
+        {
+            ir.KeyInfo k;
+            k.key = kl.octaveShift * 12 + cast(int)kl.baseKey + kl.accidental;
+            k.velocity = 0.0f;
+            k.timeShift = 0.0f;
+            k.gateTime = 0.0f;
+
+            keys.put(k);
+        }
+
+        tb.putNote(noteCount, noteSetInfo);
         cb.currentTime = curTime + duration;
     }
 
@@ -202,7 +215,13 @@ public final class IRGenerator
             duration = _durationEvaluator.evaluate(curTime, c.argument);
         }
 
-        tb.putRest(noteCount, curTime, duration);
+        NoteSetInfo noteSetInfo;
+        noteSetInfo.nominalTime = curTime;
+        noteSetInfo.nominalDuration = duration;
+        noteSetInfo.lastNominalDuration = duration;
+        noteSetInfo.keys = [];
+
+        tb.putNote(noteCount, noteSetInfo);
         cb.currentTime = curTime + duration;
     }
 
@@ -695,24 +714,6 @@ public final class IRGenerator
 
         cdb.setDuration(OptionalSign.none, noteLikeCommandCount > 0 ? duration / noteLikeCommandCount : duration);
         compileCommand(tb, c.command);
-    }
-
-    private void compileCommand(MultiTrackBuilder tb, ast.ChordCommand c)
-    {
-        assert(c !is null);
-
-        auto cb = tb.compositionBuilder;
-        float startTime = cb.currentTime;
-        float endTime = startTime;
-
-        foreach (child; c.children)
-        {
-            cb.currentTime = startTime;
-            compileCommand(tb, child);
-            endTime = max(endTime, cb.currentTime);
-        }
-
-        cb.currentTime = endTime;
     }
 
     private void compileArpeggioCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
