@@ -832,85 +832,284 @@ package ScaledIndex[] parseScaledIndexList(string str)
     }
 }
 
-package SetKeySigEvent makeKeySigEvent(float time, string text)
+package Nullable!KeySig parseKeySig(string text)
 {
     switch (text)
     {
     case "C":
-        return new SetKeySigEvent(time, KeyName.c, false);
+        return typeof(return)(KeySig(KeyName.c, false));
 
     case "Cm":
-        return new SetKeySigEvent(time, KeyName.c, true);
+        return typeof(return)(KeySig(KeyName.c, true));
 
     case "C#":
-        return new SetKeySigEvent(time, KeyName.cSharp, false);
+        return typeof(return)(KeySig(KeyName.cSharp, false));
 
     case "C#m":
-        return new SetKeySigEvent(time, KeyName.cSharp, true);
+        return typeof(return)(KeySig(KeyName.cSharp, true));
 
     case "D":
-        return new SetKeySigEvent(time, KeyName.d, false);
+        return typeof(return)(KeySig(KeyName.d, false));
 
     case "Dm":
-        return new SetKeySigEvent(time, KeyName.d, true);
+        return typeof(return)(KeySig(KeyName.d, true));
 
     case "D#":
-        return new SetKeySigEvent(time, KeyName.dSharp, false);
+        return typeof(return)(KeySig(KeyName.dSharp, false));
 
     case "D#m":
-        return new SetKeySigEvent(time, KeyName.dSharp, true);
+        return typeof(return)(KeySig(KeyName.dSharp, true));
 
     case "E":
-        return new SetKeySigEvent(time, KeyName.e, false);
+        return typeof(return)(KeySig(KeyName.e, false));
 
     case "Em":
-        return new SetKeySigEvent(time, KeyName.e, true);
+        return typeof(return)(KeySig(KeyName.e, true));
 
     case "F":
-        return new SetKeySigEvent(time, KeyName.f, false);
+        return typeof(return)(KeySig(KeyName.f, false));
 
     case "Fm":
-        return new SetKeySigEvent(time, KeyName.f, true);
+        return typeof(return)(KeySig(KeyName.f, true));
 
     case "F#":
-        return new SetKeySigEvent(time, KeyName.fSharp, false);
+        return typeof(return)(KeySig(KeyName.fSharp, false));
 
     case "F#m":
-        return new SetKeySigEvent(time, KeyName.fSharp, true);
+        return typeof(return)(KeySig(KeyName.fSharp, true));
 
     case "G":
-        return new SetKeySigEvent(time, KeyName.g, false);
+        return typeof(return)(KeySig(KeyName.g, false));
 
     case "Gm":
-        return new SetKeySigEvent(time, KeyName.g, true);
+        return typeof(return)(KeySig(KeyName.g, true));
 
     case "G#":
-        return new SetKeySigEvent(time, KeyName.gSharp, false);
+        return typeof(return)(KeySig(KeyName.gSharp, false));
 
     case "G#m":
-        return new SetKeySigEvent(time, KeyName.gSharp, true);
+        return typeof(return)(KeySig(KeyName.gSharp, true));
 
     case "A":
-        return new SetKeySigEvent(time, KeyName.a, false);
+        return typeof(return)(KeySig(KeyName.a, false));
 
     case "Am":
-        return new SetKeySigEvent(time, KeyName.a, true);
+        return typeof(return)(KeySig(KeyName.a, true));
 
     case "A#":
-        return new SetKeySigEvent(time, KeyName.aSharp, false);
+        return typeof(return)(KeySig(KeyName.aSharp, false));
 
     case "A#m":
-        return new SetKeySigEvent(time, KeyName.aSharp, true);
+        return typeof(return)(KeySig(KeyName.aSharp, true));
 
     case "B":
-        return new SetKeySigEvent(time, KeyName.b, false);
+        return typeof(return)(KeySig(KeyName.b, false));
 
     case "Bm":
-        return new SetKeySigEvent(time, KeyName.b, true);
+        return typeof(return)(KeySig(KeyName.b, true));
 
     default:
-        return null;
+        return typeof(return).init;
     }
+}
+
+// https://rittor-music.jp/guitar/column/guitarchord/476
+package int[] makeDiatonicTriad(KeySig keySig, int root)
+{
+    int i = root % 12 - cast(int)keySig.tonic;
+
+    if (i < 0)
+    {
+        i += 12;
+    }
+
+    int[] triad = [root, root, root];
+
+    // 0  1  2  3  4  5  6  7  8  9  10 11
+    // c  c+ d  d+ e  f  f+ g  g+ a  a+ b
+    // a  a+ b  c  c+ d  d+ e  f  f+ g  g+
+
+    if (!keySig.isMinor)
+    {
+        switch (i)
+        {
+        case 0:
+        case 5:
+        case 7:
+            triad[1] += 4;
+            triad[2] += 7;
+            break;
+
+        case 2:
+        case 4:
+        case 9:
+            triad[1] += 3;
+            triad[2] += 7;
+            break;
+
+        case 11:
+            triad[1] += 3;
+            triad[2] += 6;
+            break;
+
+        default:
+            return null;
+        }
+    }
+    else
+    {
+        switch (i)
+        {
+        case 3:
+        case 7:
+        case 8:
+        case 10:
+            triad[1] += 4;
+            triad[2] += 7;
+            break;
+
+        case 0:
+        case 5:
+            triad[1] += 3;
+            triad[2] += 7;
+            break;
+
+        case 2:
+            triad[1] += 3;
+            triad[2] += 6;
+            break;
+
+        default:
+            return null;
+        }
+    }
+
+    /*
+    final switch (scale)
+    {
+    case ScaleKind.major:
+        switch (i)
+        {
+        case 0:
+        case 5:
+        case 7:
+            triad[1] += 4;
+            triad[2] += 7;
+            break;
+
+        case 2:
+        case 4:
+        case 9:
+            triad[1] += 3;
+            triad[2] += 7;
+            break;
+
+        case 11:
+            triad[1] += 3;
+            triad[2] += 6;
+            break;
+
+        default:
+            return null;
+        }
+
+        break;
+
+    case ScaleKind.naturalMinor:
+        switch (i)
+        {
+        case 3:
+        case 8:
+        case 10:
+            triad[1] += 4;
+            triad[2] += 7;
+            break;
+
+        case 0:
+        case 5:
+        case 7:
+            triad[1] += 3;
+            triad[2] += 7;
+            break;
+
+        case 2:
+            triad[1] += 3;
+            triad[2] += 6;
+            break;
+
+        default:
+            return null;
+        }
+
+        break;
+
+    case ScaleKind.harmonicMinor:
+        switch (i)
+        {
+        case 7:
+        case 8:
+            triad[1] += 4;
+            triad[2] += 7;
+            break;
+
+        case 0:
+        case 5:
+            triad[1] += 3;
+            triad[2] += 7;
+            break;
+
+        case 3:
+            triad[1] += 4;
+            triad[2] += 8;
+            break;
+
+        case 2:
+        case 11:
+            triad[1] += 3;
+            triad[2] += 6;
+            break;
+
+        default:
+            return null;
+        }
+
+        break;
+
+    case ScaleKind.melodicMinor:
+        switch (i)
+        {
+        case 5:
+        case 7:
+            triad[1] += 4;
+            triad[2] += 7;
+            break;
+
+        case 0:
+        case 2:
+            triad[1] += 3;
+            triad[2] += 7;
+            break;
+
+        case 3:
+            triad[1] += 4;
+            triad[2] += 8;
+            break;
+
+        case 9:
+        case 11:
+            triad[1] += 3;
+            triad[2] += 6;
+            break;
+
+        default:
+            return null;
+        }
+
+        break;
+    }
+    */
+
+    return triad;
 }
 
 package Nullable!GSInsertionEffectType getGSInsertionEffectTypeFromString(string str)

@@ -150,11 +150,8 @@ public final class IRGenerator
         }
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.NoteCommand c)
+    private void compileNoteComandWithKeys(MultiTrackBuilder tb, ast.NoteCommand c, ir.KeyInfo[] keys)
     {
-        assert(c !is null);
-        assert(!c.keys.empty);
-
         auto cb = tb.compositionBuilder;
         auto cdb = cb.conductorTrackBuilder;
         int noteCount = cb.nextNoteCount();
@@ -175,8 +172,18 @@ public final class IRGenerator
         noteSetInfo.nominalTime = curTime;
         noteSetInfo.nominalDuration = duration;
         noteSetInfo.lastNominalDuration = duration;
+        noteSetInfo.keys = keys;
 
-        auto keys = appender(&noteSetInfo.keys);
+        tb.putNote(noteCount, noteSetInfo);
+        cb.currentTime = curTime + duration;
+    }
+
+    private void compileCommand(MultiTrackBuilder tb, ast.NoteCommand c)
+    {
+        assert(c !is null);
+        assert(!c.keys.empty);
+
+        auto keys = appender!(ir.KeyInfo[]);
         keys.reserve(c.keys.length);
 
         foreach (kl; c.keys)
@@ -190,8 +197,7 @@ public final class IRGenerator
             keys.put(k);
         }
 
-        tb.putNote(noteCount, noteSetInfo);
-        cb.currentTime = curTime + duration;
+        compileNoteComandWithKeys(tb, c, keys[]);
     }
 
     private void compileRestCommand(MultiTrackBuilder tb, ast.BasicCommand c)
@@ -379,6 +385,10 @@ public final class IRGenerator
 
         case "all_sound_off":
             compileChannelModeCommand(tb, ir.ControlChangeCode.allSoundOff, c);
+            break;
+
+        case "auto_chord":
+            compileAutoChordCommand(tb, c);
             break;
 
         case "arp":
@@ -714,6 +724,74 @@ public final class IRGenerator
 
         cdb.setDuration(OptionalSign.none, noteLikeCommandCount > 0 ? duration / noteLikeCommandCount : duration);
         compileCommand(tb, c.command);
+    }
+
+    private void compileAutoChordCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "auto_chord");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        OptionValue keySig;
+        Option keySigOpt;
+        keySigOpt.key = "key";
+        keySigOpt.valueType = OptionType.text;
+        keySigOpt.values = &keySig;
+
+        if (!_optionProc.processOptions([keySigOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto ks = parseKeySig(keySig.data.get!string);
+
+        if (ks.isNull)
+        {
+            _diagnosticsHandler.undefinedKeySignature(keySig.location, "%" ~ c.name.value);
+            return;
+        }
+
+        foreach (child; c.block.commands)
+        {
+            auto nc = cast(ast.NoteCommand)child;
+
+            if (nc !is null && nc.keys.length == 1)
+            {
+                auto kl = nc.keys[0];
+                int root = kl.octaveShift * 12 + cast(int)kl.baseKey + kl.accidental;
+                int[] chord = makeDiatonicTriad(ks.get, root);
+
+                if (chord is null)
+                {
+                    chord = [root];
+                }
+
+                auto keys = appender!(ir.KeyInfo[]);
+                keys.reserve(chord.length);
+
+                foreach (t; chord)
+                {
+                    ir.KeyInfo k;
+                    k.key = t;
+                    k.velocity = 0.0f;
+                    k.timeShift = 0.0f;
+                    k.gateTime = 0.0f;
+
+                    keys.put(k);
+                }
+
+                compileNoteComandWithKeys(tb, nc, keys[]);
+            }
+            else
+            {
+                compileCommand(tb, child);
+            }
+        }
     }
 
     private void compileArpeggioCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
@@ -1207,15 +1285,15 @@ public final class IRGenerator
             return;
         }
 
-        auto ks = makeKeySigEvent(cb.currentTime, value.data.get!string);
+        auto ks = parseKeySig(value.data.get!string);
 
-        if (ks is null)
+        if (ks.isNull)
         {
             _diagnosticsHandler.undefinedKeySignature(value.location, "%" ~ c.name.value);
             return;
         }
 
-        cb.conductorTrackBuilder.setKeySig(ks);
+        cb.conductorTrackBuilder.setKeySig(new ir.SetKeySigEvent(cb.currentTime, ks.get));
     }
 
     private void addTextEventToConductorTrack(CompositionBuilder cb, ir.MetaEventKind kind, ast.ExtensionCommand c)

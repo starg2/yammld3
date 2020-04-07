@@ -30,6 +30,54 @@ public enum KeyName : byte
     b = 11
 }
 
+public struct KeySig
+{
+    int countSharp()
+    {
+        final switch (tonic)
+        {
+        case KeyName.c:
+            return !isMinor ? 0 : -3;
+
+        case KeyName.cSharp:
+            return !isMinor ? -5 : 4;
+
+        case KeyName.d:
+            return !isMinor ? 2 : -1;
+
+        case KeyName.dSharp:
+            return !isMinor ? -3 : 6;
+
+        case KeyName.e:
+            return !isMinor ? 4 : 1;
+
+        case KeyName.f:
+            return !isMinor ? -1 : -4;
+
+        case KeyName.fSharp:
+            return !isMinor ? 6 : 3;
+
+        case KeyName.g:
+            return !isMinor ? 1 : -2;
+
+        case KeyName.gSharp:
+            return !isMinor ? -4 : 5;
+
+        case KeyName.a:
+            return !isMinor ? 3 : 0;
+
+        case KeyName.aSharp:
+            return !isMinor ? -2 : -5;
+
+        case KeyName.b:
+            return !isMinor ? 5 : -2;
+        }
+    }
+
+    KeyName tonic;
+    bool isMinor;
+}
+
 public struct Time
 {
     int measures;

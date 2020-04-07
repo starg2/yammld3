@@ -233,11 +233,10 @@ public final class SetMeterEvent : Command
 
 public final class SetKeySigEvent : Command
 {
-    public this(float nominalTime, KeyName tonic, bool isMinor)
+    public this(float nominalTime, KeySig keySig)
     {
         _nominalTime = nominalTime;
-        _tonic = tonic;
-        _isMinor = isMinor;
+        _keySig = keySig;
     }
 
     public override @property IRKind kind()
@@ -250,61 +249,23 @@ public final class SetKeySigEvent : Command
         return _nominalTime;
     }
 
+    public @property KeySig keySig()
+    {
+        return _keySig;
+    }
+
     public @property KeyName tonic()
     {
-        return _tonic;
+        return _keySig.tonic;
     }
 
     public @property bool isMinor()
     {
-        return _isMinor;
-    }
-
-    public int countSharp()
-    {
-        final switch (_tonic)
-        {
-        case KeyName.c:
-            return !_isMinor ? 0 : -3;
-
-        case KeyName.cSharp:
-            return !_isMinor ? -5 : 4;
-
-        case KeyName.d:
-            return !_isMinor ? 2 : -1;
-
-        case KeyName.dSharp:
-            return !_isMinor ? -3 : 6;
-
-        case KeyName.e:
-            return !_isMinor ? 4 : 1;
-
-        case KeyName.f:
-            return !_isMinor ? -1 : -4;
-
-        case KeyName.fSharp:
-            return !_isMinor ? 6 : 3;
-
-        case KeyName.g:
-            return !_isMinor ? 1 : -2;
-
-        case KeyName.gSharp:
-            return !_isMinor ? -4 : 5;
-
-        case KeyName.a:
-            return !_isMinor ? 3 : 0;
-
-        case KeyName.aSharp:
-            return !_isMinor ? -2 : -5;
-
-        case KeyName.b:
-            return !_isMinor ? 5 : -2;
-        }
+        return _keySig.isMinor;
     }
 
     private float _nominalTime;
-    private KeyName _tonic;
-    private bool _isMinor;
+    private KeySig _keySig;
 }
 
 public final class TextMetaEvent : Command
