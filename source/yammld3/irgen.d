@@ -771,6 +771,8 @@ public final class IRGenerator
                     chord = [root];
                 }
 
+                assert(!chord.empty);
+
                 auto keys = appender!(ir.KeyInfo[]);
                 keys.reserve(chord.length);
 
@@ -778,6 +780,12 @@ public final class IRGenerator
                 {
                     ir.KeyInfo k;
                     k.key = t;
+
+                    if (k.key >= chord[0] / 12 * 12 + 10)
+                    {
+                        k.key -= 12;
+                    }
+
                     k.velocity = 0.0f;
                     k.timeShift = 0.0f;
                     k.gateTime = 0.0f;
