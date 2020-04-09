@@ -1120,14 +1120,12 @@ public final class Parser
 
         auto startOffset = s.sourceOffset;
         auto startView = s.view;
-        dchar quote = s.front;
 
-        if (!(quote == '"' || quote == '\''))
+        if (!s.scanChar('"'))
         {
             return null;
         }
 
-        s.popFront();
         auto str = appender!string();
         bool escaped = false;
 
@@ -1172,7 +1170,7 @@ public final class Parser
                 s.popFront();
                 escaped = false;
             }
-            else if (s.front == quote)
+            else if (s.front == '"')
             {
                 s.popFront();
                 break;
