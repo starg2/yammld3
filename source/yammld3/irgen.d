@@ -20,7 +20,6 @@ public final class IRGenerator
     import yammld3.options;
     import yammld3.priorspec;
     import yammld3.source : SourceLocation;
-    import yammld3.templates;
 
     public this(DiagnosticsHandler handler)
     {
@@ -28,7 +27,6 @@ public final class IRGenerator
         _intEvaluator = new NumericExpressionEvaluator!int(handler);
         _floatEvaluator = new NumericExpressionEvaluator!float(handler);
         _strEval = new StringExpressionEvaluator(handler);
-        _templateManager = new TemplateManager(handler);
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -436,10 +434,6 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.decayTime, c);
             break;
 
-        case "expand":
-            compileExpandCommand(tb, c);
-            break;
-
         case "expression":
             compileControlChangeCommand(tb, ir.ControlChangeCode.expression, c);
             break;
@@ -492,10 +486,6 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.pan, c);
             break;
 
-        case "param":
-            _diagnosticsHandler.unexpectedCommandOutsideCommand(c.location, "%" ~ c.name.value, "%template");
-            break;
-
         case "phaser":
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect5Depth, c);
             break;
@@ -544,10 +534,6 @@ public final class IRGenerator
             compileTableCommand(tb, c);
             break;
 
-        case "template":
-            _templateManager.compileDefineTemplateCommand(c);
-            break;
-
         case "tempo":
             setTempo(tb.compositionBuilder, c);
             break;
@@ -574,10 +560,6 @@ public final class IRGenerator
 
         case "volume":
             compileControlChangeCommand(tb, ir.ControlChangeCode.channelVolume, c);
-            break;
-
-        case "with_param":
-            _diagnosticsHandler.unexpectedCommandOutsideCommand(c.location, "%" ~ c.name.value, "%expand");
             break;
 
         case "xg_reset":
@@ -1400,18 +1382,6 @@ public final class IRGenerator
         tb.putCommand(pc);
     }
 
-    private void compileExpandCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
-    {
-        auto context = _templateManager.saveContext();
-
-        scope (exit)
-        {
-            _templateManager.restoreContext(context);
-        }
-
-        compileCommands(tb, _templateManager.compileExpandTemplateCommand(c));
-    }
-
     private void compileForkCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
@@ -2232,5 +2202,4 @@ public final class IRGenerator
     private StringExpressionEvaluator _strEval;
     private OptionProcessor _optionProc;
     private Random _rng;
-    private TemplateManager _templateManager;
 }

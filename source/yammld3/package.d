@@ -18,5 +18,4 @@ public import yammld3.parser;
 // public import yammld3.priorspec;
 // public import yammld3.scanner;
 public import yammld3.source;
-// public import yammld3.templates;
 // public import yammld3.xmlwriter;
