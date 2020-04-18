@@ -45,7 +45,6 @@ public interface DiagnosticsHandler
     void negativeRepeatCount(SourceLocation loc, string context);
     void negativeStdDev(SourceLocation loc, string context);
     void timeAssertionFailed(SourceLocation loc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
-    void invalidFormatSpecifier(SourceLocation loc, string context);
 
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
 
@@ -307,12 +306,6 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
             expectedTime
         );
 
-        incrementErrorCount();
-    }
-
-    public override void invalidFormatSpecifier(SourceLocation loc, string context)
-    {
-        writeMessage(loc, "error: '%s': invalid format specifier", context);
         incrementErrorCount();
     }
 

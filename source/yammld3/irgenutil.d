@@ -784,54 +784,6 @@ package final class CompositionBuilder
     private int _noteCount = 0;
 }
 
-package struct ScaledIndex
-{
-    int scale;
-    int offset;
-}
-
-package ScaledIndex[] parseScaledIndexList(string str)
-{
-    import std.ascii : isDigit, isWhite;
-
-    try
-    {
-        auto indices = appender!(ScaledIndex[]);
-
-        foreach (i; str.filter!(x => !isWhite(x)).array.splitter(','))
-        {
-            ScaledIndex si;
-
-            foreach (j; i.splitter('+'))
-            {
-                if (!j.empty && j.back == 'n')
-                {
-                    if (isDigit(j.front))
-                    {
-                        si.scale += parse!int(j);
-                    }
-                    else
-                    {
-                        si.scale++;
-                    }
-                }
-                else
-                {
-                    si.offset += parse!int(j);
-                }
-            }
-
-            indices.put(si);
-        }
-
-        return indices[];
-    }
-    catch (ConvException e)
-    {
-        return null;
-    }
-}
-
 package Nullable!KeySig parseKeySig(string text)
 {
     switch (text)
