@@ -52,10 +52,10 @@ public final class ASTPrinter(Writer)
     private void printCommand(Command c)
     {
         assert(c !is null);
-        c.visit!(x => printCommand(x));
+        c.visit!(x => doPrintCommand(x));
     }
 
-    private void printCommand(BasicCommand c)
+    private void doPrintCommand(BasicCommand c)
     {
         import yammld3.common : OptionalSign;
         assert(c !is null);
@@ -90,68 +90,13 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printCommand(NoteCommand c)
+    private void doPrintCommand(NoteCommand c)
     {
-        import std.array : appender;
-        import yammld3.common : KeyName;
-
         assert(c !is null);
         assert(!c.keys.empty);
 
         _writer.startElement("NoteCommand");
-
-        auto attr = appender!(XMLAttribute[]);
-
-        foreach (k; c.keys)
-        {
-            if (k.octaveShift != 0)
-            {
-                attr.put(XMLAttribute("OctaveShift", k.octaveShift.text));
-            }
-
-            switch (k.baseKey)
-            {
-            case KeyName.c:
-                attr.put(XMLAttribute("BaseKey", "C"));
-                break;
-
-            case KeyName.d:
-                attr.put(XMLAttribute("BaseKey", "D"));
-                break;
-
-            case KeyName.e:
-                attr.put(XMLAttribute("BaseKey", "E"));
-                break;
-
-            case KeyName.f:
-                attr.put(XMLAttribute("BaseKey", "F"));
-                break;
-
-            case KeyName.g:
-                attr.put(XMLAttribute("BaseKey", "G"));
-                break;
-
-            case KeyName.a:
-                attr.put(XMLAttribute("BaseKey", "A"));
-                break;
-
-            case KeyName.b:
-                attr.put(XMLAttribute("BaseKey", "B"));
-                break;
-
-            default:
-                attr.put(XMLAttribute("BaseKey", (cast(int)k.baseKey).text));
-                break;
-            }
-
-            if (k.accidental != 0)
-            {
-                attr.put(XMLAttribute("Accidental", k.accidental.text));
-            }
-
-            _writer.writeElement("KeyLiteral", attr[]);
-            attr.clear();
-        }
+        printKeySpecifiers(c.keys);
 
         if (c.duration !is null)
         {
@@ -163,7 +108,82 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printCommand(ExtensionCommand c)
+    private void printKeySpecifiers(KeySpecifier[] keys)
+    {
+        import std.array : appender;
+        import yammld3.common : KeyName;
+
+        auto attr = appender!(XMLAttribute[]);
+
+        foreach (k; keys)
+        {
+            if (k.octaveShift != 0)
+            {
+                attr.put(XMLAttribute("OctaveShift", k.octaveShift.text));
+            }
+
+            k.baseKey.visit!(
+                (KeyLiteral kl)
+                {
+                    switch (kl.keyName)
+                    {
+                    case KeyName.c:
+                        attr.put(XMLAttribute("KeyName", "C"));
+                        break;
+
+                    case KeyName.d:
+                        attr.put(XMLAttribute("KeyName", "D"));
+                        break;
+
+                    case KeyName.e:
+                        attr.put(XMLAttribute("KeyName", "E"));
+                        break;
+
+                    case KeyName.f:
+                        attr.put(XMLAttribute("KeyName", "F"));
+                        break;
+
+                    case KeyName.g:
+                        attr.put(XMLAttribute("KeyName", "G"));
+                        break;
+
+                    case KeyName.a:
+                        attr.put(XMLAttribute("KeyName", "A"));
+                        break;
+
+                    case KeyName.b:
+                        attr.put(XMLAttribute("KeyName", "B"));
+                        break;
+
+                    default:
+                        attr.put(XMLAttribute("KeyName", (cast(int)kl.keyName).text));
+                        break;
+                    }
+                },
+                (NoteMacroReference nmr)
+                {
+                    attr.put(XMLAttribute("Name", nmr.name.value));
+                }
+            );
+
+            if (k.accidental != 0)
+            {
+                attr.put(XMLAttribute("Accidental", k.accidental.text));
+            }
+
+            _writer.writeElement(
+                k.baseKey.visit!(
+                    (KeyLiteral kl) => "KeyLiteral",
+                    (NoteMacroReference nmr) => "NoteMacroReference"
+                ),
+                attr[]
+            );
+
+            attr.clear();
+        }
+    }
+
+    private void doPrintCommand(ExtensionCommand c)
     {
         assert(c !is null);
 
@@ -189,7 +209,7 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printCommand(ScopedCommand c)
+    private void doPrintCommand(ScopedCommand c)
     {
         assert(c !is null);
 
@@ -210,7 +230,7 @@ public final class ASTPrinter(Writer)
         }
     }
 
-    private void printCommand(ModifierCommand c)
+    private void doPrintCommand(ModifierCommand c)
     {
         assert(c !is null);
 
@@ -220,7 +240,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printCommand(RepeatCommand c)
+    private void doPrintCommand(RepeatCommand c)
     {
         assert(c !is null);
 
@@ -234,7 +254,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printCommand(TupletCommand c)
+    private void doPrintCommand(TupletCommand c)
     {
         assert(c !is null);
 
@@ -248,6 +268,15 @@ public final class ASTPrinter(Writer)
             _writer.endElement();
         }
 
+        _writer.endElement();
+    }
+
+    private void doPrintCommand(NoteMacroDefinitionCommand c)
+    {
+        assert(c !is null);
+
+        _writer.startElement("NoteMacroDefinitionCommand", [XMLAttribute("Name", c.name.value)]);
+        printKeySpecifiers(c.definition);
         _writer.endElement();
     }
 
@@ -309,28 +338,28 @@ public final class ASTPrinter(Writer)
     private void printExpression(Expression expr)
     {
         assert(expr !is null);
-        expr.visit!(x => printExpression(x));
+        expr.visit!(x => doPrintExpression(x));
     }
 
-    private void printExpression(Identifier id)
+    private void doPrintExpression(Identifier id)
     {
         assert(id !is null);
         _writer.writeElement("Identifier", [XMLAttribute("Value", id.value)]);
     }
 
-    private void printExpression(IntegerLiteral il)
+    private void doPrintExpression(IntegerLiteral il)
     {
         assert(il !is null);
         _writer.writeElement("IntegerLiteral", [XMLAttribute("Value", il.value.text)]);
     }
 
-    private void printExpression(StringLiteral sl)
+    private void doPrintExpression(StringLiteral sl)
     {
         assert(sl !is null);
         _writer.writeElement("StringLiteral", [XMLAttribute("Value", sl.value)]);
     }
 
-    private void printExpression(TimeLiteral tl)
+    private void doPrintExpression(TimeLiteral tl)
     {
         assert(tl !is null);
         _writer.writeElement(
@@ -343,7 +372,7 @@ public final class ASTPrinter(Writer)
         );
     }
 
-    private void printExpression(DurationLiteral dl)
+    private void doPrintExpression(DurationLiteral dl)
     {
         assert(dl !is null);
         _writer.writeElement(
@@ -355,7 +384,7 @@ public final class ASTPrinter(Writer)
         );
     }
 
-    private void printExpression(UnaryExpression expr)
+    private void doPrintExpression(UnaryExpression expr)
     {
         assert(expr !is null);
 
@@ -368,7 +397,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printExpression(BinaryExpression expr)
+    private void doPrintExpression(BinaryExpression expr)
     {
         assert(expr !is null);
 
@@ -385,7 +414,7 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void printExpression(CallExpression expr)
+    private void doPrintExpression(CallExpression expr)
     {
         assert(expr !is null);
 

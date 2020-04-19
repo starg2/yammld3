@@ -72,6 +72,7 @@ c&d&e
 <PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand> | <TupletCommand>)*
 
 <PrimaryCommand> ::= ('(' <Command>* ')')
+    | <NoteMacroDefinitionCommand>
     | <ExtensionCommand>
     | <NoteCommand>
     | <BasicCommand>
@@ -83,11 +84,21 @@ c&d&e
 <TupletCommand> ::= '/' <CommandArgumentExpression>?
 
 
+<NoteMacroDefinitionCommand> ::= <NoteMacroName> '=' <ChordExpression>
+
 <ExtensionCommand> ::= '%' <Identifier> <ParenthesizedExpressionList>? <CommandBlock>?
 
-<NoteCommand> ::= <KeyLiteral> ('&' <KeyLiteral>)* <CommandArgumentExpression>?
+<NoteCommand> ::= <ChordExpression> <CommandArgumentExpression>?
 
-<KeyLiteral> ::= ('>' | '<')* ('c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b') ('+' | '-')*
+<ChordExpression> ::= <KeySpecifier> ('&' <KeySpecifier>)*
+
+<KeySpecifier> ::= ('>' | '<')* (<KeyLiteral> | <NoteMacroReference>) ('+' | '-')*
+
+<KeyLiteral> ::= 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
+
+<NoteMacroName> ::= '\' IDSTART+
+
+<NoteMacroReference> ::= <NoteMacroName>
 
 <BasicCommand> ::= IDSTART ('+' | '-')? <CommandArgumentExpression>?
 
@@ -323,6 +334,13 @@ public final class Parser
             return new ScopedCommand(SourceLocation(startOffset, s.sourceOffset), commands);
         }
 
+        auto nmd = parseNoteMacroDefinitionCommand(s);
+
+        if (nmd !is null)
+        {
+            return nmd;
+        }
+
         auto ec = parseExtensionCommand(s);
 
         if (ec !is null)
@@ -338,6 +356,47 @@ public final class Parser
         }
 
         return parseBasicCommand(s);
+    }
+
+    private NoteMacroDefinitionCommand parseNoteMacroDefinitionCommand(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+        auto s2 = s.save;
+        auto name = parseNoteMacroName(s2);
+
+        if (name is null)
+        {
+            return null;
+        }
+
+        skipSpaces(s2);
+
+        if (!s2.scanChar('='))
+        {
+            return null;
+        }
+
+        s = s2;
+        skipSpaces(s);
+        auto chord = parseChordExpression(s);
+
+        if (chord is null)
+        {
+            _diagnosticsHandler.expectedAfter(
+                SourceLocation(startOffset, s.sourceOffset),
+                "note macro definition",
+                "chord expression",
+                "="
+            );
+
+            return null;
+        }
+
+        return new NoteMacroDefinitionCommand(
+            SourceLocation(startOffset, s.sourceOffset),
+            name,
+            chord
+        );
     }
 
     private ExtensionCommand parseExtensionCommand(ref Scanner s)
@@ -381,6 +440,99 @@ public final class Parser
     {
         import yammld3.common : KeyName;
 
+        if (s.empty)
+        {
+            return null;
+        }
+
+        KeyName keyName;
+
+        switch (s.front)
+        {
+        case 'c':
+            keyName = KeyName.c;
+            break;
+
+        case 'd':
+            keyName = KeyName.d;
+            break;
+
+        case 'e':
+            keyName = KeyName.e;
+            break;
+
+        case 'f':
+            keyName = KeyName.f;
+            break;
+
+        case 'g':
+            keyName = KeyName.g;
+            break;
+
+        case 'a':
+            keyName = KeyName.a;
+            break;
+
+        case 'b':
+            keyName = KeyName.b;
+            break;
+
+        default:
+            return null;
+        }
+
+        auto startOffset = s.sourceOffset;
+        s.popFront();
+        return new KeyLiteral(SourceLocation(startOffset, s.sourceOffset), keyName);
+    }
+
+    private NoteMacroName parseNoteMacroName(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+
+        if (!s.scanChar('\\'))
+        {
+            return null;
+        }
+
+        auto nameView = s.view;
+
+        if (!s.scanNameStartChar())
+        {
+            _diagnosticsHandler.expectedAfter(
+                SourceLocation(startOffset, s.sourceOffset),
+                "note macro name",
+                "IDSTART",
+                "\\"
+            );
+
+            return null;
+        }
+
+        while (s.scanNameStartChar())
+        {
+        }
+
+        return new NoteMacroName(
+            SourceLocation(startOffset, s.sourceOffset),
+            nameView[0..(s.view.ptr - nameView.ptr)]
+        );
+    }
+
+    private NoteMacroReference parseNoteMacroReference(ref Scanner s)
+    {
+        auto name = parseNoteMacroName(s);
+
+        if (name is null)
+        {
+            return null;
+        }
+
+        return new NoteMacroReference(name);
+    }
+
+    private KeySpecifier parseKeySpecifier(ref Scanner s)
+    {
         auto startOffset = s.sourceOffset;
         auto startView = s.view;
 
@@ -403,58 +555,28 @@ public final class Parser
             }
         }
 
-        if (s.empty || !('a' <= s.front && s.front <= 'g'))
+        auto octaveShiftEndView = s.view;
+        BaseKeySpecifier baseKey = parseKeyLiteral(s);
+
+        if (baseKey is null)
+        {
+            baseKey = parseNoteMacroReference(s);
+        }
+
+        if (baseKey is null)
         {
             if (leftCount > 0 || rightCount > 0)
             {
                 _diagnosticsHandler.expectedAfter(
                     SourceLocation(startOffset, s.sourceOffset),
                     "note command",
-                    "note name",
-                    startView[0..(s.view.ptr - startView.ptr)]
+                    "base key specifier",
+                    startView[0..(octaveShiftEndView.ptr - startView.ptr)]
                 );
             }
 
             return null;
         }
-
-        KeyName baseKey;
-
-        switch (s.front)
-        {
-        case 'c':
-            baseKey = KeyName.c;
-            break;
-
-        case 'd':
-            baseKey = KeyName.d;
-            break;
-
-        case 'e':
-            baseKey = KeyName.e;
-            break;
-
-        case 'f':
-            baseKey = KeyName.f;
-            break;
-
-        case 'g':
-            baseKey = KeyName.g;
-            break;
-
-        case 'a':
-            baseKey = KeyName.a;
-            break;
-
-        case 'b':
-            baseKey = KeyName.b;
-            break;
-
-        default:
-            assert(false);
-        }
-
-        s.popFront();
 
         int accidental = 0;
 
@@ -474,7 +596,7 @@ public final class Parser
             }
         }
 
-        return new KeyLiteral(
+        return new KeySpecifier(
             SourceLocation(startOffset, s.sourceOffset),
             rightCount - leftCount,
             baseKey,
@@ -482,17 +604,16 @@ public final class Parser
         );
     }
 
-    private NoteCommand parseNoteCommand(ref Scanner s)
+    private KeySpecifier[] parseChordExpression(ref Scanner s)
     {
-        auto startOffset = s.sourceOffset;
-        auto k = parseKeyLiteral(s);
+        auto k = parseKeySpecifier(s);
 
         if (k is null)
         {
             return null;
         }
 
-        auto keys = appender!(KeyLiteral[]);
+        auto keys = appender!(KeySpecifier[]);
         keys.put(k);
 
         while (true)
@@ -504,14 +625,14 @@ public final class Parser
             if (s.scanChar('&'))
             {
                 //skipSpaces(s);
-                k = parseKeyLiteral(s);
+                k = parseKeySpecifier(s);
 
                 if (k is null)
                 {
                     _diagnosticsHandler.expectedAfter(
                         SourceLocation(keyStartOffset, 1),
-                        "note command",
-                        "key expression",
+                        "chord expression",
+                        "key specifier",
                         "&"
                     );
                     break;
@@ -527,11 +648,24 @@ public final class Parser
             }
         }
 
+        return keys[];
+    }
+
+    private NoteCommand parseNoteCommand(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+        auto chord = parseChordExpression(s);
+
+        if (chord is null)
+        {
+            return null;
+        }
+
         auto dur = parseCommandArgumentExpression(s);
 
         return new NoteCommand(
             SourceLocation(startOffset, s.sourceOffset),
-            keys[],
+            chord,
             dur
         );
     }

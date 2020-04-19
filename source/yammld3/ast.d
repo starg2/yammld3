@@ -442,6 +442,121 @@ public final class ExpressionList : ASTNode
 }
 
 // ---------------------
+// BaseKeySpecifier
+
+public final class NoteMacroName : ASTNode
+{
+    public this(SourceLocation loc, string value)
+    {
+        assert(value !is null);
+
+        _loc = loc;
+        _value = value;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public @property string value()
+    {
+        return _value;
+    }
+
+    private SourceLocation _loc;
+    private string _value;
+}
+
+public enum BaseKeySpecifierKind
+{
+    keyLiteral,
+    noteMacroReference
+}
+
+public interface BaseKeySpecifier : ASTNode
+{
+    @property BaseKeySpecifierKind kind();
+}
+
+public final class KeyLiteral : BaseKeySpecifier
+{
+    import yammld3.common : KeyName;
+
+    public this(SourceLocation loc, KeyName keyName)
+    {
+        _loc = loc;
+        _keyName = keyName;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property BaseKeySpecifierKind kind()
+    {
+        return BaseKeySpecifierKind.keyLiteral;
+    }
+
+    public @property KeyName keyName()
+    {
+        return _keyName;
+    }
+
+    private SourceLocation _loc;
+    private KeyName _keyName;
+}
+
+public final class NoteMacroReference : BaseKeySpecifier
+{
+    public this(NoteMacroName name)
+    {
+        assert(name !is null);
+        _name = name;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _name.location;
+    }
+
+    public override @property BaseKeySpecifierKind kind()
+    {
+        return BaseKeySpecifierKind.noteMacroReference;
+    }
+
+    public @property NoteMacroName name()
+    {
+        return _name;
+    }
+
+    private NoteMacroName _name;
+}
+
+public auto visit(Handlers...)(BaseKeySpecifier baseKey)
+{
+    assert(baseKey !is null);
+
+    static struct Overloaded
+    {
+        static foreach (h; Handlers)
+        {
+            alias opCall = h;
+        }
+    }
+
+    final switch (baseKey.kind)
+    {
+    case BaseKeySpecifierKind.keyLiteral:
+        return Overloaded(cast(KeyLiteral)baseKey);
+
+    case BaseKeySpecifierKind.noteMacroReference:
+        return Overloaded(cast(NoteMacroReference)baseKey);
+    }
+}
+
+// ---------------------
 // Command
 
 public enum CommandKind
@@ -452,7 +567,8 @@ public enum CommandKind
     scoped,
     modifier,
     repeat,
-    tuplet
+    tuplet,
+    noteMacroDefinition
 }
 
 public interface Command : ASTNode
@@ -505,11 +621,9 @@ public final class BasicCommand : Command
     private Expression _argument;
 }
 
-public final class KeyLiteral : ASTNode
+public final class KeySpecifier : ASTNode
 {
-    import yammld3.common : KeyName;
-
-    public this(SourceLocation loc, int octaveShift, KeyName baseKey, int accidental)
+    public this(SourceLocation loc, int octaveShift, BaseKeySpecifier baseKey, int accidental)
     {
         _loc = loc;
         _octaveShift = octaveShift;
@@ -527,7 +641,7 @@ public final class KeyLiteral : ASTNode
         return _octaveShift;
     }
 
-    public @property KeyName baseKey()
+    public @property BaseKeySpecifier baseKey()
     {
         return _baseKey;
     }
@@ -539,15 +653,13 @@ public final class KeyLiteral : ASTNode
 
     private SourceLocation _loc;
     private int _octaveShift;
-    private KeyName _baseKey;
+    private BaseKeySpecifier _baseKey;
     private int _accidental;
 }
 
 public final class NoteCommand : Command
 {
-    import yammld3.common : KeyName;
-
-    public this(SourceLocation loc, KeyLiteral[] keys, Expression duration)
+    public this(SourceLocation loc, KeySpecifier[] keys, Expression duration)
     {
         // duration may be null
 
@@ -566,7 +678,7 @@ public final class NoteCommand : Command
         return CommandKind.note;
     }
 
-    public @property KeyLiteral[] keys()
+    public @property KeySpecifier[] keys()
     {
         return _keys;
     }
@@ -577,7 +689,7 @@ public final class NoteCommand : Command
     }
 
     private SourceLocation _loc;
-    private KeyLiteral[] _keys;
+    private KeySpecifier[] _keys;
     private Expression _duration;
 }
 
@@ -772,6 +884,43 @@ public final class TupletCommand : Command
     private Expression _duration;
 }
 
+public final class NoteMacroDefinitionCommand : Command
+{
+    public this(SourceLocation loc, NoteMacroName name, KeySpecifier[] definition)
+    {
+        assert(name !is null);
+        assert(definition !is null);
+
+        _loc = loc;
+        _name = name;
+        _definition = definition;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property CommandKind kind()
+    {
+        return CommandKind.noteMacroDefinition;
+    }
+
+    public @property NoteMacroName name()
+    {
+        return _name;
+    }
+
+    public @property KeySpecifier[] definition()
+    {
+        return _definition;
+    }
+
+    private SourceLocation _loc;
+    private NoteMacroName _name;
+    private KeySpecifier[] _definition;
+}
+
 public auto visit(Handlers...)(Command c)
 {
     assert(c !is null);
@@ -806,6 +955,9 @@ public auto visit(Handlers...)(Command c)
 
     case CommandKind.tuplet:
         return Overloaded(cast(TupletCommand)c);
+
+    case CommandKind.noteMacroDefinition:
+        return Overloaded(cast(NoteMacroDefinitionCommand)c);
     }
 }
 

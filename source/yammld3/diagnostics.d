@@ -48,6 +48,9 @@ public interface DiagnosticsHandler
 
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
 
+    void undefinedNoteMacro(SourceLocation loc, string name);
+    void noteMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
+
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
@@ -313,6 +316,19 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
             currentMeasure.ticks,
             currentTime
         );
+    }
+
+    public override void undefinedNoteMacro(SourceLocation loc, string name)
+    {
+        writeMessage(loc, "error: '\\%s': undefined note macro", name);
+        incrementErrorCount();
+    }
+
+    public override void noteMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
+    {
+        writeMessage(loc, "error: '\\%s': note macro redefinition", name);
+        writeMessage(prevLoc, "note: see previous definition of template '%s'", name);
+        incrementErrorCount();
     }
 
     public override void invalidChannel(SourceLocation loc, string context, int channel)

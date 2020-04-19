@@ -1,6 +1,13 @@
 
 module yammld3.irgen;
 
+import yammld3.macros;
+
+private struct BlockScopeContext
+{
+    NoteMacroManagerContext noteMacroManagerContext;
+}
+
 public final class IRGenerator
 {
     import std.algorithm.comparison : cmp, max, min;
@@ -27,6 +34,7 @@ public final class IRGenerator
         _intEvaluator = new NumericExpressionEvaluator!int(handler);
         _floatEvaluator = new NumericExpressionEvaluator!float(handler);
         _strEval = new StringExpressionEvaluator(handler);
+        _noteMacroManager = new NoteMacroManager(handler);
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -54,6 +62,13 @@ public final class IRGenerator
 
     private void compileCommands(MultiTrackBuilder tb, ast.Command[] commands)
     {
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
+
         foreach (c; commands)
         {
             assert(c !is null);
@@ -65,10 +80,10 @@ public final class IRGenerator
     {
         import yammld3.ast : visit;
         assert(c !is null);
-        c.visit!(x => compileCommand(tb, x));
+        c.visit!(x => doCompileCommand(tb, x));
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.BasicCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.BasicCommand c)
     {
         assert(c !is null);
 
@@ -176,26 +191,23 @@ public final class IRGenerator
         cb.currentTime = curTime + duration;
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.NoteCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.NoteCommand c)
     {
         assert(c !is null);
-        assert(!c.keys.empty);
 
-        auto keys = appender!(ir.KeyInfo[]);
-        keys.reserve(c.keys.length);
+        auto keys = _noteMacroManager.expandNoteMacros(c.keys).map!(
+            (x)
+            {
+                ir.KeyInfo k;
+                k.key = x;
+                k.velocity = 0.0f;
+                k.timeShift = 0.0f;
+                k.gateTime = 0.0f;
+                return k;
+            }
+        );
 
-        foreach (kl; c.keys)
-        {
-            ir.KeyInfo k;
-            k.key = kl.octaveShift * 12 + cast(int)kl.baseKey + kl.accidental;
-            k.velocity = 0.0f;
-            k.timeShift = 0.0f;
-            k.gateTime = 0.0f;
-
-            keys.put(k);
-        }
-
-        compileNoteComandWithKeys(tb, c, keys[]);
+        compileNoteComandWithKeys(tb, c, keys.array);
     }
 
     private void compileRestCommand(MultiTrackBuilder tb, ast.BasicCommand c)
@@ -371,7 +383,7 @@ public final class IRGenerator
         tb.setTrackProperty(kind, sign, value);
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
 
@@ -572,7 +584,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
     {
         assert(c !is null);
 
@@ -586,7 +598,7 @@ public final class IRGenerator
         compileCommands(tb, c.commands);
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.ModifierCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.ModifierCommand c)
     {
         // Currently, modifier commands are available exclusively for note-specific track property commands
         // (e.g. `l` and `v`).
@@ -642,7 +654,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.RepeatCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.RepeatCommand c)
     {
         assert(c !is null);
 
@@ -672,7 +684,7 @@ public final class IRGenerator
         }
     }
 
-    private void compileCommand(MultiTrackBuilder tb, ast.TupletCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.TupletCommand c)
     {
         assert(c !is null);
         auto cb = tb.compositionBuilder;
@@ -702,6 +714,11 @@ public final class IRGenerator
 
         cdb.setDuration(OptionalSign.none, noteLikeCommandCount > 0 ? duration / noteLikeCommandCount : duration);
         compileCommand(tb, c.command);
+    }
+
+    private void doCompileCommand(MultiTrackBuilder tb, ast.NoteMacroDefinitionCommand c)
+    {
+        _noteMacroManager.compileNoteMacroDefinitionCommand(c);
     }
 
     private void compileAutoChordCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
@@ -734,49 +751,60 @@ public final class IRGenerator
             return;
         }
 
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
+
         foreach (child; c.block.commands)
         {
             auto nc = cast(ast.NoteCommand)child;
 
             if (nc !is null && nc.keys.length == 1)
             {
-                auto kl = nc.keys[0];
-                int root = kl.octaveShift * 12 + cast(int)kl.baseKey + kl.accidental;
-                int[] chord = makeDiatonicTriad(ks.get, root);
+                auto ksp = nc.keys[0];
+                auto kl = cast(ast.KeyLiteral)ksp.baseKey;
 
-                if (chord is null)
+                if (kl !is null)
                 {
-                    chord = [root];
-                }
+                    int root = ksp.octaveShift * 12 + cast(int)kl.keyName + ksp.accidental;
+                    int[] chord = makeDiatonicTriad(ks.get, root);
 
-                assert(!chord.empty);
-
-                auto keys = appender!(ir.KeyInfo[]);
-                keys.reserve(chord.length);
-
-                foreach (t; chord)
-                {
-                    ir.KeyInfo k;
-                    k.key = t;
-
-                    if (k.key >= chord[0] / 12 * 12 + 10)
+                    if (chord is null)
                     {
-                        k.key -= 12;
+                        chord = [root];
                     }
 
-                    k.velocity = 0.0f;
-                    k.timeShift = 0.0f;
-                    k.gateTime = 0.0f;
+                    assert(!chord.empty);
 
-                    keys.put(k);
+                    auto keys = appender!(ir.KeyInfo[]);
+                    keys.reserve(chord.length);
+
+                    foreach (t; chord)
+                    {
+                        ir.KeyInfo k;
+                        k.key = t;
+
+                        if (k.key >= chord[0] / 12 * 12 + 10)
+                        {
+                            k.key -= 12;
+                        }
+
+                        k.velocity = 0.0f;
+                        k.timeShift = 0.0f;
+                        k.gateTime = 0.0f;
+
+                        keys.put(k);
+                    }
+
+                    compileNoteComandWithKeys(tb, nc, keys[]);
+                    continue;
                 }
+            }
 
-                compileNoteComandWithKeys(tb, nc, keys[]);
-            }
-            else
-            {
-                compileCommand(tb, child);
-            }
+            compileCommand(tb, child);
         }
     }
 
@@ -846,6 +874,13 @@ public final class IRGenerator
 
         float startTime = curTime;
         float endTime = startTime;
+
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
 
         foreach (child; c.block.commands)
         {
@@ -1452,6 +1487,13 @@ public final class IRGenerator
 
         float endTime = startTime;
 
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
+
         foreach (command; c.block.commands)
         {
             cb.currentTime = startTime;
@@ -1536,6 +1578,12 @@ public final class IRGenerator
         );
 
         auto cb = tb.compositionBuilder;
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
 
         foreach (column; sortedByColumn.chunkBy!((a, b) => a.location.column == b.location.column))
         {
@@ -2195,11 +2243,22 @@ public final class IRGenerator
         }
     }
 
+    private BlockScopeContext saveContext()
+    {
+        return BlockScopeContext(_noteMacroManager.saveContext());
+    }
+
+    private void restoreContext(BlockScopeContext c)
+    {
+        _noteMacroManager.restoreContext(c.noteMacroManagerContext);
+    }
+
     private DiagnosticsHandler _diagnosticsHandler;
     private DurationExpressionEvaluator _durationEvaluator;
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
     private StringExpressionEvaluator _strEval;
+    private NoteMacroManager _noteMacroManager;
     private OptionProcessor _optionProc;
     private Random _rng;
 }
