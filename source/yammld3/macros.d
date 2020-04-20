@@ -93,3 +93,84 @@ package final class NoteMacroManager
     private DiagnosticsHandler _diagnosticsHandler;
     private NoteMacroDefinition[string] _definedMacros;
 }
+
+private struct CommandMacroDefinition
+{
+    string name;
+    SourceLocation location;
+    Command[] definition;
+}
+
+package struct CommandMacroManagerContext
+{
+    CommandMacroDefinition[string] definedMacros;
+}
+
+package final class CommandMacroManager
+{
+    public this(DiagnosticsHandler handler)
+    {
+        _diagnosticsHandler = handler;
+    }
+
+    public void compileCommandMacroDefinitionCommand(CommandMacroDefinitionCommand c)
+    {
+        assert(c !is null);
+        assert(c.definition !is null);
+
+        auto pPrevDef = c.name.value in _definedMacros;
+
+        if (pPrevDef !is null)
+        {
+            _diagnosticsHandler.commandMacroRedefinition(
+                c.location,
+                c.name.value,
+                pPrevDef.location
+            );
+        }
+
+        CommandMacroDefinition def;
+        def.name = c.name.value;
+        def.location = c.location;
+        def.definition = c.definition.commands;
+
+        _definedMacros[c.name.value] = def;
+    }
+
+    // Call saveContext() beforehand!
+    public Command[] expandCommandMacro(CommandMacroInvocationCommand c)
+    {
+        assert(c !is null);
+
+        auto pDef = c.name.value in _definedMacros;
+
+        if (pDef is null)
+        {
+            _diagnosticsHandler.undefinedCommandMacro(c.location, c.name.value);
+            return null;
+        }
+
+        if (c.arguments !is null)
+        {
+            _diagnosticsHandler.notImplemented(c.location, "command macro with arguments");
+            assert(false);
+        }
+
+        auto definition = pDef.definition;
+        _definedMacros.remove(c.name.value);    // remove the current macro to avoid recursion
+        return definition;
+    }
+
+    public CommandMacroManagerContext saveContext()
+    {
+        return CommandMacroManagerContext(_definedMacros.dup);
+    }
+
+    public void restoreContext(CommandMacroManagerContext c)
+    {
+        _definedMacros = c.definedMacros;
+    }
+
+    private DiagnosticsHandler _diagnosticsHandler;
+    private CommandMacroDefinition[string] _definedMacros;
+}

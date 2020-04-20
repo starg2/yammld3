@@ -51,6 +51,9 @@ public interface DiagnosticsHandler
     void undefinedNoteMacro(SourceLocation loc, string name);
     void noteMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
 
+    void undefinedCommandMacro(SourceLocation loc, string name);
+    void commandMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
+
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
@@ -327,7 +330,20 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void noteMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
     {
         writeMessage(loc, "error: '\\%s': note macro redefinition", name);
-        writeMessage(prevLoc, "note: see previous definition of template '%s'", name);
+        writeMessage(prevLoc, "note: see previous definition of note macro '\\%s'", name);
+        incrementErrorCount();
+    }
+
+    public override void undefinedCommandMacro(SourceLocation loc, string name)
+    {
+        writeMessage(loc, "error: '$%s': undefined command macro", name);
+        incrementErrorCount();
+    }
+
+    public override void commandMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
+    {
+        writeMessage(loc, "error: '$%s': command macro redefinition", name);
+        writeMessage(prevLoc, "note: see previous definition of command macro '$%s'", name);
         incrementErrorCount();
     }
 

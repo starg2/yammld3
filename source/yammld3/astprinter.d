@@ -280,6 +280,31 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
+    private void doPrintCommand(CommandMacroDefinitionCommand c)
+    {
+        assert(c !is null);
+
+        _writer.startElement("CommandMacroDefinitionCommand", [XMLAttribute("Name", c.name.value)]);
+        printCommandBlock(c.definition);
+        _writer.endElement();
+    }
+
+    private void doPrintCommand(CommandMacroInvocationCommand c)
+    {
+        assert(c !is null);
+
+        if (c.arguments is null)
+        {
+            _writer.writeElement("CommandMacroInvocationCommand", [XMLAttribute("Name", c.name.value)]);
+        }
+        else
+        {
+            _writer.startElement("CommandMacroInvocationCommand", [XMLAttribute("Name", c.name.value)]);
+            printExpressionList(c.arguments);
+            _writer.endElement();
+        }
+    }
+
     private void printCommandBlock(CommandBlock b)
     {
         assert(b !is null);

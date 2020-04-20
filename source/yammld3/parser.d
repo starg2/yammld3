@@ -72,6 +72,8 @@ c&d&e
 <PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand> | <TupletCommand>)*
 
 <PrimaryCommand> ::= ('(' <Command>* ')')
+    | <CommandMacroDefinitionCommand>
+    | <CommandMacroInvocationCommand>
     | <NoteMacroDefinitionCommand>
     | <ExtensionCommand>
     | <NoteCommand>
@@ -83,6 +85,12 @@ c&d&e
 
 <TupletCommand> ::= '/' <CommandArgumentExpression>?
 
+
+<CommandMacroDefinitionCommand> ::= <CommandMacroName> '=' <CommandBlock>
+
+<CommandMacroInvocationCommand> ::= <CommandMacroName> <ParenthesizedExpressionList>?
+
+<CommandMacroName> ::= '$' (IDCONT+ | '(' IDCONT+ ')')
 
 <NoteMacroDefinitionCommand> ::= <NoteMacroName> '=' <ChordExpression>
 
@@ -334,6 +342,13 @@ public final class Parser
             return new ScopedCommand(SourceLocation(startOffset, s.sourceOffset), commands);
         }
 
+        auto cm = parseCommandMacro(s);
+
+        if (cm !is null)
+        {
+            return cm;
+        }
+
         auto nmd = parseNoteMacroDefinitionCommand(s);
 
         if (nmd !is null)
@@ -356,6 +371,118 @@ public final class Parser
         }
 
         return parseBasicCommand(s);
+    }
+
+    private Command parseCommandMacro(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+        auto name = parseCommandMacroName(s);
+
+        if (name is null)
+        {
+            return null;
+        }
+
+        auto s2 = s.save;
+
+        skipSpaces(s2);
+
+        if (s2.scanChar('='))
+        {
+            s = s2;
+            skipSpaces(s);
+            auto block = parseCommandBlock(s);
+
+            if (block is null)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    SourceLocation(startOffset, s.sourceOffset),
+                    "command macro definition",
+                    "command block",
+                    "="
+                );
+
+                return null;
+            }
+
+            return new CommandMacroDefinitionCommand(
+                SourceLocation(startOffset, s.sourceOffset),
+                name,
+                block
+            );
+        }
+
+        auto argList = parseParenthesizedExpressionList(s);
+
+        return new CommandMacroInvocationCommand(
+            SourceLocation(startOffset, s.sourceOffset),
+            name,
+            argList
+        );
+    }
+
+    private CommandMacroName parseCommandMacroName(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+
+        if (!s.scanChar('$'))
+        {
+            return null;
+        }
+
+        string name;
+
+        if (s.scanChar('('))
+        {
+            name = parseCommandMacroNameString(s);
+
+            if (!s.scanChar(')'))
+            {
+                _diagnosticsHandler.expectedAfter(
+                    SourceLocation(startOffset, s.sourceOffset),
+                    "command macro",
+                    ")",
+                    "$("
+                );
+            }
+
+            if (name.empty)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    SourceLocation(startOffset, s.sourceOffset),
+                    "command macro",
+                    "command macro name",
+                    "$("
+                );
+            }
+        }
+        else
+        {
+            name = parseCommandMacroNameString(s);
+
+            if (name.empty)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    SourceLocation(startOffset, s.sourceOffset),
+                    "command macro",
+                    "command macro name",
+                    "$"
+                );
+            }
+        }
+
+        return new CommandMacroName(SourceLocation(startOffset, s.sourceOffset), name);
+    }
+
+    private string parseCommandMacroNameString(ref Scanner s)
+    {
+        auto nameView = s.view;
+
+        while (s.scanNameChar())
+        {
+        }
+
+        return nameView[0..(s.view.ptr - nameView.ptr)];
     }
 
     private NoteMacroDefinitionCommand parseNoteMacroDefinitionCommand(ref Scanner s)

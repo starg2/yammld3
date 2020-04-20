@@ -6,6 +6,7 @@ import yammld3.macros;
 private struct BlockScopeContext
 {
     NoteMacroManagerContext noteMacroManagerContext;
+    CommandMacroManagerContext commandMacroManagerContext;
 }
 
 public final class IRGenerator
@@ -35,6 +36,7 @@ public final class IRGenerator
         _floatEvaluator = new NumericExpressionEvaluator!float(handler);
         _strEval = new StringExpressionEvaluator(handler);
         _noteMacroManager = new NoteMacroManager(handler);
+        _commandMacroManager = new CommandMacroManager(handler);
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -719,6 +721,26 @@ public final class IRGenerator
     private void doCompileCommand(MultiTrackBuilder tb, ast.NoteMacroDefinitionCommand c)
     {
         _noteMacroManager.compileNoteMacroDefinitionCommand(c);
+    }
+
+    private void doCompileCommand(MultiTrackBuilder tb, ast.CommandMacroDefinitionCommand c)
+    {
+        _commandMacroManager.compileCommandMacroDefinitionCommand(c);
+    }
+
+    private void doCompileCommand(MultiTrackBuilder tb, ast.CommandMacroInvocationCommand c)
+    {
+        auto context = _commandMacroManager.saveContext();
+
+        scope (exit)
+        {
+            _commandMacroManager.restoreContext(context);
+        }
+
+        foreach (child; _commandMacroManager.expandCommandMacro(c))
+        {
+            compileCommand(tb, child);
+        }
     }
 
     private void compileAutoChordCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
@@ -2245,11 +2267,15 @@ public final class IRGenerator
 
     private BlockScopeContext saveContext()
     {
-        return BlockScopeContext(_noteMacroManager.saveContext());
+        return BlockScopeContext(
+            _noteMacroManager.saveContext(),
+            _commandMacroManager.saveContext()
+        );
     }
 
     private void restoreContext(BlockScopeContext c)
     {
+        _commandMacroManager.restoreContext(c.commandMacroManagerContext);
         _noteMacroManager.restoreContext(c.noteMacroManagerContext);
     }
 
@@ -2259,6 +2285,7 @@ public final class IRGenerator
     private NumericExpressionEvaluator!float _floatEvaluator;
     private StringExpressionEvaluator _strEval;
     private NoteMacroManager _noteMacroManager;
+    private CommandMacroManager _commandMacroManager;
     private OptionProcessor _optionProc;
     private Random _rng;
 }
