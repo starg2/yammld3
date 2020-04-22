@@ -58,6 +58,11 @@ private struct TrackProperty(T)
         _baseValue += n;
     }
 
+    public void incrementPersistentOffset(T n)
+    {
+        _persistentOffset += n;
+    }
+
     public void modifyBaseValue(OptionalSign sign, T n)
     {
         final switch (sign)
@@ -95,7 +100,7 @@ private struct TrackProperty(T)
             _priorSpecs = _priorSpecs.filter!(x => !x.expired(noteCount, time)).array;
         }
 
-        auto value = _baseValue;
+        auto value = _baseValue + _persistentOffset;
 
         foreach (ps; _priorSpecs)
         {
@@ -106,6 +111,7 @@ private struct TrackProperty(T)
     }
 
     private T _baseValue = 0;
+    private T _persistentOffset = 0;
     private PriorSpec!T[] _priorSpecs;
 }
 
@@ -254,6 +260,40 @@ private final class TrackBuilder
         case TrackPropertyKind.gateTime:
             assert(value.peek!float !is null);
             _context.gateTime.modifyBaseValue(sign, value.get!float);
+            break;
+        }
+    }
+
+    public void incrementPersistentOffset(TrackPropertyKind kind, Algebraic!(int, float) value)
+    {
+        final switch (kind)
+        {
+        case TrackPropertyKind.duration:
+            assert(false);
+
+        case TrackPropertyKind.octave:
+            assert(value.peek!int !is null);
+            _context.octave.incrementPersistentOffset(value.get!int);
+            break;
+
+        case TrackPropertyKind.keyShift:
+            assert(value.peek!int !is null);
+            _context.keyShift.incrementPersistentOffset(value.get!int);
+            break;
+
+        case TrackPropertyKind.velocity:
+            assert(value.peek!float !is null);
+            _context.velocity.incrementPersistentOffset(value.get!float);
+            break;
+
+        case TrackPropertyKind.timeShift:
+            assert(value.peek!float !is null);
+            _context.timeShift.incrementPersistentOffset(value.get!float);
+            break;
+
+        case TrackPropertyKind.gateTime:
+            assert(value.peek!float !is null);
+            _context.gateTime.incrementPersistentOffset(value.get!float);
             break;
         }
     }
@@ -584,6 +624,11 @@ package final class ConductorTrackBuilder
         _context.duration.modifyBaseValue(sign, value);
     }
 
+    public void incrementPersistentDurationOffset(float value)
+    {
+        _context.duration.incrementPersistentOffset(value);
+    }
+
     public void clearDurationPriorSpecs()
     {
         _context.duration.clearPriorSpecs();
@@ -695,6 +740,14 @@ package final class MultiTrackBuilder
         foreach (t; _tracks)
         {
             t.setTrackProperty(kind, sign, value);
+        }
+    }
+
+    public void incrementPersistentOffset(TrackPropertyKind kind, Algebraic!(int, float) value)
+    {
+        foreach (t; _tracks)
+        {
+            t.incrementPersistentOffset(kind, value);
         }
     }
 
