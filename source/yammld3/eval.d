@@ -101,28 +101,29 @@ package final class NumericExpressionEvaluator(T)
             },
             (BinaryExpression be)
             {
+                T l = evaluate(be.left);
+                T r = evaluate(be.right);
+
                 final switch (be.op.kind)
                 {
                 case OperatorKind.plus:
-                    return evaluate(be.left) + evaluate(be.right);
+                    return l + r;
 
                 case OperatorKind.minus:
-                    return evaluate(be.left) - evaluate(be.right);
+                    return l - r;
 
                 case OperatorKind.star:
-                    return evaluate(be.left) * evaluate(be.right);
+                    return l * r;
 
                 case OperatorKind.slash:
-                    T r = evaluate(be.right);
-
                     if (r == 0)
                     {
                         _diagnosticsHandler.divideBy0(be.location);
-                        return evaluate(be.left);
+                        return l;
                     }
                     else
                     {
-                        return evaluate(be.left) / evaluate(be.right);
+                        return l / r;
                     }
                 }
             },
