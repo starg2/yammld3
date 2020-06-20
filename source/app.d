@@ -27,6 +27,7 @@ private struct CommandLineInfo
 	OperationMode mode = OperationMode.compile;
 	string inputFile;
 	string outputFile;
+	string[] includePaths;
 	bool timePasses;
 }
 
@@ -54,6 +55,10 @@ private CommandLineInfo parseCommandLine(string[] args)
 			{
 			    arg = "-a";
 			}
+			else if (arg == "/I")
+			{
+			    arg = "-I";
+			}
 			else if (arg == "/o")
 			{
 				arg = "-o";
@@ -75,6 +80,20 @@ private CommandLineInfo parseCommandLine(string[] args)
 		else if (arg == "-a")
 		{
 		    cmdInfo.mode = OperationMode.printAST;
+		}
+		else if (arg == "-I")
+		{
+			i++;
+
+			if (i < args.length)
+			{
+				cmdInfo.includePaths ~= args[i];
+			}
+			else
+			{
+				stderr.writeln("command line error: expected directory name after '-I'");
+				throw new CommandLineErrorException();
+			}
 		}
 		else if (arg == "-o")
 		{
@@ -182,6 +201,7 @@ Options:
     --                 escape '-'
     -a                 print abstract syntax tree
     -h                 print this help message
+    -I <directory>     add include directory
     -o <output file>   specify output file
     -r                 print intermediate representation
     -t                 report timing information
@@ -258,7 +278,6 @@ int main(string[] args)
 
 			auto diagnosticsHandler = new SimpleDiagnosticsHandler(stderr);
 			auto sourceManager = new SourceManager();
-
 			auto src = sourceManager.getOrLoadSource(cmdInfo.inputFile, "");
 
 			if (src is null)
@@ -266,6 +285,11 @@ int main(string[] args)
 			    diagnosticsHandler.cannotOpenFile(cmdInfo.inputFile);
 			    assert(false);
 			}
+
+            foreach (inc; cmdInfo.includePaths)
+            {
+                sourceManager.addIncludePath(inc);
+            }
 
 			auto timeBeforeParse = MonoTime.currTime;
 			auto timingInfo = [PassTimingInfo("load", timeBeforeParse - timeStart)];
