@@ -9,6 +9,8 @@ private struct BlockScopeContext
     CommandMacroManagerContext commandMacroManagerContext;
 }
 
+private immutable int recursionLimit = 20;
+
 public final class IRGenerator
 {
     import std.algorithm.comparison : cmp, max, min;
@@ -26,12 +28,15 @@ public final class IRGenerator
     import ir = yammld3.ir;
     import yammld3.irgenutil;
     import yammld3.options;
+    import yammld3.parser : Parser;
     import yammld3.priorspec;
-    import yammld3.source : SourceLocation;
+    import yammld3.source;
 
-    public this(DiagnosticsHandler handler)
+    public this(DiagnosticsHandler handler, SourceManager sourceManager, Parser parser)
     {
         _diagnosticsHandler = handler;
+        _sourceManager = sourceManager;
+        _parser = parser;
         _intEvaluator = new NumericExpressionEvaluator!int(handler);
         _floatEvaluator = new NumericExpressionEvaluator!float(handler);
         _strEval = new StringExpressionEvaluator(handler);
@@ -502,6 +507,10 @@ public final class IRGenerator
 
         case "phaser":
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect5Depth, c);
+            break;
+
+        case "play_file":
+            playFile(tb, c);
             break;
 
         case "print_time":
@@ -1370,6 +1379,57 @@ public final class IRGenerator
         );
 
         cb.conductorTrackBuilder.addTextEvent(te);
+    }
+
+    private void playFile(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "play_file");
+
+        _includeDepth++;
+
+        scope (exit)
+        {
+            _includeDepth--;
+        }
+
+        if (_includeDepth > recursionLimit)
+        {
+            _diagnosticsHandler.includeRecursionLimitExceeded(c.location, "%" ~ c.name.value);
+            assert(false);
+        }
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.text;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        assert(c.location.source !is null);
+        auto newSource = _sourceManager.getOrLoadSource(value.data.get!string, c.location.source.path);
+
+        if (newSource is null)
+        {
+            _diagnosticsHandler.cannotOpenFile(value.location, "%" ~ c.name.value, value.data.get!string);
+            return;
+        }
+
+        auto newModule = _parser.parseModule(newSource);
+
+        if (newModule !is null)
+        {
+            compileCommands(tb, newModule.commands);
+        }
     }
 
     private void printTime(CompositionBuilder cb, ast.ExtensionCommand c)
@@ -2331,6 +2391,8 @@ public final class IRGenerator
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
+    private SourceManager _sourceManager;
+    private Parser _parser;
     private DurationExpressionEvaluator _durationEvaluator;
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
@@ -2339,4 +2401,5 @@ public final class IRGenerator
     private CommandMacroManager _commandMacroManager;
     private OptionProcessor _optionProc;
     private Random _rng;
+    private int _includeDepth = 0;
 }

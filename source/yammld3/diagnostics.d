@@ -11,6 +11,7 @@ public interface DiagnosticsHandler
     void notImplemented(SourceLocation loc, string featureName);
 
     void cannotOpenFile(string path);
+    void cannotOpenFile(SourceLocation loc, string context, string path);
 
     void unexpectedCharacter(SourceLocation loc, string context, dchar c);
     void unterminatedBlockComment(SourceLocation loc);
@@ -45,6 +46,7 @@ public interface DiagnosticsHandler
     void negativeRepeatCount(SourceLocation loc, string context);
     void negativeStdDev(SourceLocation loc, string context);
     void timeAssertionFailed(SourceLocation loc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
+    void includeRecursionLimitExceeded(SourceLocation loc, string context);
 
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
 
@@ -91,6 +93,13 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void cannotOpenFile(string path)
     {
         _output.writefln("fatal error: cannot open file '%s'", path);
+        incrementErrorCount();
+        throw new FatalErrorException("cannot open file");
+    }
+
+    public override void cannotOpenFile(SourceLocation loc, string context, string path)
+    {
+        writeMessage(loc, "fatal error: '%s': cannot open file '%s'", context, path);
         incrementErrorCount();
         throw new FatalErrorException("cannot open file");
     }
@@ -306,6 +315,13 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         );
 
         incrementErrorCount();
+    }
+
+    public override void includeRecursionLimitExceeded(SourceLocation loc, string context)
+    {
+        writeMessage(loc, "fatal error: '%s': include recursion limit exceeded", context);
+        incrementErrorCount();
+        throw new FatalErrorException("include recursion limit exceeded");
     }
 
     public override void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime)

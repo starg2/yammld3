@@ -299,7 +299,7 @@ int main(string[] args)
                 return 0;
             }
 
-            auto irGenerator = new IRGenerator(diagnosticsHandler);
+            auto irGenerator = new IRGenerator(diagnosticsHandler, sourceManager, parser);
             auto ir = irGenerator.compileModule(astModule).enforce!FatalErrorException("failed to generate IR");
 
 			auto timeAfterIRGen = MonoTime.currTime;
