@@ -209,7 +209,7 @@ public final class SourceManager
 
             foreach (i; _includePaths)
             {
-                auto s = dg(resolvePath(i, basePath));
+                auto s = dg(resolvePath(targetPath, i));
 
                 if (s !is null)
                 {
