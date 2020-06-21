@@ -201,7 +201,11 @@ private final class TrackBuilder
 
         foreach (ref k; noteSetInfo.keys)
         {
-            k.key += keyDelta;
+            if (k.key.relative)
+            {
+                k.key.value += keyDelta;
+            }
+
             k.velocity = velocity;
             k.timeShift = timeShift;
             k.gateTime = gateTime;

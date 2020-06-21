@@ -100,9 +100,11 @@ c&d&e
 
 <ChordExpression> ::= <KeySpecifier> ('&' <KeySpecifier>)*
 
-<KeySpecifier> ::= ('>' | '<')* (<KeyLiteral> | <NoteMacroReference>) ('+' | '-')*
+<KeySpecifier> ::= ('>' | '<')* (<KeyLiteral> | <AbsoluteKeyLiteral> | <NoteMacroReference>) ('+' | '-')*
 
 <KeyLiteral> ::= 'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b'
+
+<AbsoluteKeyLiteral> ::= '\' (('(' DIGIT+ ')') | DIGIT+)
 
 <NoteMacroName> ::= '\' IDSTART+
 
@@ -613,28 +615,69 @@ public final class Parser
         return new KeyLiteral(SourceLocation(startOffset, s.sourceOffset), keyName);
     }
 
-    private NoteMacroName parseNoteMacroName(ref Scanner s)
+    private AbsoluteKeyLiteral parseAbsoluteKeyLiteral(ref Scanner s)
     {
+        import std.ascii : isDigit;
+        import std.conv : ConvOverflowException, parse;
+
+        auto s2 = s.save;
         auto startOffset = s.sourceOffset;
 
-        if (!s.scanChar('\\'))
+        if (!s2.scanChar('\\'))
         {
             return null;
         }
 
-        auto nameView = s.view;
+        bool paren = s2.scanChar('(');
 
-        if (!s.scanNameStartChar())
+        if (s2.empty || !isDigit(s2.front))
         {
-            _diagnosticsHandler.expectedAfter(
-                SourceLocation(startOffset, s.sourceOffset),
-                "note macro name",
-                "IDSTART",
-                "\\"
-            );
-
             return null;
         }
+
+        s = s2;
+
+        try
+        {
+            int n = parse!int(s);
+
+            if (paren && !s.scanChar(')'))
+            {
+                _diagnosticsHandler.noCloseCharacters(
+                    SourceLocation(s.sourceOffset, 0),
+                    SourceLocation(startOffset, 1),
+                    "(",
+                    ")"
+                );
+            }
+
+            return new AbsoluteKeyLiteral(SourceLocation(startOffset, s.sourceOffset), n);
+        }
+        catch (ConvOverflowException e)
+        {
+            _diagnosticsHandler.overflow(SourceLocation(startOffset, s.sourceOffset), "absolute key literal");
+            return null;
+        }
+    }
+
+    private NoteMacroName parseNoteMacroName(ref Scanner s)
+    {
+        auto s2 = s.save;
+        auto startOffset = s.sourceOffset;
+
+        if (!s2.scanChar('\\'))
+        {
+            return null;
+        }
+
+        auto nameView = s2.view;
+
+        if (!s2.scanNameStartChar())
+        {
+            return null;
+        }
+
+        s = s2;
 
         while (s.scanNameStartChar())
         {
@@ -684,6 +727,11 @@ public final class Parser
 
         auto octaveShiftEndView = s.view;
         BaseKeySpecifier baseKey = parseKeyLiteral(s);
+
+        if (baseKey is null)
+        {
+            baseKey = parseAbsoluteKeyLiteral(s);
+        }
 
         if (baseKey is null)
         {

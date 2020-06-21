@@ -820,11 +820,11 @@ public final class IRGenerator
                     foreach (t; chord)
                     {
                         ir.KeyInfo k;
-                        k.key = t;
+                        k.key = AbsoluteOrRelative!int(t, true);
 
-                        if (k.key >= chord[0] / 12 * 12 + 10)
+                        if (k.key.value >= chord[0] / 12 * 12 + 10)
                         {
-                            k.key -= 12;
+                            k.key.value -= 12;
                         }
 
                         k.velocity = 0.0f;

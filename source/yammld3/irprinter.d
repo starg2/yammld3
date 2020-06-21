@@ -312,7 +312,8 @@ public final class IRPrinter(Writer)
                 XMLAttribute("NominalTime", note.nominalTime.text),
                 XMLAttribute("NominalDuration", note.nominalDuration.text),
                 XMLAttribute("LastNominalDuration", note.lastNominalDuration.text),
-                XMLAttribute("Key", note.keyInfo.key.text),
+                XMLAttribute("Key", note.keyInfo.key.value.text),
+                XMLAttribute("KeyMode", note.keyInfo.key.relative ? "Relative" : "Absolute"),
                 XMLAttribute("Velocity", note.keyInfo.velocity.text),
                 XMLAttribute("TimeShift", note.keyInfo.timeShift.text),
                 XMLAttribute("GateTime", note.keyInfo.gateTime.text)

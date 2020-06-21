@@ -97,3 +97,9 @@ public enum OptionalSign
     plus,
     minus
 }
+
+public struct AbsoluteOrRelative(T)
+{
+    T value;
+    bool relative;
+}

@@ -471,6 +471,7 @@ public final class NoteMacroName : ASTNode
 public enum BaseKeySpecifierKind
 {
     keyLiteral,
+    absoluteKeyLiteral,
     noteMacroReference
 }
 
@@ -506,6 +507,33 @@ public final class KeyLiteral : BaseKeySpecifier
 
     private SourceLocation _loc;
     private KeyName _keyName;
+}
+
+public final class AbsoluteKeyLiteral : BaseKeySpecifier
+{
+    public this(SourceLocation loc, int key)
+    {
+        _loc = loc;
+        _key = key;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property BaseKeySpecifierKind kind()
+    {
+        return BaseKeySpecifierKind.absoluteKeyLiteral;
+    }
+
+    public @property int key()
+    {
+        return _key;
+    }
+
+    private SourceLocation _loc;
+    private int _key;
 }
 
 public final class NoteMacroReference : BaseKeySpecifier
@@ -550,6 +578,9 @@ public auto visit(Handlers...)(BaseKeySpecifier baseKey)
     {
     case BaseKeySpecifierKind.keyLiteral:
         return Overloaded(cast(KeyLiteral)baseKey);
+
+    case BaseKeySpecifierKind.absoluteKeyLiteral:
+        return Overloaded(cast(AbsoluteKeyLiteral)baseKey);
 
     case BaseKeySpecifierKind.noteMacroReference:
         return Overloaded(cast(NoteMacroReference)baseKey);

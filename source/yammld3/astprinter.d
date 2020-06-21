@@ -160,6 +160,10 @@ public final class ASTPrinter(Writer)
                         break;
                     }
                 },
+                (AbsoluteKeyLiteral akl)
+                {
+                    attr.put(XMLAttribute("Key", akl.key.text));
+                },
                 (NoteMacroReference nmr)
                 {
                     attr.put(XMLAttribute("Name", nmr.name.value));
@@ -174,6 +178,7 @@ public final class ASTPrinter(Writer)
             _writer.writeElement(
                 k.baseKey.visit!(
                     (KeyLiteral kl) => "KeyLiteral",
+                    (AbsoluteKeyLiteral akl) => "AbsoluteKeyLiteral",
                     (NoteMacroReference nmr) => "NoteMacroReference"
                 ),
                 attr[]

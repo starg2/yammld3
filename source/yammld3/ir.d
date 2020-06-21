@@ -28,7 +28,7 @@ public interface Command
 
 public struct KeyInfo
 {
-    int key;
+    AbsoluteOrRelative!int key;
     float velocity;
     float timeShift;
     float gateTime;

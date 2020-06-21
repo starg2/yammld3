@@ -148,7 +148,7 @@ public final class MIDIGenerator
 
             if (onTime < offTime)
             {
-                byte key = note.keyInfo.key.clamp(0, 127).to!byte;
+                byte key = note.keyInfo.key.value.clamp(0, 127).to!byte;
 
                 NoteOnEventData onev;
                 onev.note = key;

@@ -2,6 +2,7 @@
 module yammld3.macros;
 
 import yammld3.ast;
+import yammld3.common : AbsoluteOrRelative;
 import yammld3.diagnostics : DiagnosticsHandler;
 import yammld3.source : SourceLocation;
 
@@ -9,7 +10,7 @@ private struct NoteMacroDefinition
 {
     string name;
     SourceLocation location;
-    int[] keys;
+    AbsoluteOrRelative!int[] keys;
 }
 
 package struct NoteMacroManagerContext
@@ -47,19 +48,23 @@ package final class NoteMacroManager
         _definedMacros[c.name.value] = def;
     }
 
-    public int[] expandNoteMacros(KeySpecifier[] kspArray)
+    public AbsoluteOrRelative!int[] expandNoteMacros(KeySpecifier[] kspArray)
     {
         import std.algorithm.iteration : map;
         import std.array : appender;
 
-        auto keys = appender!(int[]);
+        auto keys = appender!(AbsoluteOrRelative!int[]);
 
         foreach (ksp; kspArray)
         {
             ksp.baseKey.visit!(
                 (KeyLiteral kl)
                 {
-                    keys.put(ksp.octaveShift * 12 + cast(int)kl.keyName + ksp.accidental);
+                    keys.put(AbsoluteOrRelative!int(ksp.octaveShift * 12 + cast(int)kl.keyName + ksp.accidental, true));
+                },
+                (AbsoluteKeyLiteral akl)
+                {
+                    keys.put(AbsoluteOrRelative!int(akl.key, false));
                 },
                 (NoteMacroReference nmr)
                 {
@@ -71,7 +76,14 @@ package final class NoteMacroManager
                     }
                     else
                     {
-                        keys.put(pDef.keys.map!(x => ksp.octaveShift * 12 + x + ksp.accidental));
+                        keys.put(
+                            pDef.keys.map!(
+                                x => AbsoluteOrRelative!int(
+                                    x.relative ? ksp.octaveShift * 12 + x.value + ksp.accidental : x.value,
+                                    x.relative
+                                )
+                            )
+                        );
                     }
                 }
             );
