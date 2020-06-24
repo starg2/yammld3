@@ -1,6 +1,8 @@
 
 module yammld3.irprinter;
 
+import std.conv : text;
+
 import yammld3.common;
 import yammld3.ir;
 
@@ -43,6 +45,234 @@ private string keyNameToString(KeyName key)
 
     case KeyName.b:
         return "B";
+    }
+}
+
+private string ccCodeToText(ControlChangeCode cc)
+{
+    switch (cc)
+    {
+    case ControlChangeCode.bankSelectMSB:
+        return "Bank Select MSB";
+
+    case ControlChangeCode.modulation:
+        return "Modulation";
+
+    case ControlChangeCode.breathController:
+        return "Breath Controller";
+
+    case ControlChangeCode.footController:
+        return "Foot Controller";
+
+    case ControlChangeCode.portamentoTime:
+        return "Portamento Time";
+
+    case ControlChangeCode.dataEntry:
+        return "Data Entry";
+
+    case ControlChangeCode.channelVolume:
+        return "Channel Volume";
+
+    case ControlChangeCode.balance:
+        return "Balance";
+
+    case ControlChangeCode.pan:
+        return "Pan";
+
+    case ControlChangeCode.expression:
+        return "Expression";
+
+    case ControlChangeCode.effectControl1:
+        return "Effect Control 1";
+
+    case ControlChangeCode.effectControl2:
+        return "Effect Control 2";
+
+    case ControlChangeCode.generalPurposeController1:
+        return "General Purpose Controller 1";
+
+    case ControlChangeCode.generalPurposeController2:
+        return "General Purpose Controller 2";
+
+    case ControlChangeCode.generalPurposeController3:
+        return "General Purpose Controller 3";
+
+    case ControlChangeCode.generalPurposeController4:
+        return "General Purpose Controller 4";
+
+    case ControlChangeCode.bankSelectLSB:
+        return "Bank Select LSB";
+
+    case ControlChangeCode.hold1:
+        return "Hold 1";
+
+    case ControlChangeCode.portamento:
+        return "Portamento";
+
+    case ControlChangeCode.sostenuto:
+        return "Sostenuto";
+
+    case ControlChangeCode.softPedal:
+        return "Soft Pedal";
+
+    case ControlChangeCode.legatoFootswitch:
+        return "Legato Footswitch";
+
+    case ControlChangeCode.hold2:
+        return "Hold 2";
+
+    case ControlChangeCode.soundVariation:
+        return "Sound Variation";
+
+    case ControlChangeCode.harmonicIntensity:
+        return "Harmonic Intensity";
+
+    case ControlChangeCode.releaseTime:
+        return "Release Time";
+
+    case ControlChangeCode.attackTime:
+        return "Attack Time";
+
+    case ControlChangeCode.brightness:
+        return "Brightness";
+
+    case ControlChangeCode.decayTime:
+        return "Decay Time";
+
+    case ControlChangeCode.vibratoRate:
+        return "Vibrato Rate";
+
+    case ControlChangeCode.vibratoDepth:
+        return "Vibrato Depth";
+
+    case ControlChangeCode.vibratoDelay:
+        return "Vibrato Delay";
+
+    case ControlChangeCode.generalPurposeController5:
+        return "General Purpose Controller 5";
+
+    case ControlChangeCode.generalPurposeController6:
+        return "General Purpose Controller 6";
+
+    case ControlChangeCode.generalPurposeController7:
+        return "General Purpose Controller 7";
+
+    case ControlChangeCode.generalPurposeController8:
+        return "General Purpose Controller 8";
+
+    case ControlChangeCode.portamentoControl:
+        return "Portamento Control";
+
+    case ControlChangeCode.effect1Depth:
+        return "Effect 1 Depth (Reverb)";
+
+    case ControlChangeCode.effect2Depth:
+        return "Effect 2 Depth (Tremolo)";
+
+    case ControlChangeCode.effect3Depth:
+        return "Effect 3 Depth (Chorus)";
+
+    case ControlChangeCode.effect4Depth:
+        return "Effect 4 Depth (Celeste)";
+
+    case ControlChangeCode.effect5Depth:
+        return "Effect 5 Depth (Phaser)";
+
+    case ControlChangeCode.dataIncrement:
+        return "Data Increment";
+
+    case ControlChangeCode.dataDecrement:
+        return "Data Decrement";
+
+    case ControlChangeCode.nonRegisteredParameterNumberMSB:
+        return "Non Registered Parameter Number MSB";
+
+    case ControlChangeCode.nonRegisteredParameterNumberLSB:
+        return "Non Registered Parameter Number LSB";
+
+    case ControlChangeCode.registeredParameterNumberLSB:
+        return "Registered Parameter Number LSB";
+
+    case ControlChangeCode.registeredParameterNumberMSB:
+        return "Registered Parameter Number MSB";
+
+    case ControlChangeCode.allSoundOff:
+        return "All Sound Off";
+
+    case ControlChangeCode.resetAllControllers:
+        return "Reset All Controllers";
+
+    case ControlChangeCode.localControl:
+        return "Local Control";
+
+    case ControlChangeCode.allNotesOff:
+        return "All Notes Off";
+
+    case ControlChangeCode.omniOn:
+        return "Omni On";
+
+    case ControlChangeCode.omniOff:
+        return "Omni Off";
+
+    case ControlChangeCode.mono:
+        return "Mono";
+
+    case ControlChangeCode.poly:
+        return "Poly";
+
+    default:
+        return cc.text;
+    }
+}
+
+private string metaEventKindToString(MetaEventKind kind)
+{
+    final switch (kind)
+    {
+    case MetaEventKind.sequenceNumber:
+        return "Sequence Number";
+
+    case MetaEventKind.textEvent:
+        return "Text Event";
+
+    case MetaEventKind.copyright:
+        return "Copyright";
+
+    case MetaEventKind.sequenceName:
+        return "Sequence Name";
+
+    case MetaEventKind.instrumentName:
+        return "Instrument Name";
+
+    case MetaEventKind.lyrics:
+        return "Lyrics";
+
+    case MetaEventKind.marker:
+        return "Marker";
+
+    case MetaEventKind.cuePoint:
+        return "Cue Point";
+
+    case MetaEventKind.channelPrefix:
+        return "Channel Prefix";
+
+    case MetaEventKind.endOfTrack:
+        return "End Of Track";
+
+    case MetaEventKind.setTempo:
+        return "Set Tempo";
+
+    case MetaEventKind.smpteOffset:
+        return "SMPTE Offset";
+
+    case MetaEventKind.timeSignature:
+        return "Time Signature";
+
+    case MetaEventKind.keySignature:
+        return "Key Signature";
+
+    case MetaEventKind.sequencerSpecific:
+        return "Sequencer Specific";
     }
 }
 
@@ -264,7 +494,6 @@ private string gsInsertionEffectTypeToString(GSInsertionEffectType type)
 
 public final class IRPrinter(Writer)
 {
-    import std.conv : text;
     import yammld3.xmlwriter : XMLAttribute, XMLWriter;
 
     public this(Writer output, string indent = "")
@@ -327,7 +556,7 @@ public final class IRPrinter(Writer)
 
         _writer.writeElement(
             "ControlChange",
-            [XMLAttribute("NominalTime", cc.nominalTime.text), XMLAttribute("Code", cc.code.text), XMLAttribute("Value", cc.value.text)]
+            [XMLAttribute("NominalTime", cc.nominalTime.text), XMLAttribute("Code", cc.code.ccCodeToText()), XMLAttribute("Value", cc.value.text)]
         );
     }
 
@@ -392,7 +621,7 @@ public final class IRPrinter(Writer)
 
         _writer.writeElement(
             "TextMetaEvent",
-            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Kind", e.metaEventKind.text), XMLAttribute("Text", e.text)]
+            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Kind", e.metaEventKind.metaEventKindToString()), XMLAttribute("Text", e.text)]
         );
     }
 
