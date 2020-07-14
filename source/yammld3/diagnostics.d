@@ -46,6 +46,7 @@ public interface DiagnosticsHandler
     void negativeRepeatCount(SourceLocation loc, string context);
     void negativeStdDev(SourceLocation loc, string context);
     void timeAssertionFailed(SourceLocation loc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
+    void endTimeAssertionFailed(SourceLocation loc, SourceLocation endTimeLoc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
     void includeRecursionLimitExceeded(SourceLocation loc, string context);
 
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
@@ -308,6 +309,38 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
             actualMeasure.beats,
             actualMeasure.ticks,
             actualTime,
+            expectedMeasure.measures,
+            expectedMeasure.beats,
+            expectedMeasure.ticks,
+            expectedTime
+        );
+
+        incrementErrorCount();
+    }
+
+    public override void endTimeAssertionFailed(
+        SourceLocation loc,
+        SourceLocation endTimeLoc,
+        string context,
+        Time expectedMeasure,
+        float expectedTime,
+        Time actualMeasure,
+        float actualTime
+    )
+    {
+        writeMessage(
+            loc,
+            "error: '%s': unexpected end time %d:%d:%d (%.4f)",
+            context,
+            actualMeasure.measures,
+            actualMeasure.beats,
+            actualMeasure.ticks,
+            actualTime
+        );
+
+        writeMessage(
+            endTimeLoc,
+            "note: expected end time is %d:%d:%d (%.4f)",
             expectedMeasure.measures,
             expectedMeasure.beats,
             expectedMeasure.ticks,

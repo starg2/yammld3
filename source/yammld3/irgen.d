@@ -929,8 +929,6 @@ public final class IRGenerator
 
     private void assertTime(CompositionBuilder cb, ast.ExtensionCommand c)
     {
-        import std.math : abs;
-
         assert(c !is null);
         assert(c.name.value == "assert_time");
 
@@ -950,7 +948,7 @@ public final class IRGenerator
             return;
         }
 
-        if (abs(time.data.get!float - cb.currentTime) > 1.0f / ticksPerQuarterNote / 2.0f)
+        if (isTimeApproximatelyEqual(time.data.get!float, cb.currentTime))
         {
             _diagnosticsHandler.timeAssertionFailed(
                 time.location,
@@ -1553,22 +1551,30 @@ public final class IRGenerator
         auto cb = tb.compositionBuilder;
         float startTime = cb.currentTime;
 
-        OptionValue value;
-        Option valueOpt;
-        valueOpt.optional = true;
-        valueOpt.key = "time";
-        valueOpt.position = 0;
-        valueOpt.valueType = OptionType.duration;
-        valueOpt.values = &value;
+        OptionValue reqStartTime;
+        Option reqStartTimeOpt;
+        reqStartTimeOpt.optional = true;
+        reqStartTimeOpt.key = "start";
+        reqStartTimeOpt.position = 0;
+        reqStartTimeOpt.valueType = OptionType.duration;
+        reqStartTimeOpt.values = &reqStartTime;
 
-        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        OptionValue reqEndTime;
+        Option reqEndTimeOpt;
+        reqEndTimeOpt.optional = true;
+        reqEndTimeOpt.key = "end";
+        reqEndTimeOpt.position = 1;
+        reqEndTimeOpt.valueType = OptionType.duration;
+        reqEndTimeOpt.values = &reqEndTime;
+
+        if (!_optionProc.processOptions([reqStartTimeOpt, reqEndTimeOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
             return;
         }
 
-        if (value.data.hasValue)
+        if (reqStartTime.data.hasValue)
         {
-            startTime = value.data.get!float;
+            startTime = reqStartTime.data.get!float;
         }
 
         float endTime = startTime;
@@ -1584,10 +1590,29 @@ public final class IRGenerator
         {
             cb.currentTime = startTime;
             compileCommand(tb, command);
-            endTime = max(endTime, cb.currentTime);
+
+            if (reqEndTime.data.hasValue)
+            {
+                if (!isTimeApproximatelyEqual(cb.currentTime, startTime) && !isTimeApproximatelyEqual(cb.currentTime, reqEndTime.data.get!float))
+                {
+                    _diagnosticsHandler.endTimeAssertionFailed(
+                        command.location,
+                        reqEndTime.location,
+                        "%" ~ c.name.value,
+                        cb.conductorTrackBuilder.toMeasures(reqEndTime.data.get!float),
+                        reqEndTime.data.get!float,
+                        cb.conductorTrackBuilder.toMeasures(cb.currentTime),
+                        cb.currentTime
+                    );
+                }
+            }
+            else
+            {
+                endTime = max(endTime, cb.currentTime);
+            }
         }
 
-        cb.currentTime = endTime;
+        cb.currentTime = reqEndTime.data.hasValue ? reqEndTime.data.get!float : endTime;
     }
 
     private void seedRNG(ast.ExtensionCommand c)

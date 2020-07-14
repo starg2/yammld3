@@ -12,6 +12,12 @@ import yammld3.ir;
 import yammld3.priorspec;
 
 
+package bool isTimeApproximatelyEqual(float a, float b)
+{
+    import std.math : abs;
+    return abs(a - b) < 1.0f / ticksPerQuarterNote / 2.0f;
+}
+
 package enum TrackPropertyKind
 {
     duration,   // l
