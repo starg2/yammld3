@@ -234,6 +234,7 @@ int main(string[] args)
 {
 	import std.exception : enforce, ErrnoException;
 	import std.file : exists, remove;
+	import std.path : absolutePath;
 
 	try
 	{
@@ -288,7 +289,7 @@ int main(string[] args)
 
             foreach (inc; cmdInfo.includePaths)
             {
-                sourceManager.addIncludePath(inc);
+                sourceManager.addIncludePath(absolutePath(inc));
             }
 
 			auto timeBeforeParse = MonoTime.currTime;
