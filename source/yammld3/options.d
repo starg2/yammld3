@@ -48,7 +48,7 @@ package final class OptionProcessor
 {
     import yammld3.ast;
     import yammld3.diagnostics : DiagnosticsHandler;
-    import yammld3.eval : DurationExpressionEvaluator, NumericExpressionEvaluator, StringExpressionEvaluator, TimeEvaluator;
+    import yammld3.eval : DurationExpressionEvaluator, NumericExpressionEvaluator, StringExpressionEvaluator;
 
     public this(
         DiagnosticsHandler handler,
