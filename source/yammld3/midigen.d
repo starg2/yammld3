@@ -59,7 +59,7 @@ private int countSharp(KeyName tonic, bool isMinor)
 private ubyte[] makeGSSysex(ubyte[] data)
 {
     import std.algorithm.iteration : sum;
-    ubyte checksum = (128 - data.sum(0) % 128).to!ubyte;
+    ubyte checksum = ((128 - data.sum(0) % 128) & 127).to!ubyte;
     return [0xF0, 0x41, 0x10, 0x42, 0x12].to!(ubyte[]) ~ data ~ checksum ~ 0xF7;
 }
 
