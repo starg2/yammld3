@@ -220,7 +220,7 @@ public final class MIDIGenerator
 
         MetaEventData mev;
         mev.kind = MetaEventKind.setTempo;
-        mev.bytes = [usecPerQuarter >> 16, (usecPerQuarter >> 8) & 0xFF, usecPerQuarter & 0xFF].to!(ubyte[]);
+        mev.bytes = [(usecPerQuarter >> 16) & 0xFF, (usecPerQuarter >> 8) & 0xFF, usecPerQuarter & 0xFF].to!(ubyte[]);
 
         MIDIEvent ev;
         ev.time = convertTime(te.nominalTime);
