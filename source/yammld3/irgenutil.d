@@ -816,7 +816,7 @@ package final class CompositionBuilder
 
     public @property TrackBuilder defaultTrack()
     {
-        return _tracks.require(".default", new TrackBuilder(".default"));
+        return track(".default");
     }
 
     public TrackBuilder track(string name)
@@ -826,7 +826,7 @@ package final class CompositionBuilder
 
     public MultiTrackBuilder selectTracks(string[] names)
     {
-        return new MultiTrackBuilder(this, names.map!(x => _tracks.require(x, new TrackBuilder(x))).array);
+        return new MultiTrackBuilder(this, names.map!(x => track(x)).array);
     }
 
     public MultiTrackBuilder selectDefaultTrack()
