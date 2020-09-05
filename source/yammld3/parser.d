@@ -200,7 +200,7 @@ public final class Parser
 
             if (c !is null)
             {
-                commands.put(c);
+                commands ~= c;
                 continue;
             }
             else if (!endString.empty)
@@ -789,7 +789,7 @@ public final class Parser
         }
 
         auto keys = appender!(KeySpecifier[]);
-        keys.put(k);
+        keys ~= k;
 
         while (true)
         {
@@ -814,7 +814,7 @@ public final class Parser
                 }
                 else
                 {
-                    keys.put(k);
+                    keys ~= k;
                 }
             }
             else
@@ -938,7 +938,7 @@ public final class Parser
                     break;
                 }
 
-                items.put(item);
+                items ~= item;
                 skipSpaces(s);
 
                 if (s.scanChar(','))
@@ -1452,27 +1452,27 @@ public final class Parser
                 switch (s.front)
                 {
                 case 'f':
-                    str.put('\f');
+                    str ~= '\f';
                     break;
 
                 case 'n':
-                    str.put('\n');
+                    str ~= '\n';
                     break;
 
                 case 'r':
-                    str.put('\r');
+                    str ~= '\r';
                     break;
 
                 case 't':
-                    str.put('\t');
+                    str ~= '\t';
                     break;
 
                 case 'v':
-                    str.put('\v');
+                    str ~= '\v';
                     break;
 
                 default:
-                    str.put(s.front);
+                    str ~= s.front;
                     break;
                 }
 
@@ -1491,7 +1491,7 @@ public final class Parser
             }
             else
             {
-                str.put(s.front);
+                str ~= s.front;
                 s.popFront();
             }
         }

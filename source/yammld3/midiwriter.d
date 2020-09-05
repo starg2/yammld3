@@ -87,7 +87,7 @@ public final class MIDIWriter(Writer)
         if (track.channel >= 16)
         {
             // set port
-            put(_trackBuffer, [0, 0xFF, 0x21, 1, track.channel >> 4].to!(ubyte[]));
+            _trackBuffer ~= [0, 0xFF, 0x21, 1, track.channel >> 4].to!(ubyte[]);
         }
 
         foreach (ev; track.events)
@@ -97,7 +97,7 @@ public final class MIDIWriter(Writer)
 
         // write end of track
         writeTime(track.endOfTrackTime);
-        put(_trackBuffer, [0xFF, 0x2F, 0].to!(ubyte[]));
+        _trackBuffer ~= [0xFF, 0x2F, 0].to!(ubyte[]);
 
         put(_output, _trackBuffer[].length.to!uint32_t.nativeToBigEndian!uint32_t[]);
         put(_output, _trackBuffer[]);
@@ -121,7 +121,7 @@ public final class MIDIWriter(Writer)
             i++;
         }
 
-        put(_trackBuffer, buf[($ - i)..$]);
+        _trackBuffer ~= buf[($ - i)..$];
     }
 
     private void writeTime(int time)
@@ -134,61 +134,43 @@ public final class MIDIWriter(Writer)
     private void writeEvent(int channelNumber, int time, NoteOffEventData data)
     {
         writeTime(time);
-        put(_trackBuffer, [0x80 | (channelNumber & 0xF), data.note, 0].to!(ubyte[]));
+        _trackBuffer ~= [0x80 | (channelNumber & 0xF), data.note, 0].to!(ubyte[]);
     }
 
     private void writeEvent(int channelNumber, int time, NoteOnEventData data)
     {
         writeTime(time);
-        put(
-            _trackBuffer,
-            [0x90 | (channelNumber & 0xF), data.note, data.velocity].to!(ubyte[])
-        );
+        _trackBuffer ~= [0x90 | (channelNumber & 0xF), data.note, data.velocity].to!(ubyte[]);
     }
 
     private void writeEvent(int channelNumber, int time, PolyphonicAfterTouchEventData data)
     {
         writeTime(time);
-        put(
-            _trackBuffer,
-            [0xA0 | (channelNumber & 0xF), data.note, data.pressure].to!(ubyte[])
-        );
+        _trackBuffer ~= [0xA0 | (channelNumber & 0xF), data.note, data.pressure].to!(ubyte[]);
     }
 
     private void writeEvent(int channelNumber, int time, ControlChangeEventData data)
     {
         writeTime(time);
-        put(
-            _trackBuffer,
-            [0xB0 | (channelNumber & 0xF), data.code, data.value].to!(ubyte[])
-        );
+        _trackBuffer ~= [0xB0 | (channelNumber & 0xF), data.code, data.value].to!(ubyte[]);
     }
 
     private void writeEvent(int channelNumber, int time, ProgramChangeEventData data)
     {
         writeTime(time);
-        put(
-            _trackBuffer,
-            [0xC0 | (channelNumber & 0xF), data.program].to!(ubyte[])
-        );
+        _trackBuffer ~= [0xC0 | (channelNumber & 0xF), data.program].to!(ubyte[]);
     }
 
     private void writeEvent(int channelNumber, int time, ChannelAfterTouchEventData data)
     {
         writeTime(time);
-        put(
-            _trackBuffer,
-            [0xD0 | (channelNumber & 0xF), data.pressure].to!(ubyte[])
-        );
+        _trackBuffer ~= [0xD0 | (channelNumber & 0xF), data.pressure].to!(ubyte[]);
     }
 
     private void writeEvent(int channelNumber, int time, PitchBendEventData data)
     {
         writeTime(time);
-        put(
-            _trackBuffer,
-            [0xE0 | (channelNumber & 0xF), data.bend & 0x7F, (data.bend >> 7) & 0x7F].to!(ubyte[])
-        );
+        _trackBuffer ~= [0xE0 | (channelNumber & 0xF), data.bend & 0x7F, (data.bend >> 7) & 0x7F].to!(ubyte[]);
     }
 
     private void writeEvent(int /* channelNumber */, int time, SysExEventData data)
@@ -199,27 +181,27 @@ public final class MIDIWriter(Writer)
 
         if (isF0)
         {
-            put(_trackBuffer, 0xF0.to!ubyte);
+            _trackBuffer ~= 0xF0.to!ubyte;
             writeVLV(data.bytes.length.to!int - 1);
-            put(_trackBuffer, data.bytes[1..$]);
+            _trackBuffer ~= data.bytes[1..$];
         }
         else
         {
-            put(_trackBuffer, 0xF7.to!ubyte);
+            _trackBuffer ~= 0xF7.to!ubyte;
             writeVLV(data.bytes.length.to!int);
-            put(_trackBuffer, data.bytes);
+            _trackBuffer ~= data.bytes;
         }
     }
 
     private void writeEvent(int /* channelNumber */, int time, MetaEventData data)
     {
         writeTime(time);
-        put(_trackBuffer, 0xFF.to!ubyte);
-        put(_trackBuffer, data.kind.to!ubyte);
+        _trackBuffer ~= 0xFF.to!ubyte;
+        _trackBuffer ~= data.kind.to!ubyte;
 
         auto bytes = isTextMetaEvent(data.kind) ? transcodeText(data.bytes) : data.bytes;
         writeVLV(bytes.length.to!int);
-        put(_trackBuffer, bytes);
+        _trackBuffer ~= bytes;
     }
 
     private DiagnosticsHandler _diagnosticsHandler;

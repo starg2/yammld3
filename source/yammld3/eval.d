@@ -163,7 +163,7 @@ package final class StringExpressionEvaluator
         expr.visit!(
             (StringLiteral sl)
             {
-                str.put(sl.value);
+                str ~= sl.value;
             },
             (BinaryExpression be)
             {

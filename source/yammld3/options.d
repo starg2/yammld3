@@ -112,9 +112,7 @@ package final class OptionProcessor
                     }
 
                     assert(pOption.values.peek!(RefAppender!(OptionValue[])) !is null);
-                    pOption.values.get!(RefAppender!(OptionValue[])).put(
-                        OptionValue(keyVal.get, keyLoc)
-                    );
+                    pOption.values.get!(RefAppender!(OptionValue[])) ~= OptionValue(keyVal.get, keyLoc);
                 }
 
                 assert(arg.value !is null);
@@ -128,9 +126,7 @@ package final class OptionProcessor
 
                 if (pOption.values.peek!(RefAppender!(OptionValue[])) !is null)
                 {
-                    pOption.values.get!(RefAppender!(OptionValue[])).put(
-                        OptionValue(val.get, arg.value.location)
-                    );
+                    pOption.values.get!(RefAppender!(OptionValue[])) ~= OptionValue(val.get, arg.value.location);
                 }
                 else
                 {

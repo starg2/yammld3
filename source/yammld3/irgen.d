@@ -831,7 +831,7 @@ public final class IRGenerator
                         k.timeShift = 0.0f;
                         k.gateTime = 0.0f;
 
-                        keys.put(k);
+                        keys ~= k;
                     }
 
                     compileNoteComandWithKeys(tb, nc, keys[]);

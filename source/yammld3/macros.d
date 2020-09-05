@@ -60,11 +60,11 @@ package final class NoteMacroManager
             ksp.baseKey.visit!(
                 (KeyLiteral kl)
                 {
-                    keys.put(AbsoluteOrRelative!int(ksp.octaveShift * 12 + cast(int)kl.keyName + ksp.accidental, true));
+                    keys ~= AbsoluteOrRelative!int(ksp.octaveShift * 12 + cast(int)kl.keyName + ksp.accidental, true);
                 },
                 (AbsoluteKeyLiteral akl)
                 {
-                    keys.put(AbsoluteOrRelative!int(akl.key, false));
+                    keys ~= AbsoluteOrRelative!int(akl.key, false);
                 },
                 (NoteMacroReference nmr)
                 {
@@ -76,12 +76,10 @@ package final class NoteMacroManager
                     }
                     else
                     {
-                        keys.put(
-                            pDef.keys.map!(
-                                x => AbsoluteOrRelative!int(
-                                    x.relative ? ksp.octaveShift * 12 + x.value + ksp.accidental : x.value,
-                                    x.relative
-                                )
+                        keys ~= pDef.keys.map!(
+                            x => AbsoluteOrRelative!int(
+                                x.relative ? ksp.octaveShift * 12 + x.value + ksp.accidental : x.value,
+                                x.relative
                             )
                         );
                     }

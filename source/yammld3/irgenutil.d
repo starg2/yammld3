@@ -192,7 +192,7 @@ private final class TrackBuilder
     public void putCommand(Command c)
     {
         flush();
-        _commands.put(c);
+        _commands ~= c;
     }
 
     public void putNote(int noteCount, NoteSetInfo noteSetInfo)
@@ -384,7 +384,7 @@ private final class TrackBuilder
                     k
                 );
 
-                _commands.put(n);
+                _commands ~= n;
             }
 
             _queuedNote.nullify();
@@ -593,30 +593,30 @@ package final class ConductorTrackBuilder
 
     public void resetSystem(float time, SystemKind kind)
     {
-        _commands.put(new SystemReset(time, kind));
+        _commands ~= new SystemReset(time, kind);
     }
 
     public void setTempo(float time, float tempo)
     {
-        _commands.put(new SetTempoEvent(time, tempo));
+        _commands ~= new SetTempoEvent(time, tempo);
     }
 
     public void setMeter(float time, Fraction!int meter)
     {
         _meterMap.setMeter(time, meter);
-        _commands.put(new SetMeterEvent(time, meter));
+        _commands ~= new SetMeterEvent(time, meter);
     }
 
     public void setKeySig(SetKeySigEvent ks)
     {
         assert(ks !is null);
-        _commands.put(ks);
+        _commands ~= ks;
     }
 
     public void addTextEvent(TextMetaEvent te)
     {
         assert(te !is null);
-        _commands.put(te);
+        _commands ~= te;
     }
 
     public ConductorTrackContext saveContext()

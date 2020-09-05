@@ -94,12 +94,12 @@ public final class MIDIGenerator
 
         if (!conductorTrack.empty)
         {
-            tracks.put(compileTrack(composition.name, conductorTrack.front));
+            tracks ~= compileTrack(composition.name, conductorTrack.front);
         }
 
         foreach (t; composition.tracks.filter!(a => a.channel >= 0))
         {
-            tracks.put(compileTrack(composition.name, t));
+            tracks ~= compileTrack(composition.name, t);
         }
 
         return tracks[];
@@ -157,14 +157,14 @@ public final class MIDIGenerator
                 MIDIEvent ev;
                 ev.time = onTime;
                 ev.data = MIDIEventData(onev);
-                events.put(ev);
+                events ~= ev;
 
                 NoteOffEventData offev;
                 offev.note = key;
 
                 ev.time = offTime;
                 ev.data = MIDIEventData(offev);
-                events.put(ev);
+                events ~= ev;
             }
         }
     }
@@ -178,7 +178,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(cc.nominalTime);
         ev.data = MIDIEventData(cev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, ProgramChange pc)
@@ -190,17 +190,17 @@ public final class MIDIGenerator
         cev.code = ControlChangeCode.bankSelectMSB;
         cev.value = pc.bankMSB;
         ev.data = MIDIEventData(cev);
-        events.put(ev);
+        events ~= ev;
 
         cev.code = ControlChangeCode.bankSelectLSB;
         cev.value = pc.bankLSB;
         ev.data = MIDIEventData(cev);
-        events.put(ev);
+        events ~= ev;
 
         ProgramChangeEventData pcev;
         pcev.program = pc.program;
         ev.data = MIDIEventData(pcev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, PitchBendEvent pb)
@@ -211,7 +211,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(pb.nominalTime);
         ev.data = MIDIEventData(pbev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SetTempoEvent te)
@@ -225,7 +225,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(te.nominalTime);
         ev.data = MIDIEventData(mev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SetMeterEvent me)
@@ -242,7 +242,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(me.nominalTime);
         ev.data = MIDIEventData(mev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SetKeySigEvent ks)
@@ -254,7 +254,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(ks.nominalTime);
         ev.data = MIDIEventData(mev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, TextMetaEvent tm)
@@ -266,7 +266,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(tm.nominalTime);
         ev.data = MIDIEventData(mev);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SystemReset sr)
@@ -291,7 +291,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(sr.nominalTime);
         ev.data = MIDIEventData(sysex);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectOn ie)
@@ -304,7 +304,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(ie.nominalTime);
         ev.data = MIDIEventData(sysex);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectSetType ie)
@@ -317,7 +317,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(ie.nominalTime);
         ev.data = MIDIEventData(sysex);
-        events.put(ev);
+        events ~= ev;
     }
 
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectSetParam ie)
@@ -330,7 +330,7 @@ public final class MIDIGenerator
         MIDIEvent ev;
         ev.time = convertTime(ie.nominalTime);
         ev.data = MIDIEventData(sysex);
-        events.put(ev);
+        events ~= ev;
     }
 
     private DiagnosticsHandler _diagnosticsHandler;

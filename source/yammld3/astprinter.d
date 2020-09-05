@@ -119,7 +119,7 @@ public final class ASTPrinter(Writer)
         {
             if (k.octaveShift != 0)
             {
-                attr.put(XMLAttribute("OctaveShift", k.octaveShift.text));
+                attr ~= XMLAttribute("OctaveShift", k.octaveShift.text);
             }
 
             k.baseKey.visit!(
@@ -128,51 +128,51 @@ public final class ASTPrinter(Writer)
                     switch (kl.keyName)
                     {
                     case KeyName.c:
-                        attr.put(XMLAttribute("KeyName", "C"));
+                        attr ~= XMLAttribute("KeyName", "C");
                         break;
 
                     case KeyName.d:
-                        attr.put(XMLAttribute("KeyName", "D"));
+                        attr ~= XMLAttribute("KeyName", "D");
                         break;
 
                     case KeyName.e:
-                        attr.put(XMLAttribute("KeyName", "E"));
+                        attr ~= XMLAttribute("KeyName", "E");
                         break;
 
                     case KeyName.f:
-                        attr.put(XMLAttribute("KeyName", "F"));
+                        attr ~= XMLAttribute("KeyName", "F");
                         break;
 
                     case KeyName.g:
-                        attr.put(XMLAttribute("KeyName", "G"));
+                        attr ~= XMLAttribute("KeyName", "G");
                         break;
 
                     case KeyName.a:
-                        attr.put(XMLAttribute("KeyName", "A"));
+                        attr ~= XMLAttribute("KeyName", "A");
                         break;
 
                     case KeyName.b:
-                        attr.put(XMLAttribute("KeyName", "B"));
+                        attr ~= XMLAttribute("KeyName", "B");
                         break;
 
                     default:
-                        attr.put(XMLAttribute("KeyName", (cast(int)kl.keyName).text));
+                        attr ~= XMLAttribute("KeyName", (cast(int)kl.keyName).text);
                         break;
                     }
                 },
                 (AbsoluteKeyLiteral akl)
                 {
-                    attr.put(XMLAttribute("Key", akl.key.text));
+                    attr ~= XMLAttribute("Key", akl.key.text);
                 },
                 (NoteMacroReference nmr)
                 {
-                    attr.put(XMLAttribute("Name", nmr.name.value));
+                    attr ~= XMLAttribute("Name", nmr.name.value);
                 }
             );
 
             if (k.accidental != 0)
             {
-                attr.put(XMLAttribute("Accidental", k.accidental.text));
+                attr ~= XMLAttribute("Accidental", k.accidental.text);
             }
 
             _writer.writeElement(
