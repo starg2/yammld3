@@ -232,8 +232,8 @@ private void printTimingInfo(PassTimingInfo[] info)
 
 int main(string[] args)
 {
-	import std.exception : enforce, ErrnoException;
-	import std.file : exists, remove;
+	import std.exception : collectException, enforce, ErrnoException;
+	import std.file : exists, FileException, isFile, remove;
 	import std.path : absolutePath;
 
 	try
@@ -259,9 +259,9 @@ int main(string[] args)
 
 			scope (failure)
 			{
-				if (!outFilePath.empty && exists(outFilePath))
+				if (!outFilePath.empty && exists(outFilePath) && isFile(outFilePath))
 				{
-					remove(outFilePath);
+					collectException!FileException(remove(outFilePath));
 				}
 			}
 
