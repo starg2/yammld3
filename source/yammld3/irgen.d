@@ -948,7 +948,7 @@ public final class IRGenerator
             return;
         }
 
-        if (isTimeApproximatelyEqual(time.data.get!float, cb.currentTime))
+        if (!isTimeApproximatelyEqual(time.data.get!float, cb.currentTime))
         {
             _diagnosticsHandler.timeAssertionFailed(
                 time.location,
