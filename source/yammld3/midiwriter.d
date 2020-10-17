@@ -30,7 +30,7 @@ version (Windows)
     {
         import std.string : fromStringz;
         import std.windows.charset : toMBSz;
-        return cast(ubyte[])(cast(char[])text).toMBSz().fromStringz().dup;
+        return cast(ubyte[])(cast(char[])text).toMBSz(932).fromStringz().dup;
     }
 }
 else version (Posix)
