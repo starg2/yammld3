@@ -24,18 +24,72 @@ private bool isTextMetaEvent(MetaEventKind kind)
     }
 }
 
-private ubyte[] transcodeText(ubyte[] text)
+version (Windows)
 {
-    version (Windows)
+    private ubyte[] transcodeText(ubyte[] text)
     {
         import std.string : fromStringz;
         import std.windows.charset : toMBSz;
         return cast(ubyte[])(cast(char[])text).toMBSz().fromStringz().dup;
     }
-    else
+}
+else version (Posix)
+{
+    private struct Iconv
     {
-        return text;
+        import core.sys.posix.iconv;
+
+        private enum invalid = cast(iconv_t)-1;
+
+        public ~this()
+        {
+            if (_conv != invalid)
+            {
+                iconv_close(_conv);
+            }
+        }
+
+        public ubyte[] transcodeText(ubyte[] text)
+        {
+            import std.conv : ConvException;
+
+            if (_conv == invalid)
+            {
+                _conv = iconv_open("CP932", "UTF-8");
+
+                if (_conv == invalid)
+                {
+                    throw ConvException("faild to initialize iconv");
+                }
+            }
+
+            char* pInput = cast(char*)test.dup.ptr;
+            size_t inLength = text.length;
+            char[] outBuffer;
+            outBuffer.length = inLength * 8;
+            char* pOutput = cast(char*)outBuffer.ptr;
+            size_t outLength = outBuffer.length;
+
+            if (iconv(_conv, &pInput, &inLength, &pOutput, &outLength) == cast(size_t)-1)
+            {
+                throw ConvException("faild to transcode input");
+            }
+
+            return cast(ubyte[])outBuffer[0..(pOutput - outBuffer.ptr)];
+        }
+
+        private iconv_t _conv = invalid;
     }
+
+    private ubyte[] transcodeText(ubyte[] text)
+    {
+        static Iconv c;
+        return c.transcodeText(text);
+    }
+}
+else
+{
+    static assert(false, "unsupported platform");
 }
 
 public final class MIDIWriter(Writer)
