@@ -4,6 +4,7 @@ module yammld3.priorspec;
 import std.algorithm.sorting;
 import std.conv : to;
 import std.range;
+import std.traits : isFloatingPoint;
 import std.typecons : isTuple, Tuple;
 
 package interface PriorSpec(T)
@@ -26,8 +27,6 @@ private auto getKey(T)(T p)
 
 private bool lessKeyThan(T, U)(T a, U b)
 {
-    import std.traits : isFloatingPoint;
-
     static if (isFloatingPoint!(typeof(a.getKey())) || isFloatingPoint!(typeof(b.getKey())))
     {
         import std.math : cmp;
@@ -43,6 +42,7 @@ private alias SortedPairRange(T, U) = SortedRange!(Tuple!(T, U)[], lessKeyThan);
 
 private U interpolateNone(T, U)(SortedPairRange!(T, U) r, T key)
 {
+    static assert(!isFloatingPoint!T, "floating point keys are not safe");
     auto er = r.equalRange(key);
 
     if (er.empty)
