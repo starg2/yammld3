@@ -2,6 +2,7 @@
 module yammld3.irprinter;
 
 import std.conv : text;
+import std.range.primitives;
 
 import yammld3.common;
 import yammld3.ir;
@@ -509,22 +510,28 @@ public final class IRPrinter(Writer)
 
         foreach (track; composition.tracks)
         {
-            _writer.startElement(
-                "Track",
-                [
-                    XMLAttribute("Name", track.name),
-                    XMLAttribute("Channel", track.channel.text),
-                    XMLAttribute("TrailingBlankTime", track.trailingBlankTime.text)
-                ]
-            );
+            auto attr = [
+                XMLAttribute("Name", track.name),
+                XMLAttribute("Channel", track.channel.text),
+                XMLAttribute("TrailingBlankTime", track.trailingBlankTime.text)
+            ];
 
-            foreach (c; track.commands)
+            if (track.commands.empty)
             {
-                assert(c !is null);
-                c.visit!(x => printCommand(x));
+                _writer.writeElement("Track", attr);
             }
+            else
+            {
+                _writer.startElement("Track", attr);
 
-            _writer.endElement();
+                foreach (c; track.commands)
+                {
+                    assert(c !is null);
+                    c.visit!(x => printCommand(x));
+                }
+
+                _writer.endElement();
+            }
         }
 
         _writer.endElement();
