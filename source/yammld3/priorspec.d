@@ -1,6 +1,7 @@
 
 module yammld3.priorspec;
 
+import std.algorithm.comparison : clamp;
 import std.algorithm.sorting;
 import std.conv : to;
 import std.range;
@@ -156,8 +157,8 @@ package final class UniformRandomPriorSpec(RNG, T) : PriorSpec!T
 
     public override void apply(ref T value, int noteCount, float time)
     {
-        import std.random : uniform;
-        value += uniform!"[]"(_minValue, _maxValue, *_pRNG);
+        value += (_minValue + _pRNG.front * (_maxValue - _minValue)).to!T.clamp(_minValue, _maxValue);
+        _pRNG.popFront();
     }
 
     private RNG* _pRNG;
@@ -184,10 +185,11 @@ package final class NormalRandomPriorSpec(RNG, T) : PriorSpec!T
     public override void apply(ref T value, int noteCount, float time)
     {
         import std.math : cos, log, PI, sqrt;
-        import std.random : uniform;
 
-        float x = uniform!"()"(0.0f, 1.0f, *_pRNG);
-        float y = uniform!"()"(0.0f, 1.0f, *_pRNG);
+        float x = _pRNG.front;
+        _pRNG.popFront();
+        float y = _pRNG.front;
+        _pRNG.popFront();
 
         float z = sqrt(-2.0f * log(x)) * cos(2.0f * PI * y);
         value += (z * _stdDev + _mean).to!T;
@@ -276,7 +278,6 @@ package final class ClampPriorSpec(T) : PriorSpec!T
 
     public override void apply(ref T value, int noteCount, float time)
     {
-        import std.algorithm.comparison : clamp;
         value = value.clamp(_minValue, _maxValue);
     }
 

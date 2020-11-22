@@ -17,7 +17,6 @@ public final class IRGenerator
     import std.algorithm.iteration : map, sum;
     import std.array;
     import std.conv : to;
-    import std.random : Random;
     import std.typecons : Nullable, tuple;
     import std.variant : Algebraic;
 
@@ -2425,6 +2424,6 @@ public final class IRGenerator
     private NoteMacroManager _noteMacroManager;
     private CommandMacroManager _commandMacroManager;
     private OptionProcessor _optionProc;
-    private Random _rng;
+    private XorShift128Plus _rng;
     private int _includeDepth = 0;
 }

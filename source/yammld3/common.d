@@ -1,6 +1,8 @@
 
 module yammld3.common;
 
+import std.stdint;
+
 public enum int ticksPerQuarterNote = 960;
 public enum int maxChannelCount = 64;
 //public enum int maxDrumChannelCount = maxChannelCount / 16;
@@ -102,4 +104,74 @@ public struct AbsoluteOrRelative(T)
 {
     T value;
     bool relative;
+}
+
+private struct SplitMix64
+{
+    this(uint64_t seed)
+    {
+        _s = seed;
+    }
+
+    enum bool empty = false;
+
+    @property uint64_t front() const
+    {
+        uint64_t result = _s;
+        result = (result ^ (result >> 30)) * 0xBF58476D1CE4E5B9;
+        result = (result ^ (result >> 27)) * 0x94D049BB133111EB;
+        return result ^ (result >> 31);
+    }
+
+    void popFront()
+    {
+        _s += 0x9E3779B97f4A7C15;
+    }
+
+    private uint64_t _s;
+}
+
+package struct XorShift128Plus
+{
+    enum bool empty = false;
+
+    void seed(uint64_t n)
+    {
+        auto sm = SplitMix64(n);
+        _s0 = sm.front;
+        sm.popFront();
+        _s1 = sm.front;
+    }
+
+    @property double front() const
+    {
+        import std.bitmanip : DoubleRep;
+
+        DoubleRep rep;
+        rep.fraction = (_s0 + _s1) >> 12;
+
+        if (rep.fraction == 0)
+        {
+            rep.fraction = 1;
+        }
+
+        rep.exponent = 1023;
+        rep.sign = false;
+
+        return rep.value - 1.0;
+    }
+
+    void popFront()
+    {
+        uint64_t t = _s0;
+        uint64_t s = _s1;
+        _s0 = s;
+        t ^= t << 23;
+        t ^= t >> 17;
+        t ^= s ^ (s >> 26);
+        _s1 = t;
+    }
+
+    private uint64_t _s0 = 0x95F6E804A9B45D75;
+    private uint64_t _s1 = 0x8E78B2850738A063;
 }
