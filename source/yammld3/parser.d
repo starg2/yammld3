@@ -186,11 +186,11 @@ public final class Parser
         assert(src !is null);
 
         auto s = Scanner(src.contents, SourceOffset(src, 1, 0));
-        auto commands = parseCommands(s, null);
+        auto commands = parseCommands(s);
         return new Module(src.path, commands);
     }
 
-    private Command[] parseCommands(ref Scanner s, string endString)
+    private Command[] parseCommands(ref Scanner s)
     {
         auto commands = appender!(Command[]);
 
@@ -203,21 +203,17 @@ public final class Parser
                 commands ~= c;
                 continue;
             }
-            else if (!endString.empty)
-            {
-                auto s2 = s;
 
-                if (s2.empty || s2.scanString(endString))
-                {
-                    break;
-                }
-            }
-            else
+            if (s.empty)
             {
-                if (s.empty)
-                {
-                    break;
-                }
+                break;
+            }
+
+            auto s2 = s;
+
+            if (s2.scanCharSet(")}"))
+            {
+                break;
             }
 
             assert(!s.empty);
@@ -329,7 +325,7 @@ public final class Parser
 
         if (s.scanChar('('))
         {
-            auto commands = parseCommands(s, ")");
+            auto commands = parseCommands(s);
 
             if (!s.scanChar(')'))
             {
@@ -886,7 +882,7 @@ public final class Parser
 
         if (s.scanChar('{'))
         {
-            auto commands = parseCommands(s, "}");
+            auto commands = parseCommands(s);
 
             if (!s.scanChar('}'))
             {
