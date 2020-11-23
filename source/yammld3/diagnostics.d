@@ -87,21 +87,21 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void notImplemented(SourceLocation loc, string featureName)
     {
         writeMessage(loc, "fatal error: support for '%s' is not implemented yet", featureName);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("not implemented");
     }
 
     public override void cannotOpenFile(string path)
     {
         _output.writefln("fatal error: cannot open file '%s'", path);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("cannot open file");
     }
 
     public override void cannotOpenFile(SourceLocation loc, string context, string path)
     {
         writeMessage(loc, "fatal error: '%s': cannot open file '%s'", context, path);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("cannot open file");
     }
 
@@ -126,8 +126,6 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void noCloseCharacters(SourceLocation loc, SourceLocation openLoc, string openCharacters, string closeCharacters)
     {
         writeMessage(loc, "error: expected '%s'", closeCharacters);
-        incrementErrorCount();
-
         writeMessage(openLoc, "note: no '%s' found matching '%s'", closeCharacters, openCharacters);
         incrementErrorCount();
     }
@@ -147,7 +145,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void recursionLimitExceeded(SourceLocation loc)
     {
         writeMessage(loc, "fatal error: recursion limit exceeded");
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("recursion limit exceeded");
     }
 
@@ -353,7 +351,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void includeRecursionLimitExceeded(SourceLocation loc, string context)
     {
         writeMessage(loc, "fatal error: '%s': include recursion limit exceeded", context);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("include recursion limit exceeded");
     }
 
@@ -425,21 +423,21 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void overflowInTrack(string filePath, string trackName)
     {
         _output.writefln("%s: fatal error: overflow error occurred while compiling track '%s'", filePath, trackName);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("overflow");
     }
 
     public override void tooManyTracks(string filePath)
     {
         _output.writefln("%s: fatal error: more than %d tracks defined", filePath, (1 << 16) - 1);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("too many tracks defined");
     }
 
     public override void vlvIsOutOfRange(string filePath)
     {
         _output.writefln("%s: fatal error: variable length value is out of range", filePath);
-        incrementErrorCount();
+        //incrementErrorCount();
         throw new FatalErrorException("variable length value out of range");
     }
 
