@@ -3,10 +3,10 @@ module yammld3.scanner;
 
 import std.range.primitives;
 
-import yammld3.source : SourceOffset;
-
 package struct Scanner
 {
+    import yammld3.source : SourceOffset;
+
     public this(string input, SourceOffset sourceOffset)
     {
         _input = input;
