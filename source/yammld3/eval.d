@@ -129,7 +129,7 @@ package final class NumericExpressionEvaluator(T)
             },
             (x)
             {
-                _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
+                _diagnosticsHandler.unexpectedExpressionKind(expr.location, "numeric expression");
                 return 0;
             }
         );
