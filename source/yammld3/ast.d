@@ -48,6 +48,7 @@ public enum ExpressionKind
     stringLiteral,
     timeLiteral,
     durationLiteral,
+    commandBlock,
     unaryExpression,
     binaryExpression,
     callExpression
@@ -227,6 +228,33 @@ public final class DurationLiteral : Expression
     private int _dot;
 }
 
+public final class CommandBlock : Expression
+{
+    public this(SourceLocation loc, Command[] commands)
+    {
+        _loc = loc;
+        _commands = commands;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property ExpressionKind kind()
+    {
+        return ExpressionKind.commandBlock;
+    }
+
+    public @property Command[] commands()
+    {
+        return _commands;
+    }
+
+    private SourceLocation _loc;
+    private Command[] _commands;
+}
+
 // prefix expression only
 public final class UnaryExpression : Expression
 {
@@ -369,6 +397,9 @@ public auto visit(Handlers...)(Expression expr)
 
     case ExpressionKind.durationLiteral:
         return Overloaded(cast(DurationLiteral)expr);
+
+    case ExpressionKind.commandBlock:
+        return Overloaded(cast(CommandBlock)expr);
 
     case ExpressionKind.unaryExpression:
         return Overloaded(cast(UnaryExpression)expr);
@@ -942,7 +973,7 @@ public final class CommandMacroName : ASTNode
 
 public final class CommandMacroDefinitionCommand : Command
 {
-    public this(SourceLocation loc, CommandMacroName name, CommandBlock definition)
+    public this(SourceLocation loc, CommandMacroName name, Expression definition)
     {
         assert(name !is null);
         assert(definition !is null);
@@ -967,14 +998,14 @@ public final class CommandMacroDefinitionCommand : Command
         return _name;
     }
 
-    public @property CommandBlock definition()
+    public @property Expression definition()
     {
         return _definition;
     }
 
     private SourceLocation _loc;
     private CommandMacroName _name;
-    private CommandBlock _definition;
+    private Expression _definition;
 }
 
 public final class CommandMacroInvocationCommand : Command
@@ -1054,28 +1085,6 @@ public auto visit(Handlers...)(Command c)
     case CommandKind.commandMacroInvocation:
         return Overloaded(cast(CommandMacroInvocationCommand)c);
     }
-}
-
-public final class CommandBlock : ASTNode
-{
-    public this(SourceLocation loc, Command[] commands)
-    {
-        _loc = loc;
-        _commands = commands;
-    }
-
-    public override @property SourceLocation location()
-    {
-        return _loc;
-    }
-
-    public @property Command[] commands()
-    {
-        return _commands;
-    }
-
-    private SourceLocation _loc;
-    private Command[] _commands;
 }
 
 // ---------------------

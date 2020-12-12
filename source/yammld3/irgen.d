@@ -717,7 +717,15 @@ public final class IRGenerator
             _commandMacroManager.restoreContext(context);
         }
 
-        foreach (child; _commandMacroManager.expandCommandMacro(c))
+        auto block = cast(ast.CommandBlock)_commandMacroManager.expandCommandMacro(c);
+
+        if (block is null)
+        {
+            _diagnosticsHandler.commandMacroNotExpandedToCommandBlock(c.location, c.name.value);
+            return;
+        }
+
+        foreach (child; block.commands)
         {
             compileCommand(tb, child);
         }

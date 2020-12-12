@@ -128,6 +128,7 @@ c&d&e
     | <StringLiteral>
     | <TimeLiteral>
     | <DurationLiteral>
+    | <CommandBlock>
     | ('(' <Expression> ')')
 
 <CommandArgumentExpression> ::= <DecimalIntegerLiteral>
@@ -350,6 +351,7 @@ public final class Parser
         return parseBasicCommand(s);
     }
 
+    // parses CommandMacroDefinitionCommand or CommandMacroInvocationCommand
     private Command parseCommandMacro(ref Scanner s)
     {
         auto startOffset = s.sourceOffset;
@@ -368,14 +370,14 @@ public final class Parser
         {
             s = s2;
             skipSpaces(s);
-            auto block = parseCommandBlock(s);
+            auto definition = parsePrimaryExpression(s);
 
-            if (block is null)
+            if (definition is null)
             {
                 _diagnosticsHandler.expectedAfter(
                     SourceLocation(startOffset, s.sourceOffset),
                     "command macro definition",
-                    "command block",
+                    "primary expression",
                     "="
                 );
 
@@ -385,7 +387,7 @@ public final class Parser
             return new CommandMacroDefinitionCommand(
                 SourceLocation(startOffset, s.sourceOffset),
                 name,
-                block
+                definition
             );
         }
 
@@ -1261,6 +1263,13 @@ public final class Parser
             if (ident !is null)
             {
                 return ident;
+            }
+
+            auto b = parseCommandBlock(s);
+
+            if (b !is null)
+            {
+                return b;
             }
         }
 

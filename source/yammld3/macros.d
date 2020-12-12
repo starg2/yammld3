@@ -108,7 +108,7 @@ private struct CommandMacroDefinition
 {
     string name;
     SourceLocation location;
-    Command[] definition;
+    Expression definition;
 }
 
 package struct CommandMacroManagerContext
@@ -142,13 +142,13 @@ package final class CommandMacroManager
         CommandMacroDefinition def;
         def.name = c.name.value;
         def.location = c.location;
-        def.definition = c.definition.commands;
+        def.definition = c.definition;
 
         _definedMacros[c.name.value] = def;
     }
 
     // Call saveContext() beforehand!
-    public Command[] expandCommandMacro(CommandMacroInvocationCommand c)
+    public Expression expandCommandMacro(CommandMacroInvocationCommand c)
     {
         assert(c !is null);
 

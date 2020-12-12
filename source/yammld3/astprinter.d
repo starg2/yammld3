@@ -273,7 +273,7 @@ public final class ASTPrinter(Writer)
         assert(c !is null);
 
         _writer.startElement("CommandMacroDefinitionCommand", [XMLAttribute("Name", c.name.value)]);
-        printCommandBlock(c.definition);
+        printExpression(c.definition);
         _writer.endElement();
     }
 
@@ -395,6 +395,11 @@ public final class ASTPrinter(Writer)
                 XMLAttribute("Dot", dl.dot.text)
             ]
         );
+    }
+
+    private void doPrintExpression(CommandBlock b)
+    {
+        printCommandBlock(b);
     }
 
     private void doPrintExpression(UnaryExpression expr)
