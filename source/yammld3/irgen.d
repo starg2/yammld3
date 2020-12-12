@@ -698,38 +698,6 @@ public final class IRGenerator
         }
     }
 
-    private void doCompileCommand(MultiTrackBuilder tb, ast.TupletCommand c)
-    {
-        assert(c !is null);
-        auto cb = tb.compositionBuilder;
-        auto cdb = cb.conductorTrackBuilder;
-        int noteCount = cb.currentNoteCount;
-        float curTime = cb.currentTime;
-
-        float duration;
-
-        if (c.duration is null)
-        {
-            duration = cdb.getDurationFor(noteCount, curTime);
-        }
-        else
-        {
-            duration = _durationEvaluator.evaluate(curTime, c.duration);
-        }
-
-        int noteLikeCommandCount = countNoteLikeCommands(c.command, c.location, "tuplet command");
-
-        auto context = tb.saveContext();
-
-        scope (exit)
-        {
-            tb.restoreContext(context);
-        }
-
-        cdb.setDuration(OptionalSign.none, noteLikeCommandCount > 0 ? duration / noteLikeCommandCount : duration);
-        compileCommand(tb, c.command);
-    }
-
     private void doCompileCommand(MultiTrackBuilder tb, ast.NoteMacroDefinitionCommand c)
     {
         _noteMacroManager.compileNoteMacroDefinitionCommand(c);

@@ -13,7 +13,6 @@ v10!on_note(+5, +3, +2)
 v!on_time(0 = +5, :1 = +3)
 
 (cd ef)*4
-(cde)/4.
 c&d&e
 
 %time(1:0)
@@ -42,7 +41,7 @@ c&d&e
     %track(A)
     {
         v100!on_time(0 = +0, :1 = +10)
-        l4 c_d (cd)/   ef+g+b    (l8 >c__>e_>d>cb)   g+bg+_
+        l4 c_d (l8 cd)   ef+g+b    (l8 >c__>e_>d>cb)   g+bg+_
     }
 
     %track(Foo, Bar)
@@ -69,7 +68,7 @@ c&d&e
 
 <Command> ::= <PostfixCommand>
 
-<PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand> | <TupletCommand>)*
+<PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand>)*
 
 <PrimaryCommand> ::= ('(' <Command>* ')')
     | <CommandMacroDefinitionCommand>
@@ -82,8 +81,6 @@ c&d&e
 <ModifierCommand> ::= '!' <Identifier> <ParenthesizedExpressionList>?
 
 <RepeatCommand> ::= '*' <CommandArgumentExpression>?
-
-<TupletCommand> ::= '/' <CommandArgumentExpression>?
 
 
 <CommandMacroDefinitionCommand> ::= <CommandMacroName> '=' <CommandBlock>
@@ -292,25 +289,7 @@ public final class Parser
             }
             else
             {
-                //skipSpaces(s);
-
-                auto s2 = s.save;
-
-                // don't parse comments as a tuplet command
-                if (s2.scanString("//") || s2.scanString("/*"))
-                {
-                    break;
-                }
-
-                if (s.scanChar('/'))
-                {
-                    auto arg = parseCommandArgumentExpression(s);
-                    c = new TupletCommand(SourceLocation(c.location.offset, s.sourceOffset), c, arg);
-                }
-                else
-                {
-                    break;
-                }
+                break;
             }
         }
 

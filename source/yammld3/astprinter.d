@@ -259,23 +259,6 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void doPrintCommand(TupletCommand c)
-    {
-        assert(c !is null);
-
-        _writer.startElement("TupletCommand");
-        printCommand(c.command);
-
-        if (c.duration !is null)
-        {
-            _writer.startElement("Duration");
-            printExpression(c.duration);
-            _writer.endElement();
-        }
-
-        _writer.endElement();
-    }
-
     private void doPrintCommand(NoteMacroDefinitionCommand c)
     {
         assert(c !is null);

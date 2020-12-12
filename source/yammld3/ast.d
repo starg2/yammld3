@@ -598,7 +598,6 @@ public enum CommandKind
     scoped,
     modifier,
     repeat,
-    tuplet,
     noteMacroDefinition,
     commandMacroDefinition,
     commandMacroInvocation
@@ -880,43 +879,6 @@ public final class RepeatCommand : Command
     private Expression _repeatCount;
 }
 
-public final class TupletCommand : Command
-{
-    public this(SourceLocation loc, Command command, Expression duration)
-    {
-        assert(command !is null);
-        // duration may be null
-
-        _loc = loc;
-        _command = command;
-        _duration = duration;
-    }
-
-    public override @property SourceLocation location()
-    {
-        return _loc;
-    }
-
-    public override @property CommandKind kind()
-    {
-        return CommandKind.tuplet;
-    }
-
-    public @property Command command()
-    {
-        return _command;
-    }
-
-    public @property Expression duration()
-    {
-        return _duration;
-    }
-
-    private SourceLocation _loc;
-    private Command _command;
-    private Expression _duration;
-}
-
 public final class NoteMacroDefinitionCommand : Command
 {
     public this(SourceLocation loc, NoteMacroName name, KeySpecifier[] definition)
@@ -1082,9 +1044,6 @@ public auto visit(Handlers...)(Command c)
 
     case CommandKind.repeat:
         return Overloaded(cast(RepeatCommand)c);
-
-    case CommandKind.tuplet:
-        return Overloaded(cast(TupletCommand)c);
 
     case CommandKind.noteMacroDefinition:
         return Overloaded(cast(NoteMacroDefinitionCommand)c);
