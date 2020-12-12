@@ -6,7 +6,7 @@ import yammld3.macros;
 private struct BlockScopeContext
 {
     NoteMacroManagerContext noteMacroManagerContext;
-    CommandMacroManagerContext commandMacroManagerContext;
+    ExpressionMacroManagerContext expressionMacroManagerContext;
 }
 
 private immutable int recursionLimit = 20;
@@ -40,7 +40,7 @@ public final class IRGenerator
         _floatEvaluator = new NumericExpressionEvaluator!float(handler);
         _strEval = new StringExpressionEvaluator(handler);
         _noteMacroManager = new NoteMacroManager(handler);
-        _commandMacroManager = new CommandMacroManager(handler);
+        _expressionMacroManager = new ExpressionMacroManager(handler);
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -703,25 +703,25 @@ public final class IRGenerator
         _noteMacroManager.compileNoteMacroDefinitionCommand(c);
     }
 
-    private void doCompileCommand(MultiTrackBuilder tb, ast.CommandMacroDefinitionCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.ExpressionMacroDefinitionCommand c)
     {
-        _commandMacroManager.compileCommandMacroDefinitionCommand(c);
+        _expressionMacroManager.compileExpressionMacroDefinitionCommand(c);
     }
 
-    private void doCompileCommand(MultiTrackBuilder tb, ast.CommandMacroInvocationCommand c)
+    private void doCompileCommand(MultiTrackBuilder tb, ast.ExpressionMacroInvocationCommand c)
     {
-        auto context = _commandMacroManager.saveContext();
+        auto context = _expressionMacroManager.saveContext();
 
         scope (exit)
         {
-            _commandMacroManager.restoreContext(context);
+            _expressionMacroManager.restoreContext(context);
         }
 
-        auto block = cast(ast.CommandBlock)_commandMacroManager.expandCommandMacro(c);
+        auto block = cast(ast.CommandBlock)_expressionMacroManager.expandExpressionMacro(c);
 
         if (block is null)
         {
-            _diagnosticsHandler.commandMacroNotExpandedToCommandBlock(c.location, c.name.value);
+            _diagnosticsHandler.expressionMacroNotExpandedToCommandBlock(c.location, c.name.value);
             return;
         }
 
@@ -2380,13 +2380,13 @@ public final class IRGenerator
     {
         return BlockScopeContext(
             _noteMacroManager.saveContext(),
-            _commandMacroManager.saveContext()
+            _expressionMacroManager.saveContext()
         );
     }
 
     private void restoreContext(BlockScopeContext c)
     {
-        _commandMacroManager.restoreContext(c.commandMacroManagerContext);
+        _expressionMacroManager.restoreContext(c.expressionMacroManagerContext);
         _noteMacroManager.restoreContext(c.noteMacroManagerContext);
     }
 
@@ -2398,7 +2398,7 @@ public final class IRGenerator
     private NumericExpressionEvaluator!float _floatEvaluator;
     private StringExpressionEvaluator _strEval;
     private NoteMacroManager _noteMacroManager;
-    private CommandMacroManager _commandMacroManager;
+    private ExpressionMacroManager _expressionMacroManager;
     private OptionProcessor _optionProc;
     private XorShift128Plus _rng;
     private int _includeDepth = 0;

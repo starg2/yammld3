@@ -104,26 +104,26 @@ package final class NoteMacroManager
     private NoteMacroDefinition[string] _definedMacros;
 }
 
-private struct CommandMacroDefinition
+private struct ExpressionMacroDefinition
 {
     string name;
     SourceLocation location;
     Expression definition;
 }
 
-package struct CommandMacroManagerContext
+package struct ExpressionMacroManagerContext
 {
-    CommandMacroDefinition[string] definedMacros;
+    ExpressionMacroDefinition[string] definedMacros;
 }
 
-package final class CommandMacroManager
+package final class ExpressionMacroManager
 {
     public this(DiagnosticsHandler handler)
     {
         _diagnosticsHandler = handler;
     }
 
-    public void compileCommandMacroDefinitionCommand(CommandMacroDefinitionCommand c)
+    public void compileExpressionMacroDefinitionCommand(ExpressionMacroDefinitionCommand c)
     {
         assert(c !is null);
         assert(c.definition !is null);
@@ -132,14 +132,14 @@ package final class CommandMacroManager
 
         if (pPrevDef !is null)
         {
-            _diagnosticsHandler.commandMacroRedefinition(
+            _diagnosticsHandler.expressionMacroRedefinition(
                 c.location,
                 c.name.value,
                 pPrevDef.location
             );
         }
 
-        CommandMacroDefinition def;
+        ExpressionMacroDefinition def;
         def.name = c.name.value;
         def.location = c.location;
         def.definition = c.definition;
@@ -148,7 +148,7 @@ package final class CommandMacroManager
     }
 
     // Call saveContext() beforehand!
-    public Expression expandCommandMacro(CommandMacroInvocationCommand c)
+    public Expression expandExpressionMacro(ExpressionMacroInvocationCommand c)
     {
         assert(c !is null);
 
@@ -156,13 +156,13 @@ package final class CommandMacroManager
 
         if (pDef is null)
         {
-            _diagnosticsHandler.undefinedCommandMacro(c.location, c.name.value);
+            _diagnosticsHandler.undefinedExpressionMacro(c.location, c.name.value);
             return null;
         }
 
         if (c.arguments !is null)
         {
-            _diagnosticsHandler.notImplemented(c.location, "command macro with arguments");
+            _diagnosticsHandler.notImplemented(c.location, "expression macro with arguments");
             assert(false);
         }
 
@@ -171,16 +171,16 @@ package final class CommandMacroManager
         return definition;
     }
 
-    public CommandMacroManagerContext saveContext()
+    public ExpressionMacroManagerContext saveContext()
     {
-        return CommandMacroManagerContext(_definedMacros.dup);
+        return ExpressionMacroManagerContext(_definedMacros.dup);
     }
 
-    public void restoreContext(CommandMacroManagerContext c)
+    public void restoreContext(ExpressionMacroManagerContext c)
     {
         _definedMacros = c.definedMacros;
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
-    private CommandMacroDefinition[string] _definedMacros;
+    private ExpressionMacroDefinition[string] _definedMacros;
 }

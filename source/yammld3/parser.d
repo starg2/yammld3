@@ -71,8 +71,8 @@ c&d&e
 <PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand>)*
 
 <PrimaryCommand> ::= ('(' <Command>* ')')
-    | <CommandMacroDefinitionCommand>
-    | <CommandMacroInvocationCommand>
+    | <ExpressionMacroDefinitionCommand>
+    | <ExpressionMacroInvocationCommand>
     | <NoteMacroDefinitionCommand>
     | <ExtensionCommand>
     | <NoteCommand>
@@ -83,11 +83,11 @@ c&d&e
 <RepeatCommand> ::= '*' <CommandArgumentExpression>?
 
 
-<CommandMacroDefinitionCommand> ::= <CommandMacroName> '=' <CommandBlock>
+<ExpressionMacroDefinitionCommand> ::= <ExpressionMacroName> '=' <CommandBlock>
 
-<CommandMacroInvocationCommand> ::= <CommandMacroName> <ParenthesizedExpressionList>?
+<ExpressionMacroInvocationCommand> ::= <ExpressionMacroName> <ParenthesizedExpressionList>?
 
-<CommandMacroName> ::= '$' (IDCONT+ | '(' IDCONT+ ')')
+<ExpressionMacroName> ::= '$' (IDCONT+ | '(' IDCONT+ ')')
 
 <NoteMacroDefinitionCommand> ::= <NoteMacroName> '=' <ChordExpression>
 
@@ -320,7 +320,7 @@ public final class Parser
             return new ScopedCommand(SourceLocation(startOffset, s.sourceOffset), commands);
         }
 
-        auto cm = parseCommandMacro(s);
+        auto cm = parseExpressionMacro(s);
 
         if (cm !is null)
         {
@@ -351,11 +351,11 @@ public final class Parser
         return parseBasicCommand(s);
     }
 
-    // parses CommandMacroDefinitionCommand or CommandMacroInvocationCommand
-    private Command parseCommandMacro(ref Scanner s)
+    // parses ExpressionMacroDefinitionCommand or ExpressionMacroInvocationCommand
+    private Command parseExpressionMacro(ref Scanner s)
     {
         auto startOffset = s.sourceOffset;
-        auto name = parseCommandMacroName(s);
+        auto name = parseExpressionMacroName(s);
 
         if (name is null)
         {
@@ -376,7 +376,7 @@ public final class Parser
             {
                 _diagnosticsHandler.expectedAfter(
                     SourceLocation(startOffset, s.sourceOffset),
-                    "command macro definition",
+                    "expression macro definition",
                     "primary expression",
                     "="
                 );
@@ -384,7 +384,7 @@ public final class Parser
                 return null;
             }
 
-            return new CommandMacroDefinitionCommand(
+            return new ExpressionMacroDefinitionCommand(
                 SourceLocation(startOffset, s.sourceOffset),
                 name,
                 definition
@@ -393,14 +393,14 @@ public final class Parser
 
         auto argList = parseParenthesizedExpressionList(s);
 
-        return new CommandMacroInvocationCommand(
+        return new ExpressionMacroInvocationCommand(
             SourceLocation(startOffset, s.sourceOffset),
             name,
             argList
         );
     }
 
-    private CommandMacroName parseCommandMacroName(ref Scanner s)
+    private ExpressionMacroName parseExpressionMacroName(ref Scanner s)
     {
         auto startOffset = s.sourceOffset;
 
@@ -413,13 +413,13 @@ public final class Parser
 
         if (s.scanChar('('))
         {
-            name = parseCommandMacroNameString(s);
+            name = parseExpressionMacroNameString(s);
 
             if (!s.scanChar(')'))
             {
                 _diagnosticsHandler.expectedAfter(
                     SourceLocation(startOffset, s.sourceOffset),
-                    "command macro",
+                    "expression macro",
                     ")",
                     "$("
                 );
@@ -429,31 +429,31 @@ public final class Parser
             {
                 _diagnosticsHandler.expectedAfter(
                     SourceLocation(startOffset, s.sourceOffset),
-                    "command macro",
-                    "command macro name",
+                    "expression macro",
+                    "expression macro name",
                     "$("
                 );
             }
         }
         else
         {
-            name = parseCommandMacroNameString(s);
+            name = parseExpressionMacroNameString(s);
 
             if (name.empty)
             {
                 _diagnosticsHandler.expectedAfter(
                     SourceLocation(startOffset, s.sourceOffset),
-                    "command macro",
-                    "command macro name",
+                    "expression macro",
+                    "expression macro name",
                     "$"
                 );
             }
         }
 
-        return new CommandMacroName(SourceLocation(startOffset, s.sourceOffset), name);
+        return new ExpressionMacroName(SourceLocation(startOffset, s.sourceOffset), name);
     }
 
-    private string parseCommandMacroNameString(ref Scanner s)
+    private string parseExpressionMacroNameString(ref Scanner s)
     {
         auto nameView = s.view;
 

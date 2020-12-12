@@ -54,9 +54,9 @@ public interface DiagnosticsHandler
     void undefinedNoteMacro(SourceLocation loc, string name);
     void noteMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
 
-    void undefinedCommandMacro(SourceLocation loc, string name);
-    void commandMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
-    void commandMacroNotExpandedToCommandBlock(SourceLocation loc, string name);
+    void undefinedExpressionMacro(SourceLocation loc, string name);
+    void expressionMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
+    void expressionMacroNotExpandedToCommandBlock(SourceLocation loc, string name);
 
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
@@ -382,22 +382,22 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
-    public override void undefinedCommandMacro(SourceLocation loc, string name)
+    public override void undefinedExpressionMacro(SourceLocation loc, string name)
     {
-        writeMessage(loc, "error: '$%s': undefined command macro", name);
+        writeMessage(loc, "error: '$%s': undefined expression macro", name);
         incrementErrorCount();
     }
 
-    public override void commandMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
+    public override void expressionMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc)
     {
-        writeMessage(loc, "error: '$%s': command macro redefinition", name);
-        writeMessage(prevLoc, "note: see previous definition of command macro '$%s'", name);
+        writeMessage(loc, "error: '$%s': expression macro redefinition", name);
+        writeMessage(prevLoc, "note: see previous definition of expression macro '$%s'", name);
         incrementErrorCount();
     }
 
-    public override void commandMacroNotExpandedToCommandBlock(SourceLocation loc, string name)
+    public override void expressionMacroNotExpandedToCommandBlock(SourceLocation loc, string name)
     {
-        writeMessage(loc, "error: '$%s': command macro did not expand to a command block", name);
+        writeMessage(loc, "error: '$%s': expression macro did not expand to a command block", name);
         incrementErrorCount();
     }
 

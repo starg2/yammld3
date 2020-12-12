@@ -268,26 +268,26 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
-    private void doPrintCommand(CommandMacroDefinitionCommand c)
+    private void doPrintCommand(ExpressionMacroDefinitionCommand c)
     {
         assert(c !is null);
 
-        _writer.startElement("CommandMacroDefinitionCommand", [XMLAttribute("Name", c.name.value)]);
+        _writer.startElement("ExpressionMacroDefinitionCommand", [XMLAttribute("Name", c.name.value)]);
         printExpression(c.definition);
         _writer.endElement();
     }
 
-    private void doPrintCommand(CommandMacroInvocationCommand c)
+    private void doPrintCommand(ExpressionMacroInvocationCommand c)
     {
         assert(c !is null);
 
         if (c.arguments is null)
         {
-            _writer.writeElement("CommandMacroInvocationCommand", [XMLAttribute("Name", c.name.value)]);
+            _writer.writeElement("ExpressionMacroInvocationCommand", [XMLAttribute("Name", c.name.value)]);
         }
         else
         {
-            _writer.startElement("CommandMacroInvocationCommand", [XMLAttribute("Name", c.name.value)]);
+            _writer.startElement("ExpressionMacroInvocationCommand", [XMLAttribute("Name", c.name.value)]);
             printExpressionList(c.arguments);
             _writer.endElement();
         }

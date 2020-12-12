@@ -630,8 +630,8 @@ public enum CommandKind
     modifier,
     repeat,
     noteMacroDefinition,
-    commandMacroDefinition,
-    commandMacroInvocation
+    expressionMacroDefinition,
+    expressionMacroInvocation
 }
 
 public interface Command : ASTNode
@@ -947,7 +947,7 @@ public final class NoteMacroDefinitionCommand : Command
     private KeySpecifier[] _definition;
 }
 
-public final class CommandMacroName : ASTNode
+public final class ExpressionMacroName : ASTNode
 {
     public this(SourceLocation loc, string value)
     {
@@ -971,9 +971,9 @@ public final class CommandMacroName : ASTNode
     private string _value;
 }
 
-public final class CommandMacroDefinitionCommand : Command
+public final class ExpressionMacroDefinitionCommand : Command
 {
-    public this(SourceLocation loc, CommandMacroName name, Expression definition)
+    public this(SourceLocation loc, ExpressionMacroName name, Expression definition)
     {
         assert(name !is null);
         assert(definition !is null);
@@ -990,10 +990,10 @@ public final class CommandMacroDefinitionCommand : Command
 
     public override @property CommandKind kind()
     {
-        return CommandKind.commandMacroDefinition;
+        return CommandKind.expressionMacroDefinition;
     }
 
-    public @property CommandMacroName name()
+    public @property ExpressionMacroName name()
     {
         return _name;
     }
@@ -1004,13 +1004,13 @@ public final class CommandMacroDefinitionCommand : Command
     }
 
     private SourceLocation _loc;
-    private CommandMacroName _name;
+    private ExpressionMacroName _name;
     private Expression _definition;
 }
 
-public final class CommandMacroInvocationCommand : Command
+public final class ExpressionMacroInvocationCommand : Command
 {
-    public this(SourceLocation loc, CommandMacroName name, ExpressionList arguments)
+    public this(SourceLocation loc, ExpressionMacroName name, ExpressionList arguments)
     {
         assert(name !is null);
 
@@ -1026,10 +1026,10 @@ public final class CommandMacroInvocationCommand : Command
 
     public override @property CommandKind kind()
     {
-        return CommandKind.commandMacroInvocation;
+        return CommandKind.expressionMacroInvocation;
     }
 
-    public @property CommandMacroName name()
+    public @property ExpressionMacroName name()
     {
         return _name;
     }
@@ -1040,7 +1040,7 @@ public final class CommandMacroInvocationCommand : Command
     }
 
     private SourceLocation _loc;
-    private CommandMacroName _name;
+    private ExpressionMacroName _name;
     private ExpressionList _arguments;
 }
 
@@ -1079,11 +1079,11 @@ public auto visit(Handlers...)(Command c)
     case CommandKind.noteMacroDefinition:
         return Overloaded(cast(NoteMacroDefinitionCommand)c);
 
-    case CommandKind.commandMacroDefinition:
-        return Overloaded(cast(CommandMacroDefinitionCommand)c);
+    case CommandKind.expressionMacroDefinition:
+        return Overloaded(cast(ExpressionMacroDefinitionCommand)c);
 
-    case CommandKind.commandMacroInvocation:
-        return Overloaded(cast(CommandMacroInvocationCommand)c);
+    case CommandKind.expressionMacroInvocation:
+        return Overloaded(cast(ExpressionMacroInvocationCommand)c);
     }
 }
 
