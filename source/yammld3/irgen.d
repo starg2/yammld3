@@ -484,6 +484,10 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.harmonicIntensity, c);
             break;
 
+        case "include":
+            includeFile(tb, c);
+            break;
+
         case "key":
             setKeySignature(tb.compositionBuilder, c);
             break;
@@ -506,10 +510,6 @@ public final class IRGenerator
 
         case "phaser":
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect5Depth, c);
-            break;
-
-        case "play_file":
-            playFile(tb, c);
             break;
 
         case "print_time":
@@ -1378,10 +1378,10 @@ public final class IRGenerator
         cb.conductorTrackBuilder.addTextEvent(te);
     }
 
-    private void playFile(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    private void includeFile(MultiTrackBuilder tb, ast.ExtensionCommand c)
     {
         assert(c !is null);
-        assert(c.name.value == "play_file");
+        assert(c.name.value == "include");
 
         _includeDepth++;
 
