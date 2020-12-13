@@ -41,17 +41,17 @@ public final class IRGenerator
 
         _intEvaluator = new NumericExpressionEvaluator!int(
             handler,
-            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
         );
 
         _floatEvaluator = new NumericExpressionEvaluator!float(
             handler,
-            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
         );
 
         _strEval = new StringExpressionEvaluator(
             handler,
-            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
         );
     }
 
@@ -63,7 +63,7 @@ public final class IRGenerator
         _durationEvaluator = new DurationExpressionEvaluator(
             _diagnosticsHandler,
             (startTime, t) => cb.conductorTrackBuilder.toTime(startTime, t.time),
-            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
         );
 
         _optionProc = new OptionProcessor(
@@ -495,6 +495,10 @@ public final class IRGenerator
 
         case "harmonic":
             compileControlChangeCommand(tb, ir.ControlChangeCode.harmonicIntensity, c);
+            break;
+
+        case "if":
+            compileIfCommand(tb, c);
             break;
 
         case "include":
@@ -1419,6 +1423,34 @@ public final class IRGenerator
         if (newModule !is null)
         {
             compileCommands(tb, newModule.commands);
+        }
+    }
+
+    private void compileIfCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "if");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.floatingPoint;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        if (value.data.get!float)
+        {
+            compileCommands(tb, c.block.commands);
         }
     }
 

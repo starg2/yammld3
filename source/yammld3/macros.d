@@ -264,6 +264,19 @@ package final class ExpressionMacroManager
         return definition;
     }
 
+    public Expression expandExpressionMacroAndRestoreContext(T)(T c)
+        if (is(T : ExpressionMacroInvocationExpression) || is(T : ExpressionMacroInvocationCommand))
+    {
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
+
+        return expandExpressionMacro(c);
+    }
+
     public ExpressionMacroManagerContext saveContext()
     {
         return ExpressionMacroManagerContext(_definedMacros.dup);
