@@ -49,6 +49,7 @@ public interface DiagnosticsHandler
     void endTimeAssertionFailed(SourceLocation loc, SourceLocation endTimeLoc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
     void includeRecursionLimitExceeded(SourceLocation loc, string context);
 
+    void print(SourceLocation loc, string context, string value);
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
 
     void undefinedNoteMacro(SourceLocation loc, string name);
@@ -363,6 +364,11 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(loc, "fatal error: '%s': include recursion limit exceeded", context);
         //incrementErrorCount();
         throw new FatalErrorException("include recursion limit exceeded");
+    }
+
+    public override void print(SourceLocation loc, string context, string value)
+    {
+        writeMessage(loc, "info: '%s': %s", context, value);
     }
 
     public override void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime)

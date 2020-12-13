@@ -529,6 +529,10 @@ public final class IRGenerator
             printTime(tb.compositionBuilder, c);
             break;
 
+        case "print_value":
+            printValue(c);
+            break;
+
         case "program":
             setProgram(tb, c);
             break;
@@ -1439,6 +1443,32 @@ public final class IRGenerator
             cb.conductorTrackBuilder.toMeasures(cb.currentTime),
             cb.currentTime
         );
+    }
+
+    private void printValue(ast.ExtensionCommand c)
+    {
+        import std.conv : text;
+
+        assert(c !is null);
+        assert(c.name.value == "print_value");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue value;
+        Option valueOpt;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.floatingPoint;
+        valueOpt.values = &value;
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        _diagnosticsHandler.print(value.location, '%' ~ c.name.value, value.data.get!float.text);
     }
 
     private void setProgram(MultiTrackBuilder tb, ast.ExtensionCommand c)
