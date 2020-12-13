@@ -16,7 +16,16 @@ public enum OperatorKind
     plus,
     minus,
     star,
-    slash
+    slash,
+    logicalNot,
+    lessThan,
+    greaterThan,
+    lessThanOrEqual,
+    greaterThanOrEqual,
+    equal,
+    notEqual,
+    logicalAnd,
+    logicalOr
 }
 
 public final class Operator : ASTNode

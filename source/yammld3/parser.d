@@ -112,7 +112,15 @@ c&d&e
 <CommandBlock> ::= '{' <Command>* '}'
 
 
-<Expression> ::= <AddSubExpression>
+<Expression> ::= <LogicalOrExpression>
+
+<LogicalOrExpression> ::= <LogicalAndExpression> ('||' <LogicalAndExpression>)*
+
+<LogicalAndExpression> ::= <EqualityExpression> ('&&' <EqualityExpression>)*
+
+<EqualityExpression> ::= <RelationalExpression> (('==' | '!=') <RelationalExpression>)*
+
+<RelationalExpression> ::= <AddSubExpression> (('<=' | '>=' | '<' | '>') <AddSubExpression>)*
 
 <AddSubExpression> ::= <MulDivExpression> (('+' | '-') <MulDivExpression>)*
 
@@ -1006,7 +1014,215 @@ public final class Parser
             assert(false);
         }
 
-        return parseAddSubExpression(s);
+        return parseLogicalOrExpression(s);
+    }
+
+    private Expression parseLogicalOrExpression(ref Scanner s)
+    {
+        auto lhs = parseLogicalAndExpression(s);
+
+        if (lhs is null)
+        {
+            return null;
+        }
+
+        while (true)
+        {
+            skipSpaces(s);
+
+            auto opOffset = s.sourceOffset;
+            auto opView = s.view;
+            OperatorKind opKind;
+
+            if (s.scanString("||"))
+            {
+                opKind = OperatorKind.logicalOr;
+            }
+            else
+            {
+                break;
+            }
+
+            size_t opLen = s.view.ptr - opView.ptr;
+            auto op = new Operator(SourceLocation(opOffset, s.sourceOffset), opKind);
+            skipSpaces(s);
+            auto rhs = parseLogicalAndExpression(s);
+
+            if (rhs is null)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    op.location,
+                    "expression",
+                    "expression",
+                    "operator '" ~ opView[0..opLen] ~ "'"
+                );
+                break;
+            }
+
+            lhs = new BinaryExpression(op, lhs, rhs);
+        }
+
+        return lhs;
+    }
+
+    private Expression parseLogicalAndExpression(ref Scanner s)
+    {
+        auto lhs = parseEqualityExpression(s);
+
+        if (lhs is null)
+        {
+            return null;
+        }
+
+        while (true)
+        {
+            skipSpaces(s);
+
+            auto opOffset = s.sourceOffset;
+            auto opView = s.view;
+            OperatorKind opKind;
+
+            if (s.scanString("&&"))
+            {
+                opKind = OperatorKind.logicalAnd;
+            }
+            else
+            {
+                break;
+            }
+
+            size_t opLen = s.view.ptr - opView.ptr;
+            auto op = new Operator(SourceLocation(opOffset, s.sourceOffset), opKind);
+            skipSpaces(s);
+            auto rhs = parseEqualityExpression(s);
+
+            if (rhs is null)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    op.location,
+                    "expression",
+                    "expression",
+                    "operator '" ~ opView[0..opLen] ~ "'"
+                );
+                break;
+            }
+
+            lhs = new BinaryExpression(op, lhs, rhs);
+        }
+
+        return lhs;
+    }
+
+    private Expression parseEqualityExpression(ref Scanner s)
+    {
+        auto lhs = parseRelationalExpression(s);
+
+        if (lhs is null)
+        {
+            return null;
+        }
+
+        while (true)
+        {
+            skipSpaces(s);
+
+            auto opOffset = s.sourceOffset;
+            auto opView = s.view;
+            OperatorKind opKind;
+
+            if (s.scanString("=="))
+            {
+                opKind = OperatorKind.equal;
+            }
+            else if (s.scanString("!="))
+            {
+                opKind = OperatorKind.notEqual;
+            }
+            else
+            {
+                break;
+            }
+
+            size_t opLen = s.view.ptr - opView.ptr;
+            auto op = new Operator(SourceLocation(opOffset, s.sourceOffset), opKind);
+            skipSpaces(s);
+            auto rhs = parseRelationalExpression(s);
+
+            if (rhs is null)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    op.location,
+                    "expression",
+                    "expression",
+                    "operator '" ~ opView[0..opLen] ~ "'"
+                );
+                break;
+            }
+
+            lhs = new BinaryExpression(op, lhs, rhs);
+        }
+
+        return lhs;
+    }
+
+    private Expression parseRelationalExpression(ref Scanner s)
+    {
+        auto lhs = parseAddSubExpression(s);
+
+        if (lhs is null)
+        {
+            return null;
+        }
+
+        while (true)
+        {
+            skipSpaces(s);
+
+            auto opOffset = s.sourceOffset;
+            auto opView = s.view;
+            OperatorKind opKind;
+
+            if (s.scanString("<="))
+            {
+                opKind = OperatorKind.lessThanOrEqual;
+            }
+            else if (s.scanString(">="))
+            {
+                opKind = OperatorKind.greaterThanOrEqual;
+            }
+            else if (s.scanChar('<'))
+            {
+                opKind = OperatorKind.lessThan;
+            }
+            else if (s.scanChar('>'))
+            {
+                opKind = OperatorKind.greaterThan;
+            }
+            else
+            {
+                break;
+            }
+
+            size_t opLen = s.view.ptr - opView.ptr;
+            auto op = new Operator(SourceLocation(opOffset, s.sourceOffset), opKind);
+            skipSpaces(s);
+            auto rhs = parseAddSubExpression(s);
+
+            if (rhs is null)
+            {
+                _diagnosticsHandler.expectedAfter(
+                    op.location,
+                    "expression",
+                    "expression",
+                    "operator '" ~ opView[0..opLen] ~ "'"
+                );
+                break;
+            }
+
+            lhs = new BinaryExpression(op, lhs, rhs);
+        }
+
+        return lhs;
     }
 
     private Expression parseAddSubExpression(ref Scanner s)
@@ -1121,6 +1337,12 @@ public final class Parser
         {
             skipSpaces(s);
             auto opOffset = s.sourceOffset;
+            auto s2 = s.save;
+
+            if (s2.scanString("!="))
+            {
+                break;
+            }
 
             if (s.scanChar('+'))
             {
@@ -1129,6 +1351,10 @@ public final class Parser
             else if (s.scanChar('-'))
             {
                 ops ~= new Operator(SourceLocation(opOffset, s.sourceOffset), OperatorKind.minus);
+            }
+            else if (s.scanChar('!'))
+            {
+                ops ~= new Operator(SourceLocation(opOffset, s.sourceOffset), OperatorKind.logicalOr);
             }
             else
             {
@@ -1146,7 +1372,7 @@ public final class Parser
                     ops.back.location,
                     "expression",
                     "expression",
-                    "operator '" ~ (ops.back.kind == OperatorKind.plus ? "+" : "-") ~ "'"
+                    "operator '" ~ (ops.back.kind == OperatorKind.plus ? "+" : ops.back.kind == OperatorKind.minus ? "-" : "!") ~ "'"
                 );
             }
 

@@ -20,6 +20,33 @@ private string operatorKindToString(OperatorKind kind)
 
     case OperatorKind.slash:
         return "/";
+
+    case OperatorKind.logicalNot:
+        return "!";
+
+    case OperatorKind.lessThan:
+        return "<";
+
+    case OperatorKind.greaterThan:
+        return ">";
+
+    case OperatorKind.lessThanOrEqual:
+        return "<=";
+
+    case OperatorKind.greaterThanOrEqual:
+        return ">=";
+
+    case OperatorKind.equal:
+        return "==";
+
+    case OperatorKind.notEqual:
+        return "!=";
+
+    case OperatorKind.logicalAnd:
+        return "&&";
+
+    case OperatorKind.logicalOr:
+        return "||";
     }
 }
 

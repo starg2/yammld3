@@ -38,7 +38,7 @@ package final class DurationExpressionEvaluator
             (ExpressionMacroInvocationExpression emi) => evaluate(startTick, _macroExpander(emi)),
             (UnaryExpression ue)
             {
-                final switch (ue.op.kind)
+                switch (ue.op.kind)
                 {
                 case OperatorKind.plus:
                     return +evaluate(startTick, ue.operand);
@@ -46,8 +46,11 @@ package final class DurationExpressionEvaluator
                 case OperatorKind.minus:
                     return -evaluate(startTick, ue.operand);
 
-                case OperatorKind.star:
-                case OperatorKind.slash:
+                case OperatorKind.logicalNot:
+                    _diagnosticsHandler.unexpectedExpressionKind(expr.location, "duration");
+                    return 0.0f;
+
+                default:
                     assert(false);
                 }
             },
@@ -100,7 +103,7 @@ package final class NumericExpressionEvaluator(T)
             (ExpressionMacroInvocationExpression emi) => evaluate(_macroExpander(emi)),
             (UnaryExpression ue)
             {
-                final switch (ue.op.kind)
+                switch (ue.op.kind)
                 {
                 case OperatorKind.plus:
                     return +evaluate(ue.operand);
@@ -108,37 +111,68 @@ package final class NumericExpressionEvaluator(T)
                 case OperatorKind.minus:
                     return -evaluate(ue.operand);
 
-                case OperatorKind.star:
-                case OperatorKind.slash:
+                case OperatorKind.logicalNot:
+                    return !evaluate(ue.operand);
+
+                default:
                     assert(false);
                 }
             },
             (BinaryExpression be)
             {
-                T l = evaluate(be.left);
-                T r = evaluate(be.right);
-
                 final switch (be.op.kind)
                 {
                 case OperatorKind.plus:
-                    return l + r;
+                    return evaluate(be.left) + evaluate(be.right);
 
                 case OperatorKind.minus:
-                    return l - r;
+                    return evaluate(be.left) - evaluate(be.right);
 
                 case OperatorKind.star:
-                    return l * r;
+                    return evaluate(be.left) * evaluate(be.right);
 
                 case OperatorKind.slash:
-                    if (r == 0)
                     {
-                        _diagnosticsHandler.divideBy0(be.location);
-                        return l;
+                        T l = evaluate(be.left);
+                        T r = evaluate(be.right);
+
+                        if (r == 0)
+                        {
+                            _diagnosticsHandler.divideBy0(be.location);
+                            return l;
+                        }
+                        else
+                        {
+                            return l / r;
+                        }
                     }
-                    else
-                    {
-                        return l / r;
-                    }
+
+                case OperatorKind.logicalNot:
+                    assert(false);
+
+                case OperatorKind.lessThan:
+                    return evaluate(be.left) < evaluate(be.right);
+
+                case OperatorKind.greaterThan:
+                    return evaluate(be.left) > evaluate(be.right);
+
+                case OperatorKind.lessThanOrEqual:
+                    return evaluate(be.left) <= evaluate(be.right);
+
+                case OperatorKind.greaterThanOrEqual:
+                    return evaluate(be.left) >= evaluate(be.right);
+
+                case OperatorKind.equal:
+                    return evaluate(be.left) == evaluate(be.right);
+
+                case OperatorKind.notEqual:
+                    return evaluate(be.left) != evaluate(be.right);
+
+                case OperatorKind.logicalAnd:
+                    return evaluate(be.left) && evaluate(be.right);
+
+                case OperatorKind.logicalOr:
+                    return evaluate(be.left) || evaluate(be.right);
                 }
             },
             (x)
