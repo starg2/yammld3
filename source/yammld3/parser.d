@@ -83,7 +83,7 @@ c&d&e
 <RepeatCommand> ::= '*' <CommandArgumentExpression>?
 
 
-<ExpressionMacroDefinitionCommand> ::= <ExpressionMacroName> '=' <CommandBlock>
+<ExpressionMacroDefinitionCommand> ::= <ExpressionMacroName> <ParenthesizedExpressionList>? '=' <CommandBlock>
 
 <ExpressionMacroInvocationCommand> ::= <ExpressionMacroName> <ParenthesizedExpressionList>?
 
@@ -391,6 +391,7 @@ public final class Parser
             return new ExpressionMacroDefinitionCommand(
                 SourceLocation(startOffset, s.sourceOffset),
                 name,
+                argList,
                 definition
             );
         }

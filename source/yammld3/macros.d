@@ -104,10 +104,18 @@ package final class NoteMacroManager
     private NoteMacroDefinition[string] _definedMacros;
 }
 
+private struct ExpressionMacroParameter
+{
+    string name;
+    SourceLocation location;
+    Expression argument;
+}
+
 private struct ExpressionMacroDefinition
 {
     string name;
     SourceLocation location;
+    ExpressionMacroParameter[] parameters;
     Expression definition;
 }
 
@@ -125,6 +133,8 @@ package final class ExpressionMacroManager
 
     public void compileExpressionMacroDefinitionCommand(ExpressionMacroDefinitionCommand c)
     {
+        import std.array : appender, empty;
+
         assert(c !is null);
         assert(c.definition !is null);
 
@@ -144,6 +154,42 @@ package final class ExpressionMacroManager
         def.location = c.location;
         def.definition = c.definition;
 
+        if (c.parameters !is null && !c.parameters.items.empty)
+        {
+            auto items = c.parameters.items;
+            auto paramAppender = appender(&def.parameters);
+            paramAppender.reserve(items.length);
+            bool foundDefArg = false;
+
+            foreach (i; items)
+            {
+                auto nameNode = i.key !is null ? i.key : i.value;
+                auto nameIdent = cast(Identifier)nameNode;
+
+                if (nameIdent is null)
+                {
+                    _diagnosticsHandler.expectedIdentifier(nameNode.location, "expression macro parameter");
+                }
+                else
+                {
+                    if (i.key !is null)
+                    {
+                        foundDefArg = true;
+                    }
+                    else if (foundDefArg)
+                    {
+                        _diagnosticsHandler.expectedDefaultArgument(i.location, nameIdent.value);
+                    }
+
+                    paramAppender ~= ExpressionMacroParameter(
+                        nameIdent.value,
+                        i.location,
+                        i.key !is null ? i.value : null
+                    );
+                }
+            }
+        }
+
         _definedMacros[c.name.value] = def;
     }
 
@@ -151,6 +197,9 @@ package final class ExpressionMacroManager
     public Expression expandExpressionMacro(T)(T c)
         if (is(T : ExpressionMacroInvocationExpression) || is(T : ExpressionMacroInvocationCommand))
     {
+        import std.algorithm.searching : count;
+        import std.range : lockstep;
+
         assert(c !is null);
 
         auto pDef = c.name.value in _definedMacros;
@@ -161,14 +210,57 @@ package final class ExpressionMacroManager
             return null;
         }
 
+        size_t minArgCount = pDef.parameters.count!(x => x.argument is null);
+        ExpressionListItem[] args;
+
         if (c.arguments !is null)
         {
-            _diagnosticsHandler.notImplemented(c.location, "expression macro with arguments");
-            assert(false);
+            args = c.arguments.items;
+
+            if (pDef.parameters.length < args.length)
+            {
+                _diagnosticsHandler.wrongNumberOfArguments(
+                    c.location,
+                    "expression macro",
+                    minArgCount,
+                    pDef.parameters.length,
+                    args.length
+                );
+            }
+
+            foreach (i; args)
+            {
+                if (i.key !is null)
+                {
+                    _diagnosticsHandler.unexpectedArgument(i.location, "expression macro argument");
+                }
+            }
         }
 
         auto definition = pDef.definition;
         _definedMacros.remove(c.name.value);    // remove the current macro to avoid recursion
+
+        foreach (i, param; pDef.parameters)
+        {
+            if (i >= args.length && param.argument is null)
+            {
+                _diagnosticsHandler.expectedArgumentForExpressionMacro(
+                    c.location,
+                    pDef.name,
+                    param.location,
+                    param.name
+                );
+            }
+            else
+            {
+                ExpressionMacroDefinition def;
+                def.name = param.name;
+                def.location = (i >= args.length ? param.location : args[i].location);
+                def.definition = (i >= args.length ? param.argument : args[i].value);
+                _definedMacros[param.name] = def;
+            }
+        }
+
         return definition;
     }
 

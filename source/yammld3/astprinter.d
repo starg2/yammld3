@@ -273,7 +273,17 @@ public final class ASTPrinter(Writer)
         assert(c !is null);
 
         _writer.startElement("ExpressionMacroDefinitionCommand", [XMLAttribute("Name", c.name.value)]);
+
+        if (c.parameters !is null)
+        {
+            _writer.startElement("Parameters");
+            printExpressionList(c.parameters);
+            _writer.endElement();
+        }
+
+        _writer.startElement("Definition");
         printExpression(c.definition);
+        _writer.endElement();
         _writer.endElement();
     }
 

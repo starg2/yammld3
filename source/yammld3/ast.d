@@ -1015,13 +1015,14 @@ public final class ExpressionMacroName : ASTNode
 
 public final class ExpressionMacroDefinitionCommand : Command
 {
-    public this(SourceLocation loc, ExpressionMacroName name, Expression definition)
+    public this(SourceLocation loc, ExpressionMacroName name, ExpressionList parameters, Expression definition)
     {
         assert(name !is null);
         assert(definition !is null);
 
         _loc = loc;
         _name = name;
+        _parameters = parameters;
         _definition = definition;
     }
 
@@ -1040,6 +1041,11 @@ public final class ExpressionMacroDefinitionCommand : Command
         return _name;
     }
 
+    public @property ExpressionList parameters()
+    {
+        return _parameters;
+    }
+
     public @property Expression definition()
     {
         return _definition;
@@ -1047,6 +1053,7 @@ public final class ExpressionMacroDefinitionCommand : Command
 
     private SourceLocation _loc;
     private ExpressionMacroName _name;
+    private ExpressionList _parameters;
     private Expression _definition;
 }
 

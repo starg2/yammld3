@@ -21,7 +21,11 @@ package final class DurationExpressionEvaluator
 
     public float evaluate(float startTick, Expression expr)
     {
-        assert(expr !is null);
+        if (expr is null)
+        {
+            return 0.0f;
+        }
+
         return expr.visit!(
             (IntegerLiteral il) => il.value > 0 ? 4.0f / il.value.to!float : 0.0f,
             (DurationLiteral dl)
@@ -86,7 +90,11 @@ package final class NumericExpressionEvaluator(T)
 
     public T evaluate(Expression expr)
     {
-        assert(expr !is null);
+        if (expr is null)
+        {
+            return 0;
+        }
+
         return expr.visit!(
             (IntegerLiteral il) => il.value,
             (ExpressionMacroInvocationExpression emi) => evaluate(_macroExpander(emi)),
@@ -157,7 +165,10 @@ package final class StringExpressionEvaluator
 
     public string evaluate(Expression expr)
     {
-        assert(expr !is null);
+        if (expr is null)
+        {
+            return "";
+        }
 
         auto str = appender!string();
         evaluate(str, expr);
@@ -166,7 +177,10 @@ package final class StringExpressionEvaluator
 
     public void evaluate(Appender!string str, Expression expr)
     {
-        assert(expr !is null);
+        if (expr is null)
+        {
+            return;
+        }
 
         expr.visit!(
             (StringLiteral sl)

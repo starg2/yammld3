@@ -57,6 +57,8 @@ public interface DiagnosticsHandler
     void undefinedExpressionMacro(SourceLocation loc, string name);
     void expressionMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
     void expressionMacroNotExpandedToCommandBlock(SourceLocation loc, string name);
+    void expectedDefaultArgument(SourceLocation loc, string name);
+    void expectedArgumentForExpressionMacro(SourceLocation loc, string macroName, SourceLocation paramLoc, string paramName);
 
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
@@ -188,10 +190,17 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     public override void wrongNumberOfArguments(SourceLocation loc, string context, size_t minCount, size_t maxCount, size_t actualCount)
     {
-        writeMessage(
-            loc, "error: '%s': wrong number of arguments; expected %d-%d, got %d", context, minCount, maxCount, actualCount
-        );
-        incrementErrorCount();
+        if (minCount == maxCount)
+        {
+            wrongNumberOfArguments(loc, context, minCount, actualCount);
+        }
+        else
+        {
+            writeMessage(
+                loc, "error: '%s': wrong number of arguments; expected %d-%d, got %d", context, minCount, maxCount, actualCount
+            );
+            incrementErrorCount();
+        }
     }
 
     public override void duplicatedOption(SourceLocation loc, string context)
@@ -398,6 +407,19 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void expressionMacroNotExpandedToCommandBlock(SourceLocation loc, string name)
     {
         writeMessage(loc, "error: '$%s': expression macro did not expand to a command block", name);
+        incrementErrorCount();
+    }
+
+    public override void expectedDefaultArgument(SourceLocation loc, string name)
+    {
+        writeMessage(loc, "error: expected default argument for parameter '%s'", name);
+        incrementErrorCount();
+    }
+
+    public override void expectedArgumentForExpressionMacro(SourceLocation loc, string macroName, SourceLocation paramLoc, string paramName)
+    {
+        writeMessage(loc, "error expression macro '$%s': expected argument for parameter '%s'", macroName, paramName);
+        writeMessage(paramLoc, "note: see definition of expression macro '$%s'", macroName);
         incrementErrorCount();
     }
 
