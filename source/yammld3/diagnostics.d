@@ -55,6 +55,9 @@ public interface DiagnosticsHandler
     void print(SourceLocation loc, string context, string value);
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
 
+    void limitLessThanStart(SourceLocation loc, string context, int start, int limit);
+    void stepMustBePositive(SourceLocation loc, string context, int step);
+
     void undefinedNoteMacro(SourceLocation loc, string name);
     void noteMacroRedefinition(SourceLocation loc, string name, SourceLocation prevLoc);
 
@@ -403,6 +406,18 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
             currentMeasure.ticks,
             currentTime
         );
+    }
+
+    public override void limitLessThanStart(SourceLocation loc, string context, int start, int limit)
+    {
+        writeMessage(loc, "error: '%s': limit value '%d' cannot be less than start value '%d'", context, limit, start);
+        incrementErrorCount();
+    }
+
+    public override void stepMustBePositive(SourceLocation loc, string context, int step)
+    {
+        writeMessage(loc, "error: '%s': step value '%d' must be positive", context, step);
+        incrementErrorCount();
     }
 
     public override void undefinedNoteMacro(SourceLocation loc, string name)

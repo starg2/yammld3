@@ -104,14 +104,14 @@ package final class NoteMacroManager
     private NoteMacroDefinition[string] _definedMacros;
 }
 
-private struct ExpressionMacroParameter
+public struct ExpressionMacroParameter
 {
     string name;
     SourceLocation location;
     Expression argument;
 }
 
-private struct ExpressionMacroDefinition
+public struct ExpressionMacroDefinition
 {
     string name;
     SourceLocation location;
@@ -129,6 +129,11 @@ package final class ExpressionMacroManager
     public this(DiagnosticsHandler handler)
     {
         _diagnosticsHandler = handler;
+    }
+
+    public void defineExpressionMacro(ExpressionMacroDefinition def)
+    {
+        _definedMacros[def.name] = def;
     }
 
     public void compileExpressionMacroDefinitionCommand(ExpressionMacroDefinitionCommand c)
@@ -190,7 +195,7 @@ package final class ExpressionMacroManager
             }
         }
 
-        _definedMacros[c.name.value] = def;
+        defineExpressionMacro(def);
     }
 
     // Call saveContext() beforehand!

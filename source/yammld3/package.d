@@ -10,7 +10,7 @@ public import yammld3.ir;
 public import yammld3.irgen;
 // public import yammld3.irgenutil;
 public import yammld3.irprinter;
-// public import yammld3.macros;
+public import yammld3.macros;
 public import yammld3.midievent;
 public import yammld3.midigen;
 public import yammld3.midiwriter;

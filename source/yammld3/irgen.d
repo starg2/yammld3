@@ -473,6 +473,10 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.expression, c);
             break;
 
+        case "for":
+            compileForCommand(tb, c);
+            break;
+
         case "fork":
             compileForkCommand(tb, c);
             break;
@@ -1545,6 +1549,83 @@ public final class IRGenerator
             default:
                 _diagnosticsHandler.expectedCommand2(childCommand.location, "%" ~ c.name.value, "when", "otherwise");
                 break;
+            }
+        }
+    }
+
+    private void compileForCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "for");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        OptionValue[] varAndStart;
+        Option varAndStartOpt;
+        varAndStartOpt.position = 0;
+        varAndStartOpt.key = OptionType.identifier;
+        varAndStartOpt.valueType = OptionType.integer;
+        varAndStartOpt.values = appender(&varAndStart);
+
+        OptionValue limitVal;
+        Option limitValOpt;
+        limitValOpt.position = 1;
+        limitValOpt.valueType = OptionType.integer;
+        limitValOpt.values = &limitVal;
+
+        OptionValue stepVal;
+        Option stepValOpt;
+        stepValOpt.optional = true;
+        stepValOpt.position = 2;
+        stepValOpt.valueType = OptionType.integer;
+        stepValOpt.values = &stepVal;
+
+        if (!_optionProc.processOptions([varAndStartOpt, limitValOpt, stepValOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        string macroName = varAndStart[0].data.get!string;
+        int start = varAndStart[1].data.get!int;
+        int limit = limitVal.data.get!int;
+        int step = stepVal.data.hasValue ? stepVal.data.get!int : 1;
+
+        if (start > limit)
+        {
+            _diagnosticsHandler.limitLessThanStart(c.location, "%" ~ c.name.value, start, limit);
+            return;
+        }
+
+        if (step <= 0)
+        {
+            _diagnosticsHandler.stepMustBePositive(stepVal.data.hasValue ? stepVal.location : c.location, "%" ~ c.name.value, step);
+            return;
+        }
+
+        for (int i = start; i <= limit; i += step)
+        {
+            auto context = saveContext();
+    
+            scope (exit)
+            {
+                restoreContext(context);
+            }
+    
+            ExpressionMacroDefinition def;
+            def.name = macroName;
+            def.location = varAndStart[0].location;
+            def.definition = new ast.IntegerLiteral(varAndStart[0].location, i);
+
+            _expressionMacroManager.defineExpressionMacro(def);
+    
+            foreach (childCommand; c.block.commands)
+            {
+                assert(childCommand !is null);
+                compileCommand(tb, childCommand);
             }
         }
     }
