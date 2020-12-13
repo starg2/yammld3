@@ -445,6 +445,10 @@ public final class IRGenerator
             setChannel(tb, c);
             break;
 
+        case "choose":
+            compileChooseCommand(tb, c);
+            break;
+
         case "chorus":
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect3Depth, c);
             break;
@@ -519,6 +523,10 @@ public final class IRGenerator
 
         case "meter":
             setMeter(tb.compositionBuilder, c);
+            break;
+
+        case "otherwise":
+            _diagnosticsHandler.commandValidOnlyWithin(c.name.location, c.name.value, "choose");
             break;
 
         case "pan":
@@ -603,6 +611,10 @@ public final class IRGenerator
 
         case "volume":
             compileControlChangeCommand(tb, ir.ControlChangeCode.channelVolume, c);
+            break;
+
+        case "when":
+            _diagnosticsHandler.commandValidOnlyWithin(c.name.location, c.name.value, "choose");
             break;
 
         case "xg_reset":
@@ -1451,6 +1463,89 @@ public final class IRGenerator
         if (value.data.get!float)
         {
             compileCommands(tb, c.block.commands);
+        }
+    }
+
+    private void compileChooseCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "choose");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        foreach (i, childCommand; c.block.commands)
+        {
+            auto childExt = cast(ast.ExtensionCommand)childCommand;
+
+            if (childExt is null)
+            {
+                _diagnosticsHandler.expectedCommand2(childCommand.location, "%" ~ c.name.value, "when", "otherwise");
+                continue;
+            }
+
+            switch (childExt.name.value)
+            {
+            case "when":
+                {
+                    if (childExt.block is null)
+                    {
+                        _diagnosticsHandler.expectedCommandBlock(childExt.location, "%" ~ childExt.name.value);
+                        continue;
+                    }
+
+                    OptionValue value;
+                    Option valueOpt;
+                    valueOpt.position = 0;
+                    valueOpt.valueType = OptionType.floatingPoint;
+                    valueOpt.values = &value;
+
+                    if (!_optionProc.processOptions([valueOpt], childExt.arguments, "%" ~ childExt.name.value, childExt.location, 0.0f))
+                    {
+                        continue;
+                    }
+
+                    if (value.data.get!float)
+                    {
+                        compileCommands(tb, childExt.block.commands);
+                        return; // stop processing
+                    }
+                }
+
+                break;
+
+            case "otherwise":
+                if (i != c.block.commands.length - 1)
+                {
+                    _diagnosticsHandler.mustBeLastCommandWithin(childCommand.location, "otherwise", "choose");
+                }
+
+                if (childExt.block is null)
+                {
+                    _diagnosticsHandler.expectedCommandBlock(childExt.location, "%" ~ childExt.name.value);
+                    continue;
+                }
+
+                if (!_optionProc.processOptions([], childExt.arguments, "%" ~ childExt.name.value, childExt.location, 0.0f))
+                {
+                    continue;
+                }
+
+                compileCommands(tb, childExt.block.commands);
+                return; // stop processing
+
+            default:
+                _diagnosticsHandler.expectedCommand2(childCommand.location, "%" ~ c.name.value, "when", "otherwise");
+                break;
+            }
         }
     }
 

@@ -48,6 +48,9 @@ public interface DiagnosticsHandler
     void timeAssertionFailed(SourceLocation loc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
     void endTimeAssertionFailed(SourceLocation loc, SourceLocation endTimeLoc, string context, Time expectedMeasure, float expectedTime, Time actualMeasure, float actualTime);
     void includeRecursionLimitExceeded(SourceLocation loc, string context);
+    void commandValidOnlyWithin(SourceLocation loc, string commandName, string parentCommand);
+    void expectedCommand2(SourceLocation loc, string context, string candidate1, string candidate2);
+    void mustBeLastCommandWithin(SourceLocation loc, string commandName, string parentCommand);
 
     void print(SourceLocation loc, string context, string value);
     void printTime(SourceLocation loc, string context, Time currentMeasure, float currentTime);
@@ -364,6 +367,24 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         writeMessage(loc, "fatal error: '%s': include recursion limit exceeded", context);
         //incrementErrorCount();
         throw new FatalErrorException("include recursion limit exceeded");
+    }
+
+    public override void commandValidOnlyWithin(SourceLocation loc, string commandName, string parentCommand)
+    {
+        writeMessage(loc, "error: command '%%%s' is valid only within '%%%s' command", commandName, parentCommand);
+        incrementErrorCount();
+    }
+
+    public override void expectedCommand2(SourceLocation loc, string context, string candidate1, string candidate2)
+    {
+        writeMessage(loc, "error: '%s': expected '%%%s' or '%%%s' command", context, candidate1, candidate2);
+        incrementErrorCount();
+    }
+
+    public override void mustBeLastCommandWithin(SourceLocation loc, string commandName, string parentCommand)
+    {
+        writeMessage(loc, "error: command '%%%s' must be the last command within '%%%s' command", commandName, parentCommand);
+        incrementErrorCount();
     }
 
     public override void print(SourceLocation loc, string context, string value)
