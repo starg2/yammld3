@@ -36,11 +36,23 @@ public final class IRGenerator
         _diagnosticsHandler = handler;
         _sourceManager = sourceManager;
         _parser = parser;
-        _intEvaluator = new NumericExpressionEvaluator!int(handler);
-        _floatEvaluator = new NumericExpressionEvaluator!float(handler);
-        _strEval = new StringExpressionEvaluator(handler);
         _noteMacroManager = new NoteMacroManager(handler);
         _expressionMacroManager = new ExpressionMacroManager(handler);
+
+        _intEvaluator = new NumericExpressionEvaluator!int(
+            handler,
+            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+        );
+
+        _floatEvaluator = new NumericExpressionEvaluator!float(
+            handler,
+            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+        );
+
+        _strEval = new StringExpressionEvaluator(
+            handler,
+            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
+        );
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -50,7 +62,8 @@ public final class IRGenerator
 
         _durationEvaluator = new DurationExpressionEvaluator(
             _diagnosticsHandler,
-            (startTime, t) => cb.conductorTrackBuilder.toTime(startTime, t.time)
+            (startTime, t) => cb.conductorTrackBuilder.toTime(startTime, t.time),
+            &_expressionMacroManager.expandExpressionMacro!(ast.ExpressionMacroInvocationExpression)
         );
 
         _optionProc = new OptionProcessor(
@@ -2393,12 +2406,12 @@ public final class IRGenerator
     private DiagnosticsHandler _diagnosticsHandler;
     private SourceManager _sourceManager;
     private Parser _parser;
+    private NoteMacroManager _noteMacroManager;
+    private ExpressionMacroManager _expressionMacroManager;
     private DurationExpressionEvaluator _durationEvaluator;
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
     private StringExpressionEvaluator _strEval;
-    private NoteMacroManager _noteMacroManager;
-    private ExpressionMacroManager _expressionMacroManager;
     private OptionProcessor _optionProc;
     private XorShift128Plus _rng;
     private int _includeDepth = 0;

@@ -129,11 +129,13 @@ c&d&e
     | <TimeLiteral>
     | <DurationLiteral>
     | <CommandBlock>
+    | <ExpressionMacroInvocationExpression>
     | ('(' <Expression> ')')
 
 <CommandArgumentExpression> ::= <DecimalIntegerLiteral>
     | <TimeLiteral>
     | <DurationLiteral>
+    | <ExpressionMacroInvocationExpression>
     | ('(' <Expression> ')')
 
 <ParenthesizedExpressionList> ::= '(' <NonEmptyExpressionList>? ')'
@@ -156,6 +158,8 @@ c&d&e
     | ('::' DIGIT+)
 
 <DurationLiteral> ::= DIGIT+ ('.')*
+
+<ExpressionMacroInvocationExpression> ::= <ExpressionMacroName> <ParenthesizedExpressionList>?
 
 */
 
@@ -320,7 +324,7 @@ public final class Parser
             return new ScopedCommand(SourceLocation(startOffset, s.sourceOffset), commands);
         }
 
-        auto cm = parseExpressionMacro(s);
+        auto cm = parseExpressionMacroCommand(s);
 
         if (cm !is null)
         {
@@ -352,7 +356,7 @@ public final class Parser
     }
 
     // parses ExpressionMacroDefinitionCommand or ExpressionMacroInvocationCommand
-    private Command parseExpressionMacro(ref Scanner s)
+    private Command parseExpressionMacroCommand(ref Scanner s)
     {
         auto startOffset = s.sourceOffset;
         auto name = parseExpressionMacroName(s);
@@ -362,8 +366,8 @@ public final class Parser
             return null;
         }
 
+        auto argList = parseParenthesizedExpressionList(s);
         auto s2 = s.save;
-
         skipSpaces(s2);
 
         if (s2.scanChar('='))
@@ -390,14 +394,14 @@ public final class Parser
                 definition
             );
         }
-
-        auto argList = parseParenthesizedExpressionList(s);
-
-        return new ExpressionMacroInvocationCommand(
-            SourceLocation(startOffset, s.sourceOffset),
-            name,
-            argList
-        );
+        else
+        {
+            return new ExpressionMacroInvocationCommand(
+                SourceLocation(startOffset, s.sourceOffset),
+                name,
+                argList
+            );
+        }
     }
 
     private ExpressionMacroName parseExpressionMacroName(ref Scanner s)
@@ -1273,6 +1277,13 @@ public final class Parser
             }
         }
 
+        auto emi = parseExpressionMacroInvocationExpression(s);
+
+        if (emi !is null)
+        {
+            return emi;
+        }
+
         ParseLiteralOptions options;
         options.allowHex = !isCommandArgument;
         options.allowStringLiteral = !isCommandArgument;
@@ -1299,6 +1310,25 @@ public final class Parser
 
         size_t len = s.view.ptr - startView.ptr;
         return new Identifier(SourceLocation(startOffset, len), startView[0..len]);
+    }
+
+    private ExpressionMacroInvocationExpression parseExpressionMacroInvocationExpression(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+        auto name = parseExpressionMacroName(s);
+
+        if (name is null)
+        {
+            return null;
+        }
+
+        auto argList = parseParenthesizedExpressionList(s);
+
+        return new ExpressionMacroInvocationExpression(
+            SourceLocation(startOffset, s.sourceOffset),
+            name,
+            argList
+        );
     }
 
     private Expression parseLiteral(ref Scanner s, ParseLiteralOptions options)

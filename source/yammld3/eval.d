@@ -8,13 +8,15 @@ import yammld3.common;
 import yammld3.diagnostics : DiagnosticsHandler;
 
 package alias TimeEvaluator = float delegate(float startTime, TimeLiteral t);
+package alias ExpressionMacroExpander = Expression delegate(ExpressionMacroInvocationExpression emi);
 
 package final class DurationExpressionEvaluator
 {
-    public this(DiagnosticsHandler handler, TimeEvaluator timeEval)
+    public this(DiagnosticsHandler handler, TimeEvaluator timeEval, ExpressionMacroExpander macroExpander)
     {
         _diagnosticsHandler = handler;
         _timeEval = timeEval;
+        _macroExpander = macroExpander;
     }
 
     public float evaluate(float startTick, Expression expr)
@@ -29,6 +31,7 @@ package final class DurationExpressionEvaluator
                 return n * (2.0f - pow(0.5f, dl.dot.to!float));
             },
             (TimeLiteral tl) => _timeEval(startTick, tl),
+            (ExpressionMacroInvocationExpression emi) => evaluate(startTick, _macroExpander(emi)),
             (UnaryExpression ue)
             {
                 final switch (ue.op.kind)
@@ -70,13 +73,15 @@ package final class DurationExpressionEvaluator
 
     private DiagnosticsHandler _diagnosticsHandler;
     private TimeEvaluator _timeEval;
+    private ExpressionMacroExpander _macroExpander;
 }
 
 package final class NumericExpressionEvaluator(T)
 {
-    public this(DiagnosticsHandler handler)
+    public this(DiagnosticsHandler handler, ExpressionMacroExpander macroExpander)
     {
         _diagnosticsHandler = handler;
+        _macroExpander = macroExpander;
     }
 
     public T evaluate(Expression expr)
@@ -84,6 +89,7 @@ package final class NumericExpressionEvaluator(T)
         assert(expr !is null);
         return expr.visit!(
             (IntegerLiteral il) => il.value,
+            (ExpressionMacroInvocationExpression emi) => evaluate(_macroExpander(emi)),
             (UnaryExpression ue)
             {
                 final switch (ue.op.kind)
@@ -136,15 +142,17 @@ package final class NumericExpressionEvaluator(T)
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
+    private ExpressionMacroExpander _macroExpander;
 }
 
 package final class StringExpressionEvaluator
 {
     import std.array : Appender, appender;
 
-    public this(DiagnosticsHandler handler)
+    public this(DiagnosticsHandler handler, ExpressionMacroExpander macroExpander)
     {
         _diagnosticsHandler = handler;
+        _macroExpander = macroExpander;
     }
 
     public string evaluate(Expression expr)
@@ -164,6 +172,10 @@ package final class StringExpressionEvaluator
             (StringLiteral sl)
             {
                 str ~= sl.value;
+            },
+            (ExpressionMacroInvocationExpression emi)
+            {
+                evaluate(str, _macroExpander(emi));
             },
             (BinaryExpression be)
             {
@@ -185,4 +197,5 @@ package final class StringExpressionEvaluator
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
+    private ExpressionMacroExpander _macroExpander;
 }

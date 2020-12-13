@@ -49,6 +49,7 @@ public enum ExpressionKind
     timeLiteral,
     durationLiteral,
     commandBlock,
+    expressionMacroInvocation,
     unaryExpression,
     binaryExpression,
     callExpression
@@ -255,6 +256,44 @@ public final class CommandBlock : Expression
     private Command[] _commands;
 }
 
+private final class ExpressionMacroInvocationNode(Base, alias nodeKind) : Base
+{
+    public this(SourceLocation loc, ExpressionMacroName name, ExpressionList arguments)
+    {
+        assert(name !is null);
+
+        _loc = loc;
+        _name = name;
+        _arguments = arguments;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property typeof(nodeKind) kind()
+    {
+        return nodeKind;
+    }
+
+    public @property ExpressionMacroName name()
+    {
+        return _name;
+    }
+
+    public @property ExpressionList arguments()
+    {
+        return _arguments;
+    }
+
+    private SourceLocation _loc;
+    private ExpressionMacroName _name;
+    private ExpressionList _arguments;
+}
+
+public alias ExpressionMacroInvocationExpression = ExpressionMacroInvocationNode!(Expression, ExpressionKind.expressionMacroInvocation);
+
 // prefix expression only
 public final class UnaryExpression : Expression
 {
@@ -400,6 +439,9 @@ public auto visit(Handlers...)(Expression expr)
 
     case ExpressionKind.commandBlock:
         return Overloaded(cast(CommandBlock)expr);
+
+    case ExpressionKind.expressionMacroInvocation:
+        return Overloaded(cast(ExpressionMacroInvocationExpression)expr);
 
     case ExpressionKind.unaryExpression:
         return Overloaded(cast(UnaryExpression)expr);
@@ -1008,41 +1050,7 @@ public final class ExpressionMacroDefinitionCommand : Command
     private Expression _definition;
 }
 
-public final class ExpressionMacroInvocationCommand : Command
-{
-    public this(SourceLocation loc, ExpressionMacroName name, ExpressionList arguments)
-    {
-        assert(name !is null);
-
-        _loc = loc;
-        _name = name;
-        _arguments = arguments;
-    }
-
-    public override @property SourceLocation location()
-    {
-        return _loc;
-    }
-
-    public override @property CommandKind kind()
-    {
-        return CommandKind.expressionMacroInvocation;
-    }
-
-    public @property ExpressionMacroName name()
-    {
-        return _name;
-    }
-
-    public @property ExpressionList arguments()
-    {
-        return _arguments;
-    }
-
-    private SourceLocation _loc;
-    private ExpressionMacroName _name;
-    private ExpressionList _arguments;
-}
+public alias ExpressionMacroInvocationCommand = ExpressionMacroInvocationNode!(Command, CommandKind.expressionMacroInvocation);
 
 public auto visit(Handlers...)(Command c)
 {

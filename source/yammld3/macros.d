@@ -148,7 +148,8 @@ package final class ExpressionMacroManager
     }
 
     // Call saveContext() beforehand!
-    public Expression expandExpressionMacro(ExpressionMacroInvocationCommand c)
+    public Expression expandExpressionMacro(T)(T c)
+        if (is(T : ExpressionMacroInvocationExpression) || is(T : ExpressionMacroInvocationCommand))
     {
         assert(c !is null);
 

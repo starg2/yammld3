@@ -402,6 +402,22 @@ public final class ASTPrinter(Writer)
         printCommandBlock(b);
     }
 
+    private void doPrintExpression(ExpressionMacroInvocationExpression emi)
+    {
+        assert(emi !is null);
+
+        if (emi.arguments is null)
+        {
+            _writer.writeElement("ExpressionMacroInvocationExpression", [XMLAttribute("Name", emi.name.value)]);
+        }
+        else
+        {
+            _writer.startElement("ExpressionMacroInvocationExpression", [XMLAttribute("Name", emi.name.value)]);
+            printExpressionList(emi.arguments);
+            _writer.endElement();
+        }
+    }
+
     private void doPrintExpression(UnaryExpression expr)
     {
         assert(expr !is null);
