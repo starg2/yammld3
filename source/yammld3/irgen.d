@@ -39,20 +39,9 @@ public final class IRGenerator
         _noteMacroManager = new NoteMacroManager(handler);
         _expressionMacroManager = new ExpressionMacroManager(handler);
 
-        _intEvaluator = new NumericExpressionEvaluator!int(
-            handler,
-            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
-        );
-
-        _floatEvaluator = new NumericExpressionEvaluator!float(
-            handler,
-            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
-        );
-
-        _strEval = new StringExpressionEvaluator(
-            handler,
-            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
-        );
+        _intEvaluator = new NumericExpressionEvaluator!int(handler, _expressionMacroManager);
+        _floatEvaluator = new NumericExpressionEvaluator!float(handler, _expressionMacroManager);
+        _strEval = new StringExpressionEvaluator(handler, _expressionMacroManager);
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -63,7 +52,7 @@ public final class IRGenerator
         _durationEvaluator = new DurationExpressionEvaluator(
             _diagnosticsHandler,
             (startTime, t) => cb.conductorTrackBuilder.toTime(startTime, t.time),
-            &_expressionMacroManager.expandExpressionMacroAndRestoreContext!(ast.ExpressionMacroInvocationExpression)
+            _expressionMacroManager
         );
 
         _optionProc = new OptionProcessor(

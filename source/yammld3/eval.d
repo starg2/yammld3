@@ -6,17 +6,17 @@ import std.conv : to;
 import yammld3.ast;
 import yammld3.common;
 import yammld3.diagnostics : DiagnosticsHandler;
+import yammld3.macros : ExpressionMacroManager;
 
 package alias TimeEvaluator = float delegate(float startTime, TimeLiteral t);
-package alias ExpressionMacroExpander = Expression delegate(ExpressionMacroInvocationExpression emi);
 
 package final class DurationExpressionEvaluator
 {
-    public this(DiagnosticsHandler handler, TimeEvaluator timeEval, ExpressionMacroExpander macroExpander)
+    public this(DiagnosticsHandler handler, TimeEvaluator timeEval, ExpressionMacroManager macroManager)
     {
         _diagnosticsHandler = handler;
         _timeEval = timeEval;
-        _macroExpander = macroExpander;
+        _macroManager = macroManager;
     }
 
     public float evaluate(float startTick, Expression expr)
@@ -35,7 +35,17 @@ package final class DurationExpressionEvaluator
                 return n * (2.0f - pow(0.5f, dl.dot.to!float));
             },
             (TimeLiteral tl) => _timeEval(startTick, tl),
-            (ExpressionMacroInvocationExpression emi) => evaluate(startTick, _macroExpander(emi)),
+            (ExpressionMacroInvocationExpression emi)
+            {
+                auto context = _macroManager.saveContext();
+
+                scope (exit)
+                {
+                    _macroManager.restoreContext(context);
+                }
+
+                return evaluate(startTick, _macroManager.expandExpressionMacro(emi));
+            },
             (UnaryExpression ue)
             {
                 switch (ue.op.kind)
@@ -80,15 +90,15 @@ package final class DurationExpressionEvaluator
 
     private DiagnosticsHandler _diagnosticsHandler;
     private TimeEvaluator _timeEval;
-    private ExpressionMacroExpander _macroExpander;
+    private ExpressionMacroManager _macroManager;
 }
 
 package final class NumericExpressionEvaluator(T)
 {
-    public this(DiagnosticsHandler handler, ExpressionMacroExpander macroExpander)
+    public this(DiagnosticsHandler handler, ExpressionMacroManager macroManager)
     {
         _diagnosticsHandler = handler;
-        _macroExpander = macroExpander;
+        _macroManager = macroManager;
     }
 
     public T evaluate(Expression expr)
@@ -100,7 +110,17 @@ package final class NumericExpressionEvaluator(T)
 
         return expr.visit!(
             (IntegerLiteral il) => il.value,
-            (ExpressionMacroInvocationExpression emi) => evaluate(_macroExpander(emi)),
+            (ExpressionMacroInvocationExpression emi)
+            {
+                auto context = _macroManager.saveContext();
+
+                scope (exit)
+                {
+                    _macroManager.restoreContext(context);
+                }
+
+                return evaluate(_macroManager.expandExpressionMacro(emi));
+            },
             (UnaryExpression ue)
             {
                 switch (ue.op.kind)
@@ -184,17 +204,17 @@ package final class NumericExpressionEvaluator(T)
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
-    private ExpressionMacroExpander _macroExpander;
+    private ExpressionMacroManager _macroManager;
 }
 
 package final class StringExpressionEvaluator
 {
     import std.array : Appender, appender;
 
-    public this(DiagnosticsHandler handler, ExpressionMacroExpander macroExpander)
+    public this(DiagnosticsHandler handler, ExpressionMacroManager macroManager)
     {
         _diagnosticsHandler = handler;
-        _macroExpander = macroExpander;
+        _macroManager = macroManager;
     }
 
     public string evaluate(Expression expr)
@@ -223,7 +243,14 @@ package final class StringExpressionEvaluator
             },
             (ExpressionMacroInvocationExpression emi)
             {
-                evaluate(str, _macroExpander(emi));
+                auto context = _macroManager.saveContext();
+
+                scope (exit)
+                {
+                    _macroManager.restoreContext(context);
+                }
+
+                evaluate(str, _macroManager.expandExpressionMacro(emi));
             },
             (BinaryExpression be)
             {
@@ -245,5 +272,5 @@ package final class StringExpressionEvaluator
     }
 
     private DiagnosticsHandler _diagnosticsHandler;
-    private ExpressionMacroExpander _macroExpander;
+    private ExpressionMacroManager _macroManager;
 }
