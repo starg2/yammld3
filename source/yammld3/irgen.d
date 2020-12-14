@@ -42,6 +42,7 @@ public final class IRGenerator
         _intEvaluator = new NumericExpressionEvaluator!int(handler, _expressionMacroManager);
         _floatEvaluator = new NumericExpressionEvaluator!float(handler, _expressionMacroManager);
         _strEval = new StringExpressionEvaluator(handler, _expressionMacroManager);
+        _commandEval = new CommandBlockExpressionEvaluator(handler, _expressionMacroManager);
     }
 
     public ir.Composition compileModule(ast.Module am)
@@ -60,7 +61,8 @@ public final class IRGenerator
             _durationEvaluator,
             _intEvaluator,
             _floatEvaluator,
-            _strEval
+            _strEval,
+            _commandEval
         );
 
         auto tb = cb.selectDefaultTrack();
@@ -2639,6 +2641,7 @@ public final class IRGenerator
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
     private StringExpressionEvaluator _strEval;
+    private CommandBlockExpressionEvaluator _commandEval;
     private OptionProcessor _optionProc;
     private XorShift128Plus _rng;
     private int _includeDepth = 0;

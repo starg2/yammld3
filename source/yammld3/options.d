@@ -5,6 +5,7 @@ import std.array;
 import std.typecons : Nullable;
 import std.variant;
 
+import yammld3.ast;
 import yammld3.source : SourceLocation;
 
 package enum OptionType
@@ -17,10 +18,11 @@ package enum OptionType
     duration,
     floatRatio100,
     floatRatio127,
-    text
+    text,
+    commandBlock
 }
 
-package alias OptionValueData = Algebraic!(bool, byte, int, float, string);
+package alias OptionValueData = Algebraic!(bool, byte, int, float, string, CommandBlock);
 
 package struct OptionValue
 {
@@ -46,16 +48,16 @@ package struct Option
 
 package final class OptionProcessor
 {
-    import yammld3.ast;
     import yammld3.diagnostics : DiagnosticsHandler;
-    import yammld3.eval : DurationExpressionEvaluator, NumericExpressionEvaluator, StringExpressionEvaluator;
+    import yammld3.eval : CommandBlockExpressionEvaluator, DurationExpressionEvaluator, NumericExpressionEvaluator, StringExpressionEvaluator;
 
     public this(
         DiagnosticsHandler handler,
         DurationExpressionEvaluator durationEval,
         NumericExpressionEvaluator!int intEval,
         NumericExpressionEvaluator!float floatEval,
-        StringExpressionEvaluator strEval
+        StringExpressionEvaluator strEval,
+        CommandBlockExpressionEvaluator commandEval
     )
     {
         _diagnosticsHandler = handler;
@@ -63,6 +65,7 @@ package final class OptionProcessor
         _intEvaluator = intEval;
         _floatEvaluator = floatEval;
         _strEval = strEval;
+        _commandEval = commandEval;
     }
 
     public bool processOptions(
@@ -321,6 +324,17 @@ package final class OptionProcessor
         case OptionType.text:
             string str = _strEval.evaluate(expr);
             return typeof(return)(OptionValueData(str));
+
+        case OptionType.commandBlock:
+            auto block = _commandEval.evaluate(expr);
+
+            if (block is null)
+            {
+                _diagnosticsHandler.expectedCommandBlock(expr.location, context);
+                return typeof(return).init;
+            }
+
+            return typeof(return)(OptionValueData(block));
         }
     }
 
@@ -329,4 +343,5 @@ package final class OptionProcessor
     private NumericExpressionEvaluator!int _intEvaluator;
     private NumericExpressionEvaluator!float _floatEvaluator;
     private StringExpressionEvaluator _strEval;
+    private CommandBlockExpressionEvaluator _commandEval;
 }

@@ -274,3 +274,43 @@ package final class StringExpressionEvaluator
     private DiagnosticsHandler _diagnosticsHandler;
     private ExpressionMacroManager _macroManager;
 }
+
+package final class CommandBlockExpressionEvaluator
+{
+    public this(DiagnosticsHandler handler, ExpressionMacroManager macroManager)
+    {
+        _diagnosticsHandler = handler;
+        _macroManager = macroManager;
+    }
+
+    public CommandBlock evaluate(Expression expr)
+    {
+        if (expr is null)
+        {
+            return null;
+        }
+
+        return expr.visit!(
+            (CommandBlock block) => block,
+            (ExpressionMacroInvocationExpression emi)
+            {
+                auto context = _macroManager.saveContext();
+
+                scope (exit)
+                {
+                    _macroManager.restoreContext(context);
+                }
+
+                return evaluate(_macroManager.expandExpressionMacro(emi));
+            },
+            (x)
+            {
+                _diagnosticsHandler.unexpectedExpressionKind(expr.location, "command block");
+                return null;
+            }
+        );
+    }
+
+    private DiagnosticsHandler _diagnosticsHandler;
+    private ExpressionMacroManager _macroManager;
+}
