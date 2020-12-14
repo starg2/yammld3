@@ -460,7 +460,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
 
     public override void expectedArgumentForExpressionMacro(SourceLocation loc, string macroName, SourceLocation paramLoc, string paramName)
     {
-        writeMessage(loc, "error expression macro '$%s': expected argument for parameter '%s'", macroName, paramName);
+        writeMessage(loc, "error: expression macro '$%s': expected argument for parameter '%s'", macroName, paramName);
         writeMessage(paramLoc, "note: see definition of expression macro '$%s'", macroName);
         incrementErrorCount();
     }
