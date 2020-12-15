@@ -13,3 +13,4 @@ yammld3-test-*
 *.o
 *.obj
 *.lst
+views/describe.txt

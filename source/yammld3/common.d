@@ -2,6 +2,9 @@
 module yammld3.common;
 
 import std.stdint;
+import std.string : chomp;
+
+public enum string versionString = import("describe.txt").chomp();
 
 public enum int ticksPerQuarterNote = 960;
 public enum int maxChannelCount = 64;

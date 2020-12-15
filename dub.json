@@ -5,5 +5,8 @@
 		"Starg"
 	],
 	"copyright": "Copyright © 2020, Starg",
-	"name": "yammld3"
+	"name": "yammld3",
+	"preBuildCommands": [
+		"git describe --first-parent --always > $PACKAGE_DIR/views/describe.txt"
+	]
 }
