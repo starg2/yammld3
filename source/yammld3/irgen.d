@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Starg.
+// SPDX-License-Identifier: BSD-3-Clause
 
 module yammld3.irgen;
 

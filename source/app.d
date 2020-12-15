@@ -1,3 +1,5 @@
+// Copyright (c) 2020 Starg.
+// SPDX-License-Identifier: BSD-3-Clause
 
 import std.range.primitives;
 import std.stdio;
