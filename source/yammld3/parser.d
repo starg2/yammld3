@@ -27,41 +27,6 @@ c&d&e
 
 /*
 
-%phrase(Foo)
-{
-
-}
-
-%play(Foo)
-%play(Bar, Bar2)
-%play(Baz)
-
-%section
-{
-    %track(A)
-    {
-        v100!on_time(0 = +0, :1 = +10)
-        l4 c_d (l8 cd)   ef+g+b    (l8 >c__>e_>d>cb)   g+bg+_
-    }
-
-    %track(Foo, Bar)
-    {
-        %trackeffect(Bar) { n+3 }
-
-        // table syntax
-        %table
-        {
-            l8  l16                l8             l16
-            v100     v110
-            c_d cd   e_f+_g+_b_    >c__>e_>d>cb   g+_b_g+___
-        }
-    }
-}
-
-*/
-
-/*
-
 // Whether or not spaces are allowed in between is not expressed here.
 
 <Module> ::= <Command>*
