@@ -1,6 +1,6 @@
 {
 	"description": "Yet Another Music Macro Language compiler in D",
-	"license": "proprietary",
+	"license": "BSD 3-clause",
 	"authors": [
 		"Starg"
 	],
