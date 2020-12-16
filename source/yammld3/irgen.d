@@ -1605,19 +1605,19 @@ public final class IRGenerator
         for (int i = start; i <= limit; i += step)
         {
             auto context = saveContext();
-    
+
             scope (exit)
             {
                 restoreContext(context);
             }
-    
+
             ExpressionMacroDefinition def;
             def.name = macroName;
             def.location = varAndStart[0].location;
             def.definition = new ast.IntegerLiteral(varAndStart[0].location, i);
 
             _expressionMacroManager.defineExpressionMacro(def);
-    
+
             foreach (childCommand; c.block.commands)
             {
                 assert(childCommand !is null);
