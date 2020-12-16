@@ -1431,7 +1431,10 @@ public final class IRGenerator
 
         if (newModule !is null)
         {
-            compileCommands(tb, newModule.commands);
+            foreach (childCommand; newModule.commands)
+            {
+                compileCommand(tb, childCommand);
+            }
         }
     }
 
