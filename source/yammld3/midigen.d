@@ -116,6 +116,7 @@ public final class MIDIGenerator
         mt.channel = max(track.channel, 0);
 
         auto events = appender(&mt.events);
+        events.reserve(track.commands.length * 2);
 
         try
         {
