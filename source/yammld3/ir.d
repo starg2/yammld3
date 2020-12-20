@@ -15,6 +15,8 @@ public enum IRKind
     setTempo,
     setMeter,
     setKeySig,
+    nrpnEvent,
+    rpnEvent,
     textMetaEvent,
     sysExEvent,
     systemReset,
@@ -269,6 +271,102 @@ public final class SetKeySigEvent : Command
 
     private float _nominalTime;
     private KeySig _keySig;
+}
+
+public final class NRPNEvent : Command
+{
+    public this(float nominalTime, byte nrpnMSB, byte nrpnLSB, byte dataMSB, byte dataLSB)
+    {
+        _nominalTime = nominalTime;
+        _nrpnMSB = nrpnMSB;
+        _nrpnLSB = nrpnLSB;
+        _dataMSB = dataMSB;
+        _dataLSB = dataLSB;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.nrpnEvent;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property byte nrpnMSB()
+    {
+        return _nrpnMSB;
+    }
+
+    public @property byte nrpnLSB()
+    {
+        return _nrpnLSB;
+    }
+
+    public @property byte dataMSB()
+    {
+        return _dataMSB;
+    }
+
+    public @property byte dataLSB()
+    {
+        return _dataLSB;
+    }
+
+    private float _nominalTime;
+    private byte _nrpnMSB;
+    private byte _nrpnLSB;
+    private byte _dataMSB;
+    private byte _dataLSB;
+}
+
+public final class RPNEvent : Command
+{
+    public this(float nominalTime, byte rpnMSB, byte rpnLSB, byte dataMSB, byte dataLSB)
+    {
+        _nominalTime = nominalTime;
+        _rpnMSB = rpnMSB;
+        _rpnLSB = rpnLSB;
+        _dataMSB = dataMSB;
+        _dataLSB = dataLSB;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.rpnEvent;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property byte rpnMSB()
+    {
+        return _rpnMSB;
+    }
+
+    public @property byte rpnLSB()
+    {
+        return _rpnLSB;
+    }
+
+    public @property byte dataMSB()
+    {
+        return _dataMSB;
+    }
+
+    public @property byte dataLSB()
+    {
+        return _dataLSB;
+    }
+
+    private float _nominalTime;
+    private byte _rpnMSB;
+    private byte _rpnLSB;
+    private byte _dataMSB;
+    private byte _dataLSB;
 }
 
 public final class TextMetaEvent : Command
@@ -560,6 +658,12 @@ public auto visit(Handlers...)(Command c)
 
     case IRKind.setKeySig:
         return Overloaded(cast(SetKeySigEvent)c);
+
+    case IRKind.nrpnEvent:
+        return Overloaded(cast(NRPNEvent)c);
+
+    case IRKind.rpnEvent:
+        return Overloaded(cast(RPNEvent)c);
 
     case IRKind.textMetaEvent:
         return Overloaded(cast(TextMetaEvent)c);

@@ -522,6 +522,10 @@ public final class IRGenerator
             setMeter(tb.compositionBuilder, c);
             break;
 
+        case "nrpn":
+            compileNRPNCommand(tb, c);
+            break;
+
         case "otherwise":
             _diagnosticsHandler.commandValidOnlyWithin(c.name.location, c.name.value, "choose");
             break;
@@ -560,6 +564,10 @@ public final class IRGenerator
 
         case "reverb":
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect1Depth, c);
+            break;
+
+        case "rpn":
+            compileRPNCommand(tb, c);
             break;
 
         case "section":
@@ -1435,6 +1443,116 @@ public final class IRGenerator
 
         auto sysex = new ir.SysExEvent(cb.currentTime, bytes[]);
         cb.conductorTrackBuilder.addCommand(sysex);
+    }
+
+    private void compileNRPNCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "nrpn");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue nrpnMSBValue;
+        Option nrpnMSBValueOpt;
+        nrpnMSBValueOpt.key = "nrpn_msb";
+        nrpnMSBValueOpt.position = 0;
+        nrpnMSBValueOpt.valueType = OptionType.int7b;
+        nrpnMSBValueOpt.values = &nrpnMSBValue;
+
+        OptionValue nrpnLSBValue;
+        Option nrpnLSBValueOpt;
+        nrpnLSBValueOpt.key = "nrpn_lsb";
+        nrpnLSBValueOpt.position = 1;
+        nrpnLSBValueOpt.valueType = OptionType.int7b;
+        nrpnLSBValueOpt.values = &nrpnLSBValue;
+
+        OptionValue dataMSBValue;
+        Option dataMSBValueOpt;
+        dataMSBValueOpt.key = "data_msb";
+        dataMSBValueOpt.position = 2;
+        dataMSBValueOpt.valueType = OptionType.int7b;
+        dataMSBValueOpt.values = &dataMSBValue;
+
+        OptionValue dataLSBValue;
+        Option dataLSBValueOpt;
+        dataLSBValueOpt.optional = true;
+        dataLSBValueOpt.key = "data_lsb";
+        dataLSBValueOpt.position = 3;
+        dataLSBValueOpt.valueType = OptionType.int7b;
+        dataLSBValueOpt.values = &dataLSBValue;
+
+        if (!_optionProc.processOptions([nrpnMSBValueOpt, nrpnLSBValueOpt, dataMSBValueOpt, dataLSBValueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto nrpn = new ir.NRPNEvent(
+            tb.compositionBuilder.currentTime,
+            nrpnMSBValue.data.get!byte,
+            nrpnLSBValue.data.get!byte,
+            dataMSBValue.data.get!byte,
+            dataLSBValue.data.hasValue ? dataLSBValue.data.get!byte : 0
+        );
+
+        tb.putCommand(nrpn);
+    }
+
+    private void compileRPNCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "rpn");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue rpnMSBValue;
+        Option rpnMSBValueOpt;
+        rpnMSBValueOpt.key = "rpn_msb";
+        rpnMSBValueOpt.position = 0;
+        rpnMSBValueOpt.valueType = OptionType.int7b;
+        rpnMSBValueOpt.values = &rpnMSBValue;
+
+        OptionValue rpnLSBValue;
+        Option rpnLSBValueOpt;
+        rpnLSBValueOpt.key = "rpn_lsb";
+        rpnLSBValueOpt.position = 1;
+        rpnLSBValueOpt.valueType = OptionType.int7b;
+        rpnLSBValueOpt.values = &rpnLSBValue;
+
+        OptionValue dataMSBValue;
+        Option dataMSBValueOpt;
+        dataMSBValueOpt.key = "data_msb";
+        dataMSBValueOpt.position = 2;
+        dataMSBValueOpt.valueType = OptionType.int7b;
+        dataMSBValueOpt.values = &dataMSBValue;
+
+        OptionValue dataLSBValue;
+        Option dataLSBValueOpt;
+        dataLSBValueOpt.optional = true;
+        dataLSBValueOpt.key = "data_lsb";
+        dataLSBValueOpt.position = 3;
+        dataLSBValueOpt.valueType = OptionType.int7b;
+        dataLSBValueOpt.values = &dataLSBValue;
+
+        if (!_optionProc.processOptions([rpnMSBValueOpt, rpnLSBValueOpt, dataMSBValueOpt, dataLSBValueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto rpn = new ir.RPNEvent(
+            tb.compositionBuilder.currentTime,
+            rpnMSBValue.data.get!byte,
+            rpnLSBValue.data.get!byte,
+            dataMSBValue.data.get!byte,
+            dataLSBValue.data.hasValue ? dataLSBValue.data.get!byte : 0
+        );
+
+        tb.putCommand(rpn);
     }
 
     private void includeFile(MultiTrackBuilder tb, ast.ExtensionCommand c)

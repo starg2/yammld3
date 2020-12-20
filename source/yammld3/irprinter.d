@@ -70,8 +70,8 @@ private string ccCodeToText(ControlChangeCode cc)
     case ControlChangeCode.portamentoTime:
         return "Portamento Time";
 
-    case ControlChangeCode.dataEntry:
-        return "Data Entry";
+    case ControlChangeCode.dataEntryMSB:
+        return "Data Entry MSB";
 
     case ControlChangeCode.channelVolume:
         return "Channel Volume";
@@ -105,6 +105,9 @@ private string ccCodeToText(ControlChangeCode cc)
 
     case ControlChangeCode.bankSelectLSB:
         return "Bank Select LSB";
+
+    case ControlChangeCode.dataEntryLSB:
+        return "Data Entry LSB";
 
     case ControlChangeCode.hold1:
         return "Hold 1";
@@ -621,6 +624,38 @@ public final class IRPrinter(Writer)
         _writer.writeElement(
             "SetKeySigEvent",
             [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("KeySig", e.tonic.keyNameToString() ~ (e.isMinor ? " Min" : " Maj"))]
+        );
+    }
+
+    private void printCommand(NRPNEvent e)
+    {
+        assert(e !is null);
+
+        _writer.writeElement(
+            "NonRegisteredParameterNumber",
+            [
+                XMLAttribute("NominalTime", e.nominalTime.text),
+                XMLAttribute("NRPN-MSB", e.nrpnMSB.text),
+                XMLAttribute("NRPN-LSB", e.nrpnLSB.text),
+                XMLAttribute("DataEntry-MSB", e.dataMSB.text),
+                XMLAttribute("DataEntry-LSB", e.dataLSB.text)
+            ]
+        );
+    }
+
+    private void printCommand(RPNEvent e)
+    {
+        assert(e !is null);
+
+        _writer.writeElement(
+            "RegisteredParameterNumber",
+            [
+                XMLAttribute("NominalTime", e.nominalTime.text),
+                XMLAttribute("RPN-MSB", e.rpnMSB.text),
+                XMLAttribute("RPN-LSB", e.rpnLSB.text),
+                XMLAttribute("DataEntry-MSB", e.dataMSB.text),
+                XMLAttribute("DataEntry-LSB", e.dataLSB.text)
+            ]
         );
     }
 

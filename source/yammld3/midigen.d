@@ -260,6 +260,66 @@ public final class MIDIGenerator
         events ~= ev;
     }
 
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, NRPNEvent nrpnEvent)
+    {
+        ControlChangeEventData cc;
+        cc.code = ControlChangeCode.nonRegisteredParameterNumberMSB;
+        cc.value = nrpnEvent.nrpnMSB;
+
+        MIDIEvent ev;
+        ev.time = convertTime(nrpnEvent.nominalTime);
+        ev.data = MIDIEventData(cc);
+        events ~= ev;
+
+        cc.code = ControlChangeCode.nonRegisteredParameterNumberLSB;
+        cc.value = nrpnEvent.nrpnLSB;
+        ev.data = MIDIEventData(cc);
+        events ~= ev;
+
+        cc.code = ControlChangeCode.dataEntryMSB;
+        cc.value = nrpnEvent.dataMSB;
+        ev.data = MIDIEventData(cc);
+        events ~= ev;
+
+        if (nrpnEvent.dataLSB != 0)
+        {
+            cc.code = ControlChangeCode.dataEntryLSB;
+            cc.value = nrpnEvent.dataLSB;
+            ev.data = MIDIEventData(cc);
+            events ~= ev;
+        }
+    }
+
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, RPNEvent rpnEvent)
+    {
+        ControlChangeEventData cc;
+        cc.code = ControlChangeCode.registeredParameterNumberMSB;
+        cc.value = rpnEvent.rpnMSB;
+
+        MIDIEvent ev;
+        ev.time = convertTime(rpnEvent.nominalTime);
+        ev.data = MIDIEventData(cc);
+        events ~= ev;
+
+        cc.code = ControlChangeCode.registeredParameterNumberLSB;
+        cc.value = rpnEvent.rpnLSB;
+        ev.data = MIDIEventData(cc);
+        events ~= ev;
+
+        cc.code = ControlChangeCode.dataEntryMSB;
+        cc.value = rpnEvent.dataMSB;
+        ev.data = MIDIEventData(cc);
+        events ~= ev;
+
+        if (rpnEvent.dataLSB != 0)
+        {
+            cc.code = ControlChangeCode.dataEntryLSB;
+            cc.value = rpnEvent.dataLSB;
+            ev.data = MIDIEventData(cc);
+            events ~= ev;
+        }
+    }
+
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, TextMetaEvent tm)
     {
         MetaEventData mev;
