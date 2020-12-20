@@ -578,6 +578,10 @@ public final class IRGenerator
             seedRNG(c);
             break;
 
+        case "sysex":
+            compileSysExCommand(tb.compositionBuilder, c);
+            break;
+
         case "table":
             compileTableCommand(tb, c);
             break;
@@ -1382,6 +1386,55 @@ public final class IRGenerator
         );
 
         cb.conductorTrackBuilder.addTextEvent(te);
+    }
+
+    private void compileSysExCommand(CompositionBuilder cb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "sysex");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue[] values;
+        Option valueOpt;
+        valueOpt.multi = true;
+        valueOpt.position = 0;
+        valueOpt.valueType = OptionType.integer;
+        valueOpt.values = appender(&values);
+
+        if (!_optionProc.processOptions([valueOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto bytes = appender!(ubyte[]);
+        bytes.reserve(values.length);
+
+        foreach (val; values)
+        {
+            int i = val.data.get!int;
+
+            if (0 <= i && i <= 0xFF)
+            {
+                bytes ~= i.to!ubyte;
+            }
+            else
+            {
+                _diagnosticsHandler.valueIsOutOfRange(
+                    val.location,
+                    "%" ~ c.name.value,
+                    0,
+                    0xFF,
+                    i
+                );
+            }
+        }
+
+        auto sysex = new ir.SysExEvent(cb.currentTime, bytes[]);
+        cb.conductorTrackBuilder.addCommand(sysex);
     }
 
     private void includeFile(MultiTrackBuilder tb, ast.ExtensionCommand c)

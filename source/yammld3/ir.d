@@ -16,6 +16,7 @@ public enum IRKind
     setMeter,
     setKeySig,
     textMetaEvent,
+    sysExEvent,
     systemReset,
     gsInsertionEffectOn,
     gsInsertionEffectSetType,
@@ -304,6 +305,33 @@ public final class TextMetaEvent : Command
     private string _text;
 }
 
+public final class SysExEvent : Command
+{
+    public this(float nominalTime, ubyte[] bytes)
+    {
+        _nominalTime = nominalTime;
+        _bytes = bytes;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.sysExEvent;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property ubyte[] bytes()
+    {
+        return _bytes;
+    }
+
+    private float _nominalTime;
+    private ubyte[] _bytes;
+}
+
 public enum SystemKind
 {
     gm,
@@ -535,6 +563,9 @@ public auto visit(Handlers...)(Command c)
 
     case IRKind.textMetaEvent:
         return Overloaded(cast(TextMetaEvent)c);
+
+    case IRKind.sysExEvent:
+        return Overloaded(cast(SysExEvent)c);
 
     case IRKind.systemReset:
         return Overloaded(cast(SystemReset)c);

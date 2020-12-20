@@ -272,6 +272,17 @@ public final class MIDIGenerator
         events ~= ev;
     }
 
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SysExEvent se)
+    {
+        SysExEventData sysex;
+        sysex.bytes = se.bytes;
+
+        MIDIEvent ev;
+        ev.time = convertTime(se.nominalTime);
+        ev.data = MIDIEventData(sysex);
+        events ~= ev;
+    }
+
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, SystemReset sr)
     {
         SysExEventData sysex;

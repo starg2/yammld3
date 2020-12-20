@@ -634,6 +634,19 @@ public final class IRPrinter(Writer)
         );
     }
 
+    private void printCommand(SysExEvent e)
+    {
+        import std.format : format;
+        assert(e !is null);
+
+        string bytesText = format!"[%(0x%02X%|, %)]"(e.bytes);
+
+        _writer.writeElement(
+            "SysExEvent",
+            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Bytes", bytesText)]
+        );
+    }
+
     private void printCommand(SystemReset r)
     {
         assert(r !is null);

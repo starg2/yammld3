@@ -621,6 +621,12 @@ package final class ConductorTrackBuilder
         _commands ~= te;
     }
 
+    public void addCommand(Command c)
+    {
+        assert(c !is null);
+        _commands ~= c;
+    }
+
     public ConductorTrackContext saveContext()
     {
         return _context;
