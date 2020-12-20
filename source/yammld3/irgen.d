@@ -522,6 +522,10 @@ public final class IRGenerator
             setMeter(tb.compositionBuilder, c);
             break;
 
+        case "mts_tuning":
+            compileMTSTuningCommand(tb, c);
+            break;
+
         case "nrpn":
             compileNRPNCommand(tb, c);
             break;
@@ -1553,6 +1557,41 @@ public final class IRGenerator
         );
 
         tb.putCommand(rpn);
+    }
+
+    private void compileMTSTuningCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "mts_tuning");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue prog;
+        Option progOpt;
+        progOpt.key = "program";
+        progOpt.position = 0;
+        progOpt.valueType = OptionType.int7b;
+        progOpt.values = &prog;
+
+        OptionValue bank;
+        Option bankOpt;
+        bankOpt.optional = true;
+        bankOpt.key = "bank";
+        bankOpt.position = 1;
+        bankOpt.valueType = OptionType.int7b;
+        bankOpt.values = &bank;
+
+        if (!_optionProc.processOptions([progOpt, bankOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        float currentTime = tb.compositionBuilder.currentTime;
+        tb.putCommand(new ir.RPNEvent(currentTime, 0, 4, bank.data.hasValue ? bank.data.get!byte : 0, 0));
+        tb.putCommand(new ir.RPNEvent(currentTime, 0, 3, prog.data.get!byte, 0));
     }
 
     private void includeFile(MultiTrackBuilder tb, ast.ExtensionCommand c)
