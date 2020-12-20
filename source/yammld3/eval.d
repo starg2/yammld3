@@ -112,6 +112,7 @@ package final class NumericExpressionEvaluator(T)
 
         return expr.visit!(
             (IntegerLiteral il) => il.value,
+            (FloatLiteral fl) => fl.value.to!T,
             (ExpressionMacroInvocationExpression emi)
             {
                 auto context = _macroManager.saveContext();

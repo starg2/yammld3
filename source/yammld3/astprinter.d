@@ -405,6 +405,12 @@ public final class ASTPrinter(Writer)
         _writer.writeElement("IntegerLiteral", [XMLAttribute("Value", il.value.text)]);
     }
 
+    private void doPrintExpression(FloatLiteral fl)
+    {
+        assert(fl !is null);
+        _writer.writeElement("FloatLiteral", [XMLAttribute("Value", fl.value.text)]);
+    }
+
     private void doPrintExpression(StringLiteral sl)
     {
         assert(sl !is null);

@@ -100,6 +100,7 @@ c&d&e
 <PrimaryExpression> ::= <Identifier>
     | <HexadecimalIntegerLiteral>
     | <DecimalIntegerLiteral>
+    | <FloatLiteral>
     | <StringLiteral>
     | <TimeLiteral>
     | <DurationLiteral>
@@ -126,6 +127,8 @@ c&d&e
 
 <DecimalIntegerLiteral> ::= DIGIT+
 
+<FloatLiteral> ::= DIGIT+ '.' DIGIT+
+
 <StringLiteral> ::= ...
 
 <TimeLiteral> ::= (DIGIT+ ':' DIGIT* (':' DIGIT*)?)
@@ -143,6 +146,7 @@ private immutable int recursionLimit = 50;
 private struct ParseLiteralOptions
 {
     bool allowHex;
+    bool allowFloatLiteral;
     bool allowStringLiteral;
     bool allowDurationAndTimeLiteral;
 }
@@ -1480,6 +1484,7 @@ public final class Parser
 
         ParseLiteralOptions options;
         options.allowHex = !isCommandArgument;
+        options.allowFloatLiteral = !isCommandArgument;
         options.allowStringLiteral = !isCommandArgument;
         options.allowDurationAndTimeLiteral = true;
 
@@ -1576,6 +1581,21 @@ public final class Parser
             }
             else
             {
+                auto s2 = s.save;
+
+                if (options.allowFloatLiteral && s2.scanCharRange('0', '9'))
+                {
+                    while (s2.scanCharRange('0', '9'))
+                    {
+                    }
+
+                    if (s2.scanChar('.') && s2.scanCharRange('0', '9'))
+                    {
+                        float val = parse!float(s);
+                        return new FloatLiteral(SourceLocation(startOffset, s.sourceOffset), val);
+                    }
+                }
+
                 int[3] ints;
 
                 if (isDigit(s.front))

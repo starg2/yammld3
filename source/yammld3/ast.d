@@ -56,6 +56,7 @@ public enum ExpressionKind
 {
     identifier,
     integerLiteral,
+    floatLiteral,
     stringLiteral,
     timeLiteral,
     durationLiteral,
@@ -125,6 +126,33 @@ public final class IntegerLiteral : Expression
 
     private SourceLocation _loc;
     private int _value;
+}
+
+public final class FloatLiteral : Expression
+{
+    public this(SourceLocation loc, float value)
+    {
+        _loc = loc;
+        _value = value;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public override @property ExpressionKind kind()
+    {
+        return ExpressionKind.floatLiteral;
+    }
+
+    public @property float value()
+    {
+        return _value;
+    }
+
+    private SourceLocation _loc;
+    private float _value;
 }
 
 public final class StringLiteral : Expression
@@ -438,6 +466,9 @@ public auto visit(Handlers...)(Expression expr)
 
     case ExpressionKind.integerLiteral:
         return Overloaded(cast(IntegerLiteral)expr);
+
+    case ExpressionKind.floatLiteral:
+        return Overloaded(cast(FloatLiteral)expr);
 
     case ExpressionKind.stringLiteral:
         return Overloaded(cast(StringLiteral)expr);
