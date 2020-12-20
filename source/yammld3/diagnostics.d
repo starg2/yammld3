@@ -30,6 +30,8 @@ public interface DiagnosticsHandler
     void expectedArgumentList(SourceLocation loc, string context);
     void wrongNumberOfArguments(SourceLocation loc, string context, size_t expectedCount, size_t actualCount);
     void wrongNumberOfArguments(SourceLocation loc, string context, size_t minCount, size_t maxCount, size_t actualCount);
+    void wrongNumberOfArrayArguments(SourceLocation loc, string context, string paramName, size_t expectedCount, size_t actualCount);
+    void wrongNumberOfArrayArguments(SourceLocation loc, string context, string paramName, size_t minCount, size_t maxCount, size_t actualCount);
     void duplicatedOption(SourceLocation loc, string context);
     void unexpectedArgument(SourceLocation loc, string context);
     void unspecifiedOption(SourceLocation loc, string context);
@@ -207,6 +209,29 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         {
             writeMessage(
                 loc, "error: '%s': wrong number of arguments; expected %d-%d, got %d", context, minCount, maxCount, actualCount
+            );
+            incrementErrorCount();
+        }
+    }
+
+    public override void wrongNumberOfArrayArguments(SourceLocation loc, string context, string paramName, size_t expectedCount, size_t actualCount)
+    {
+        writeMessage(
+            loc, "error: '%s': wrong number of arguments passed to '%s'; expected %d, got %d", context, paramName, expectedCount, actualCount
+        );
+        incrementErrorCount();
+    }
+
+    public override void wrongNumberOfArrayArguments(SourceLocation loc, string context, string paramName, size_t minCount, size_t maxCount, size_t actualCount)
+    {
+        if (minCount == maxCount)
+        {
+            wrongNumberOfArrayArguments(loc, context, paramName, minCount, actualCount);
+        }
+        else
+        {
+            writeMessage(
+                loc, "error: '%s': wrong number of arguments passed to '%s'; expected %d-%d, got %d", context, paramName, minCount, maxCount, actualCount
             );
             incrementErrorCount();
         }

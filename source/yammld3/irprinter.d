@@ -500,6 +500,7 @@ private string gsInsertionEffectTypeToString(GSInsertionEffectType type)
 
 public final class IRPrinter(Writer)
 {
+    import std.format : format;
     import yammld3.xmlwriter : XMLAttribute, XMLWriter;
 
     public this(Writer output, string indent = "")
@@ -671,7 +672,6 @@ public final class IRPrinter(Writer)
 
     private void printCommand(SysExEvent e)
     {
-        import std.format : format;
         assert(e !is null);
 
         string bytesText = format!"[%(0x%02X%|, %)]"(e.bytes);
@@ -689,6 +689,44 @@ public final class IRPrinter(Writer)
         _writer.writeElement(
             "SystemReset",
             [XMLAttribute("NominalTime", r.nominalTime.text), XMLAttribute("Kind", r.systemKind.systemKindToString())]
+        );
+    }
+
+    private void printCommand(MTSNoteTuning c)
+    {
+        import std.algorithm.iteration : map;
+        import std.array : join;
+        assert(c !is null);
+
+        _writer.writeElement(
+            "MTSNoteTuning",
+            [
+                XMLAttribute("NominalTime", c.nominalTime.text),
+                XMLAttribute("Realtime", c.realtime ? "Yes" : "No"),
+                XMLAttribute("DeviceID", c.deviceID.text),
+                XMLAttribute("Bank", c.bank.text),
+                XMLAttribute("Program", c.program.text),
+                XMLAttribute("Tune", "{" ~ c.tune.map!(x => format!"%d: %f"(x.noteName, x.semitones)).join(", ") ~ "}")
+            ]
+        );
+    }
+
+    private void printCommand(MTSOctaveTuning c)
+    {
+        import std.algorithm.iteration : filter;
+        import std.range : iota;
+        assert(c !is null);
+
+        _writer.writeElement(
+            "MTSOctaveTuning",
+            [
+                XMLAttribute("NominalTime", c.nominalTime.text),
+                XMLAttribute("Realtime", c.realtime ? "Yes" : "No"),
+                XMLAttribute("DeviceID", c.deviceID.text),
+                XMLAttribute("Channels", format!"[%(%d%|, %)]"(iota(0, typeof(c.channelMask).sizeof * 8).filter!(x => c.channelMask & (1 << x)))),
+                XMLAttribute("Offsets", format!"[%(%f%|, %)]"(c.offsets)),
+                XMLAttribute("DataSize", c.dataSize.text)
+            ]
         );
     }
 

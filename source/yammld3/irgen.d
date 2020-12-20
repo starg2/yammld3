@@ -522,6 +522,14 @@ public final class IRGenerator
             setMeter(tb.compositionBuilder, c);
             break;
 
+        case "mts_tune_note":
+            compileMTSTuneNoteCommand(tb.compositionBuilder, c);
+            break;
+
+        case "mts_tune_octave":
+            compileMTSTuneOctaveCommand(tb.compositionBuilder, c);
+            break;
+
         case "mts_tuning":
             compileMTSTuningCommand(tb, c);
             break;
@@ -1557,6 +1565,192 @@ public final class IRGenerator
         );
 
         tb.putCommand(rpn);
+    }
+
+    private void compileMTSTuneNoteCommand(CompositionBuilder cb, ast.ExtensionCommand c)
+    {
+        import std.range : chunks;
+
+        assert(c !is null);
+        assert(c.name.value == "mts_tune_note");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue realTime;
+        Option realTimeOpt;
+        realTimeOpt.key = "realtime";
+        realTimeOpt.valueType = OptionType.flag;
+        realTimeOpt.values = &realTime;
+
+        OptionValue prog;
+        Option progOpt;
+        progOpt.key = "program";
+        progOpt.position = 0;
+        progOpt.valueType = OptionType.int7b;
+        progOpt.values = &prog;
+
+        OptionValue bank;
+        Option bankOpt;
+        bankOpt.optional = true;
+        bankOpt.key = "bank";
+        bankOpt.position = 1;
+        bankOpt.valueType = OptionType.int7b;
+        bankOpt.values = &bank;
+
+        OptionValue deviceID;
+        Option deviceIDOpt;
+        deviceIDOpt.optional = true;
+        deviceIDOpt.key = "device";
+        deviceIDOpt.position = 2;
+        deviceIDOpt.valueType = OptionType.int7b;
+        deviceIDOpt.values = &deviceID;
+
+        OptionValue[] tune;
+        Option tuneOpt;
+        tuneOpt.multi = true;
+        tuneOpt.key = OptionType.int7b;
+        tuneOpt.position = 0;
+        tuneOpt.valueType = OptionType.floatingPoint;
+        tuneOpt.values = appender(&tune);
+
+        if (!_optionProc.processOptions([realTimeOpt, progOpt, bankOpt, deviceIDOpt, tuneOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto tuneData = tune.chunks(2).map!(x => ir.NoteTuningInfo(x[0].data.get!byte, x[1].data.get!float)).array;
+
+        if (!(1 <= tuneData.length && tuneData.length <= 0x7F))
+        {
+            _diagnosticsHandler.wrongNumberOfArrayArguments(
+                c.location,
+                "%" ~ c.name.value,
+                "tune",
+                1,
+                0x7F,
+                tuneData.length
+            );
+
+            return;
+        }
+
+        auto mnt = new ir.MTSNoteTuning(
+            cb.currentTime,
+            realTime.data.hasValue,
+            deviceID.data.hasValue ? deviceID.data.get!byte : 0x7F,
+            bank.data.hasValue ? bank.data.get!byte : 0,
+            prog.data.get!byte,
+            tuneData
+        );
+
+        cb.conductorTrackBuilder.addCommand(mnt);
+    }
+
+    private void compileMTSTuneOctaveCommand(CompositionBuilder cb, ast.ExtensionCommand c)
+    {
+        import std.stdint : uint16_t;
+
+        assert(c !is null);
+        assert(c.name.value == "mts_tune_octave");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        OptionValue realTime;
+        Option realTimeOpt;
+        realTimeOpt.key = "realtime";
+        realTimeOpt.valueType = OptionType.flag;
+        realTimeOpt.values = &realTime;
+
+        OptionValue channel;
+        Option channelOpt;
+        channelOpt.optional = true;
+        channelOpt.key = "channel";
+        channelOpt.valueType = OptionType.int7b;
+        channelOpt.values = &channel;
+
+        OptionValue deviceID;
+        Option deviceIDOpt;
+        deviceIDOpt.optional = true;
+        deviceIDOpt.key = "device";
+        deviceIDOpt.valueType = OptionType.int7b;
+        deviceIDOpt.values = &deviceID;
+
+        OptionValue dataSize;
+        Option dataSizeOpt;
+        dataSizeOpt.optional = true;
+        dataSizeOpt.key = "size";
+        dataSizeOpt.valueType = OptionType.int7b;
+        dataSizeOpt.values = &dataSize;
+
+        OptionValue[] offset;
+        Option offsetOpt;
+        offsetOpt.multi = true;
+        offsetOpt.position = 0;
+        offsetOpt.valueType = OptionType.floatingPoint;
+        offsetOpt.values = appender(&offset);
+
+        if (!_optionProc.processOptions([realTimeOpt, channelOpt, deviceIDOpt, offsetOpt, dataSizeOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        if (channel.data.hasValue && channel.data.get!byte >= 16)
+        {
+            _diagnosticsHandler.valueIsOutOfRange(
+                channel.location,
+                "%" ~ c.name.value,
+                0,
+                15,
+                channel.data.get!byte
+            );
+
+            return;
+        }
+
+        if (dataSize.data.hasValue && !(dataSize.data.get!byte == 1 || dataSize.data.get!byte == 2))
+        {
+            _diagnosticsHandler.valueIsOutOfRange(
+                dataSize.location,
+                "%" ~ c.name.value,
+                1,
+                2,
+                dataSize.data.get!byte
+            );
+
+            return;
+        }
+
+        auto offsetData = offset.map!(x => x.data.get!float).array;
+
+        if (offsetData.length != 12)
+        {
+            _diagnosticsHandler.wrongNumberOfArrayArguments(
+                c.location,
+                "%" ~ c.name.value,
+                "offset",
+                12,
+                offsetData.length
+            );
+
+            return;
+        }
+
+        auto mnt = new ir.MTSOctaveTuning(
+            cb.currentTime,
+            realTime.data.hasValue,
+            deviceID.data.hasValue ? deviceID.data.get!byte : 0x7F,
+            (channel.data.hasValue ? 1 << channel.data.get!byte : 0xFFFF).to!uint16_t,
+            offsetData[0..12],
+            dataSize.data.hasValue && dataSize.data.get!byte > 1 ? 2 : 1
+        );
+
+        cb.conductorTrackBuilder.addCommand(mnt);
     }
 
     private void compileMTSTuningCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)

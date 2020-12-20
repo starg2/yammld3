@@ -3,6 +3,8 @@
 
 module yammld3.ir;
 
+import std.stdint;
+
 import yammld3.common;
 public import yammld3.midievent : ControlChangeCode, MetaEventKind;
 
@@ -20,6 +22,8 @@ public enum IRKind
     textMetaEvent,
     sysExEvent,
     systemReset,
+    mtsNoteTuning,
+    mtsOctaveTuning,
     gsInsertionEffectOn,
     gsInsertionEffectSetType,
     gsInsertionEffectSetParam
@@ -464,6 +468,124 @@ public final class SystemReset : Command
     private SystemKind _systemKind;
 }
 
+public struct NoteTuningInfo
+{
+    byte noteName;
+    float semitones;
+}
+
+public final class MTSNoteTuning : Command
+{
+    public this(float nominalTime, bool realtime, byte deviceID, byte bank, byte program, NoteTuningInfo[] tune)
+    {
+        assert(1 <= tune.length && tune.length <= 0x7F);
+
+        _nominalTime = nominalTime;
+        _realtime = realtime;
+        _deviceID = deviceID;
+        _bank = bank;
+        _program = program;
+        _tune = tune;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.mtsNoteTuning;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property bool realtime()
+    {
+        return _realtime;
+    }
+
+    public @property byte deviceID()
+    {
+        return _deviceID;
+    }
+
+    public @property byte bank()
+    {
+        return _bank;
+    }
+
+    public @property byte program()
+    {
+        return _program;
+    }
+
+    public @property NoteTuningInfo[] tune()
+    {
+        return _tune;
+    }
+
+    private float _nominalTime;
+    private bool _realtime;
+    private byte _deviceID;
+    private byte _bank;
+    private byte _program;
+    private NoteTuningInfo[] _tune;
+}
+
+public final class MTSOctaveTuning : Command
+{
+    public this(float nominalTime, bool realtime, byte deviceID, uint16_t channelMask, float[12] offsets, byte dataSize)
+    {
+        _nominalTime = nominalTime;
+        _realtime = realtime;
+        _deviceID = deviceID;
+        _channelMask = channelMask;
+        _offsets = offsets;
+        _dataSize = dataSize;
+    }
+
+    public override @property IRKind kind()
+    {
+        return IRKind.mtsOctaveTuning;
+    }
+
+    public override @property float nominalTime()
+    {
+        return _nominalTime;
+    }
+
+    public @property bool realtime()
+    {
+        return _realtime;
+    }
+
+    public @property byte deviceID()
+    {
+        return _deviceID;
+    }
+
+    public @property uint16_t channelMask()
+    {
+        return _channelMask;
+    }
+
+    public @property float[12] offsets()
+    {
+        return _offsets;
+    }
+
+    public @property byte dataSize()
+    {
+        return _dataSize;
+    }
+
+    private float _nominalTime;
+    private bool _realtime;
+    private byte _deviceID;
+    private uint16_t _channelMask;
+    private float[12] _offsets; // cent
+    private byte _dataSize;
+}
+
 public final class GSInsertionEffectOn : Command
 {
     public this(float nominalTime, bool on)
@@ -673,6 +795,12 @@ public auto visit(Handlers...)(Command c)
 
     case IRKind.systemReset:
         return Overloaded(cast(SystemReset)c);
+
+    case IRKind.mtsNoteTuning:
+        return Overloaded(cast(MTSNoteTuning)c);
+
+    case IRKind.mtsOctaveTuning:
+        return Overloaded(cast(MTSOctaveTuning)c);
 
     case IRKind.gsInsertionEffectOn:
         return Overloaded(cast(GSInsertionEffectOn)c);

@@ -368,6 +368,90 @@ public final class MIDIGenerator
         events ~= ev;
     }
 
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, MTSNoteTuning mnt)
+    {
+        bool withBank = mnt.bank != 0 || !mnt.realtime;
+        auto bytes = appender!(ubyte[]);
+
+        bytes ~= 0xF0.to!ubyte;
+        bytes ~= (mnt.realtime ? 0x7F : 0x7E).to!ubyte;
+        bytes ~= mnt.deviceID;
+        bytes ~= 0x08.to!ubyte;
+        bytes ~= (withBank ? 0x07 : 0x02).to!ubyte;
+
+        if (withBank)
+        {
+            bytes ~= mnt.bank;
+        }
+
+        bytes ~= mnt.program;
+
+        assert(1 <= mnt.tune.length && mnt.tune.length <= 0x7F);
+        bytes ~= mnt.tune.length.to!ubyte;
+
+        foreach (i; mnt.tune)
+        {
+            bytes ~= i.noteName;
+
+            int n = (i.semitones * 128 * 128).to!int.clamp(0, (1 << 21) - 1);
+            bytes ~= ((n >> 14) & 0x7F).to!ubyte;
+            bytes ~= ((n >> 7) & 0x7F).to!ubyte;
+            bytes ~= (n & 0x7F).to!ubyte;
+        }
+
+        bytes ~= 0xF7.to!ubyte;
+
+        SysExEventData sysex;
+        sysex.bytes = bytes[];
+
+        MIDIEvent ev;
+        ev.time = convertTime(mnt.nominalTime);
+        ev.data = MIDIEventData(sysex);
+        events ~= ev;
+    }
+
+    private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, MTSOctaveTuning mot)
+    {
+        auto bytes = appender!(ubyte[]);
+        bytes.reserve(mot.dataSize > 1 ? 33 : 21);
+
+        bytes ~= 0xF0.to!ubyte;
+        bytes ~= (mot.realtime ? 0x7F : 0x7E).to!ubyte;
+        bytes ~= mot.deviceID;
+        bytes ~= 0x08.to!ubyte;
+        bytes ~= (mot.dataSize > 1 ? 0x09 : 0x08).to!ubyte;
+
+        bytes ~= ((mot.channelMask >> 14) & 3).to!ubyte;
+        bytes ~= ((mot.channelMask >> 7) & 0x7F).to!ubyte;
+        bytes ~= (mot.channelMask & 0x7F).to!ubyte;
+
+        foreach (i; mot.offsets[])
+        {
+            if (mot.dataSize > 1)
+            {
+                // (offset - 8192) * 100 / 8192 [cent]
+                int n = (i * 8192.0f / 100.0f + 8192.0f).to!int.clamp(0, 16383);
+                bytes ~= ((n >> 7) & 0x7F).to!ubyte;
+                bytes ~= (n & 0x7F).to!ubyte;
+            }
+            else
+            {
+                // offset - 64 [cent]
+                bytes ~= (i + 64.0f).to!int.clamp(0, 127).to!ubyte;
+            }
+        }
+
+        bytes ~= 0xF7.to!ubyte;
+
+        SysExEventData sysex;
+        sysex.bytes = bytes[];
+
+        MIDIEvent ev;
+        ev.time = convertTime(mot.nominalTime);
+        ev.data = MIDIEventData(sysex);
+        events ~= ev;
+    }
+
     private void compileCommand(RefAppender!(MIDIEvent[]) events, int channel, GSInsertionEffectOn ie)
     {
         SysExEventData sysex;
