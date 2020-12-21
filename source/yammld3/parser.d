@@ -93,7 +93,7 @@ c&d&e
 
 <MulDivExpression> ::= <UnaryExpression> (('*' | '/') <UnaryExpression>)*
 
-<UnaryExpression> ::= ('+' | '-')* <PostfixExpression>
+<UnaryExpression> ::= ('+' | '-' | '!')* <PostfixExpression>
 
 <PostfixExpression> ::= <PrimaryExpression> <ParenthesizedExpressionList>*
 
