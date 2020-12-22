@@ -614,7 +614,7 @@ public final class IRPrinter(Writer)
 
         _writer.writeElement(
             "SetMeterEvent",
-            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Meter", e.meter.numerator.text ~ "/" ~ e.meter.denominator.text)]
+            [XMLAttribute("NominalTime", e.nominalTime.text), XMLAttribute("Numerator", e.meter.numerator.text), XMLAttribute("Denominator", e.meter.denominator.text)]
         );
     }
 

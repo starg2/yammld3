@@ -1302,45 +1302,38 @@ public final class IRGenerator
             _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
         }
 
-        if (c.arguments is null)
-        {
-            _diagnosticsHandler.expectedArgumentList(c.location, "%" ~ c.name.value);
-            return;
-        }
+        OptionValue numerator;
+        Option numeratorOpt;
+        numeratorOpt.key = "numerator";
+        numeratorOpt.position = 0;
+        numeratorOpt.valueType = OptionType.int7b;
+        numeratorOpt.values = &numerator;
 
-        if (c.arguments.items.length != 1)
-        {
-            _diagnosticsHandler.wrongNumberOfArguments(c.arguments.location, "%" ~ c.name.value, 1, c.arguments.items.length);
-            return;
-        }
+        OptionValue denominator;
+        Option denominatorOpt;
+        denominatorOpt.key = "denominator";
+        denominatorOpt.position = 1;
+        denominatorOpt.valueType = OptionType.int7b;
+        denominatorOpt.values = &denominator;
 
-        if (c.arguments.items[0].key !is null)
+        if (!_optionProc.processOptions([numeratorOpt, denominatorOpt], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
         {
-            _diagnosticsHandler.unexpectedArgument(c.arguments.items[0].key.location, "%" ~ c.name.value);
-            return;
-        }
-
-        auto be = cast(ast.BinaryExpression)c.arguments.items[0].value;
-
-        if (be is null || be.op.kind != ast.OperatorKind.slash)
-        {
-            _diagnosticsHandler.unexpectedExpressionKind(c.arguments.items[0].value.location, "%" ~ c.name.value);
             return;
         }
 
         Fraction!int m;
-        m.numerator = _intEvaluator.evaluate(be.left);
-        m.denominator = _intEvaluator.evaluate(be.right);
+        m.numerator = numerator.data.get!byte;
+        m.denominator = denominator.data.get!byte;
 
         if (!(1 <= m.denominator && m.denominator <= 64))
         {
-            _diagnosticsHandler.valueIsOutOfRange(be.right.location, "%" ~ c.name.value, 1, 64, m.denominator);
+            _diagnosticsHandler.valueIsOutOfRange(denominator.location, "%" ~ c.name.value, 1, 64, m.denominator);
             return;
         }
 
         if (!(1 <= m.numerator && m.numerator <= 64))
         {
-            _diagnosticsHandler.valueIsOutOfRange(be.right.location, "%" ~ c.name.value, 1, 64, m.numerator);
+            _diagnosticsHandler.valueIsOutOfRange(numerator.location, "%" ~ c.name.value, 1, 64, m.numerator);
             return;
         }
 
