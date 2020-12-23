@@ -119,6 +119,7 @@ public struct ExpressionMacroDefinition
     SourceLocation location;
     ExpressionMacroParameter[] parameters;
     Expression definition;
+    ExpressionMacroDefinition[] parents;    // shadowed macros
 }
 
 package struct ExpressionMacroManagerContext
@@ -204,8 +205,9 @@ package final class ExpressionMacroManager
     public Expression expandExpressionMacro(T)(T c)
         if (is(T : ExpressionMacroInvocationExpression) || is(T : ExpressionMacroInvocationCommand))
     {
-        import std.algorithm.searching : count;
-        import std.range : lockstep;
+        import std.algorithm.iteration : filter, map;
+        import std.algorithm.searching : canFind, count;
+        import std.array : array, byPair;
 
         assert(c !is null);
 
@@ -247,6 +249,13 @@ package final class ExpressionMacroManager
         auto definition = pDef.definition;
         _definedMacros.remove(c.name.value);    // remove the current macro to avoid recursion
 
+        // save macros to be shadowed
+        auto shadowedMacros = _definedMacros
+            .byPair()
+            .filter!(x => pDef.parameters.canFind!(y => y.name == x[0]))
+            .map!(x => x[1])
+            .array();
+
         foreach (i, param; pDef.parameters)
         {
             if (i >= args.length && param.argument is null)
@@ -264,8 +273,15 @@ package final class ExpressionMacroManager
                 def.name = param.name;
                 def.location = (i >= args.length ? param.location : args[i].location);
                 def.definition = (i >= args.length ? param.argument : args[i].value);
+                def.parents = shadowedMacros;
                 _definedMacros[param.name] = def;
             }
+        }
+
+        // restore shadowed macros
+        foreach (i; pDef.parents)
+        {
+            _definedMacros[i.name] = i;
         }
 
         return definition;
