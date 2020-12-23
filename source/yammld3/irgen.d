@@ -651,15 +651,17 @@ public final class IRGenerator
     private void doCompileCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
     {
         assert(c !is null);
-
-        auto context = tb.saveContext();
-
-        scope (exit)
-        {
-            tb.restoreContext(context);
-        }
-
         compileCommands(tb, c.commands);
+    }
+
+    private void doCompileCommand(MultiTrackBuilder tb, ast.UnscopedCommand c)
+    {
+        assert(c !is null);
+
+        foreach (childCommand; c.commands)
+        {
+            compileCommand(tb, childCommand);
+        }
     }
 
     private void doCompileCommand(MultiTrackBuilder tb, ast.ModifierCommand c)

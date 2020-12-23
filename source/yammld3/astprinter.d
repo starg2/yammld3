@@ -264,6 +264,27 @@ public final class ASTPrinter(Writer)
         }
     }
 
+    private void doPrintCommand(UnscopedCommand c)
+    {
+        assert(c !is null);
+
+        if (c.commands.empty)
+        {
+            _writer.writeElement("UnscopedCommand");
+        }
+        else
+        {
+            _writer.startElement("UnscopedCommand");
+
+            foreach (i; c.commands)
+            {
+                printCommand(i);
+            }
+
+            _writer.endElement();
+        }
+    }
+
     private void doPrintCommand(ModifierCommand c)
     {
         assert(c !is null);

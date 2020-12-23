@@ -156,21 +156,22 @@ public struct SourceLocation
 
     this(SourceLocation from, SourceLocation to)
     {
-        assert(from.source is to.source);
-        assert((from.line == to.line && from.column <= to.column) || from.line < to.line);
-
         offset = from.offset;
+        length = from.length;
 
-        if (from.line < to.line)
+        if ((from.source is to.source) && ((from.line == to.line && from.column <= to.column) || from.line < to.line))
         {
-            length = (to.getLine().ptr + to.column) - (from.getLine().ptr + from.column) + to.length;
-        }
-        else
-        {
-            length = to.column - from.column + to.length;
-        }
+            if (from.line < to.line)
+            {
+                length = (to.getLine().ptr + to.column) - (from.getLine().ptr + from.column) + to.length;
+            }
+            else
+            {
+                length = to.column - from.column + to.length;
+            }
 
-        assert(length <= source.contents.length);
+            assert(length <= source.contents.length);
+        }
     }
 
     SourceOffset offset;
