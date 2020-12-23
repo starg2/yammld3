@@ -536,7 +536,7 @@ package final class ExpressionMacroManager
 
                     if (cb is null)
                     {
-                        _diagnosticsHandler.expressionMacroNotExpandedToCommandBlock(invocation.location, invocation.name.value);
+                        //_diagnosticsHandler.expressionMacroNotExpandedToCommandBlock(invocation.location, invocation.name.value);
                     }
                     else
                     {
