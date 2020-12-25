@@ -554,7 +554,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         import std.utf : count;
 
         string lineStr = loc.getLine();
-        size_t startColumn = lineStr[0..loc.column].count();
+        size_t startColumn = lineStr[0..min(loc.column, $)].count();
         _output.writef("%s(%d,%d): ", loc.source.path, loc.line, startColumn + 1);
         _output.writefln(msg, args);
 
@@ -564,7 +564,7 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
             ' '.repeat(startColumn).copy(_output.lockingTextWriter());
             _output.write('^');
 
-            size_t cpCount = lineStr[loc.column..min(loc.column + loc.length, $)].count();
+            size_t cpCount = lineStr[min(loc.column, $)..min(loc.column + loc.length, $)].count();
 
             if (cpCount > 1)
             {
