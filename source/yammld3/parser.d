@@ -177,6 +177,8 @@ public final class Parser
 
         while (true)
         {
+            skipSpaces(s);
+
             auto c = parseCommand(s);
 
             if (c !is null)
@@ -282,8 +284,6 @@ public final class Parser
 
     private Command parsePrimaryCommand(ref Scanner s)
     {
-        skipSpaces(s);
-
         auto startOffset = s.sourceOffset;
 
         if (s.scanChar('('))
