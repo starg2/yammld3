@@ -38,6 +38,7 @@ c&d&e
 <PostfixCommand> ::= <PrimaryCommand> (<ModifierCommand> | <RepeatCommand>)*
 
 <PrimaryCommand> ::= ('(' <Command>* ')')
+    | ('|' <Command>* NEWLINE)+
     | <ExpressionMacroDefinitionCommand>
     | <ExpressionMacroInvocationCommand>
     | <NoteMacroDefinitionCommand>
@@ -171,13 +172,13 @@ public final class Parser
         return new Module(src.path, commands);
     }
 
-    private Command[] parseCommands(ref Scanner s)
+    private Command[] parseCommands(ref Scanner s, bool singleLine = false)
     {
         auto commands = appender!(Command[]);
 
         while (true)
         {
-            skipSpaces(s);
+            skipSpaces(s, singleLine);
 
             auto c = parseCommand(s);
 
@@ -194,7 +195,7 @@ public final class Parser
 
             auto s2 = s;
 
-            if (s2.scanCharSet(")}"))
+            if (s2.scanCharSet(")}") || (singleLine && s2.scanChar('\n')))
             {
                 break;
             }
@@ -303,6 +304,34 @@ public final class Parser
             return new ScopedCommand(SourceLocation(startOffset, s.sourceOffset), commands);
         }
 
+        auto row = parseTableBlockRow(s);
+
+        if (row !is null)
+        {
+            auto rows = appender!(TableBlockRow[]);
+            rows ~= row;
+
+            while (true)
+            {
+                skipSpaces(s, true);
+                s.scanChar('\n');
+                skipSpaces(s, true);
+
+                auto row2 = parseTableBlockRow(s);
+
+                if (row2 !is null)
+                {
+                    rows ~= row2;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return new TableBlockCommand(rows[]);
+        }
+
         auto cm = parseExpressionMacroCommand(s);
 
         if (cm !is null)
@@ -332,6 +361,19 @@ public final class Parser
         }
 
         return parseBasicCommand(s);
+    }
+
+    private TableBlockRow parseTableBlockRow(ref Scanner s)
+    {
+        auto startOffset = s.sourceOffset;
+
+        if (!s.scanChar('|'))
+        {
+            return null;
+        }
+
+        auto commands = parseCommands(s, true);
+        return new TableBlockRow(SourceLocation(startOffset, s.sourceOffset), commands);
     }
 
     // parses ExpressionMacroDefinitionCommand or ExpressionMacroInvocationCommand
@@ -1727,9 +1769,9 @@ public final class Parser
         return new StringLiteral(SourceLocation(startOffset, s.sourceOffset), str[]);
     }
 
-    private void skipSpaces(ref Scanner s)
+    private void skipSpaces(ref Scanner s, bool singleLine = false)
     {
-        while (s.scanWhiteSpace() || skipLineComment(s) || skipBlockComment(s))
+        while (s.scanCharSet(" \t\r") || (!singleLine && s.scanChar('\n')) || skipLineComment(s) || skipBlockComment(s))
         {
         }
     }

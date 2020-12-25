@@ -309,6 +309,34 @@ public final class ASTPrinter(Writer)
         _writer.endElement();
     }
 
+    private void doPrintCommand(TableBlockCommand c)
+    {
+        assert(c !is null);
+
+        _writer.startElement("TableBlock");
+
+        foreach (row; c.rows)
+        {
+            if (row.commands.empty)
+            {
+                _writer.writeElement("TableBlockRow");
+            }
+            else
+            {
+                _writer.startElement("TableBlockRow");
+
+                foreach (i; row.commands)
+                {
+                    printCommand(i);
+                }
+
+                _writer.endElement();
+            }
+        }
+
+        _writer.endElement();
+    }
+
     private void doPrintCommand(NoteMacroDefinitionCommand c)
     {
         assert(c !is null);

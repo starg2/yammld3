@@ -754,6 +754,12 @@ public final class IRGenerator
         }
     }
 
+    private void doCompileCommand(MultiTrackBuilder tb, ast.TableBlockCommand c)
+    {
+        import std.algorithm.iteration : joiner;
+        compileTableBlock(tb, c.rows.map!(x => x.commands).joiner());
+    }
+
     private void doCompileCommand(MultiTrackBuilder tb, ast.NoteMacroDefinitionCommand c)
     {
         _noteMacroManager.compileNoteMacroDefinitionCommand(c);
@@ -2284,38 +2290,18 @@ public final class IRGenerator
         tb.setTrailingBlankTime(value.data.get!float);
     }
 
-    private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    private void compileTableBlock(R)(MultiTrackBuilder tb, R commands)
     {
         import std.algorithm.iteration : chunkBy;
         //import std.algorithm.mutation : SwapStrategy;
         import std.algorithm.sorting : sort;
 
-        assert(c !is null);
-        assert(c.name.value == "table");
-
-        if (c.block is null)
-        {
-            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
-            return;
-        }
-
-        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
-        {
-            return;
-        }
-
-        //auto sortedByColumn = c.block.commands.dup.sort!((a, b) => a.location.column < b.location.column, SwapStrategy.stable);
-        auto sortedByColumn = c.block.commands.dup.sort!(
+        //auto sortedByColumn = commands.array.sort!((a, b) => a.location.column < b.location.column, SwapStrategy.stable);
+        auto sortedByColumn = commands.array.sort!(
             (a, b) => cmp([a.location.column, a.location.line], [b.location.column, b.location.line]) < 0
         );
 
         auto cb = tb.compositionBuilder;
-        auto context = saveContext();
-
-        scope (exit)
-        {
-            restoreContext(context);
-        }
 
         foreach (column; sortedByColumn.chunkBy!((a, b) => a.location.column == b.location.column))
         {
@@ -2331,6 +2317,32 @@ public final class IRGenerator
 
             cb.currentTime = endTime;
         }
+    }
+
+    private void compileTableCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)
+    {
+        assert(c !is null);
+        assert(c.name.value == "table");
+
+        if (c.block is null)
+        {
+            _diagnosticsHandler.expectedCommandBlock(c.location, "%" ~ c.name.value);
+            return;
+        }
+
+        if (!_optionProc.processOptions([], c.arguments, "%" ~ c.name.value, c.location, 0.0f))
+        {
+            return;
+        }
+
+        auto context = saveContext();
+
+        scope (exit)
+        {
+            restoreContext(context);
+        }
+
+        compileTableBlock(tb, c.block.commands[]);
     }
 
     private void compileTrackCommand(MultiTrackBuilder tb, ast.ExtensionCommand c)

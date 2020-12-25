@@ -117,11 +117,6 @@ package bool scanCharRange(ref Scanner s, dchar from, dchar to)
     return s.scanCharIf!(x => from <= x && x <= to);
 }
 
-package bool scanWhiteSpace(ref Scanner s)
-{
-    return s.scanCharSet(" \t\r\n");
-}
-
 private bool isNameStartChar(dchar c)
 {
     // from XML Standard

@@ -481,6 +481,34 @@ package final class ExpressionMacroManager
         }
     }
 
+    private TableBlockRow expandMacroParameters(TableBlockRow row, ExpressionMacroDefinition[] args)
+    {
+        auto newCommands = row.commands.map!(x => x.visit!(y => expandMacroParameters(y, args))).array;
+
+        if (equal!((x, y) => x is y)(row.commands, newCommands))
+        {
+            return row;
+        }
+        else
+        {
+            return new TableBlockRow(row.location, newCommands);
+        }
+    }
+
+    private Command expandMacroParameters(TableBlockCommand c, ExpressionMacroDefinition[] args)
+    {
+        auto newRows = c.rows.map!(x => expandMacroParameters(x, args)).array;
+
+        if (equal!((x, y) => x is y)(c.rows, newRows))
+        {
+            return c;
+        }
+        else
+        {
+            return new TableBlockCommand(newRows);
+        }
+    }
+
     private Command expandMacroParameters(NoteMacroDefinitionCommand c, ExpressionMacroDefinition[] args)
     {
         return c;
@@ -540,7 +568,7 @@ package final class ExpressionMacroManager
                     }
                     else
                     {
-                        return new UnscopedCommand(cb.location, cb.commands);
+                        return new UnscopedCommand(invocation.location, cb.commands);
                     }
                 }
                 else

@@ -714,6 +714,7 @@ public enum CommandKind
     unscoped,
     modifier,
     repeat,
+    tableBlock,
     noteMacroDefinition,
     expressionMacroDefinition,
     expressionMacroInvocation
@@ -1024,6 +1025,54 @@ public final class RepeatCommand : Command
     private Expression _repeatCount;
 }
 
+public final class TableBlockRow : ASTNode
+{
+    public this(SourceLocation loc, Command[] commands)
+    {
+        _loc = loc;
+        _commands = commands;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _loc;
+    }
+
+    public @property Command[] commands()
+    {
+        return _commands;
+    }
+
+    private SourceLocation _loc;
+    private Command[] _commands;
+}
+
+public final class TableBlockCommand : Command
+{
+    public this(TableBlockRow[] rows)
+    {
+        assert(rows.length > 0);
+        _rows = rows;
+    }
+
+    public override @property SourceLocation location()
+    {
+        return _rows[0].location;
+    }
+
+    public override @property CommandKind kind()
+    {
+        return CommandKind.tableBlock;
+    }
+
+    public @property TableBlockRow[] rows()
+    {
+        return _rows;
+    }
+
+    private TableBlockRow[] _rows;
+}
+
 public final class NoteMacroDefinitionCommand : Command
 {
     public this(SourceLocation loc, NoteMacroName name, KeySpecifier[] definition)
@@ -1165,6 +1214,9 @@ public auto visit(Handlers...)(Command c)
 
     case CommandKind.repeat:
         return Overloaded(cast(RepeatCommand)c);
+
+    case CommandKind.tableBlock:
+        return Overloaded(cast(TableBlockCommand)c);
 
     case CommandKind.noteMacroDefinition:
         return Overloaded(cast(NoteMacroDefinitionCommand)c);
