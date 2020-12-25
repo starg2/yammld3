@@ -34,12 +34,13 @@ public interface DiagnosticsHandler
     void wrongNumberOfArrayArguments(SourceLocation loc, string context, string paramName, size_t minCount, size_t maxCount, size_t actualCount);
     void duplicatedOption(SourceLocation loc, string context);
     void unexpectedArgument(SourceLocation loc, string context);
-    void unspecifiedOption(SourceLocation loc, string context);
     void cannotCountNoteLikeCommand(SourceLocation loc, SourceLocation requestLoc, string requestContext);
     void unexpectedExpressionKind(SourceLocation loc, string context);
     void expectedIdentifier(SourceLocation loc, string context);
     void expectedStringLiteral(SourceLocation loc, string context);
     void expectedArgument(SourceLocation loc, string context);
+    void expectedArgument(SourceLocation loc, string context, size_t pos);
+    void expectedArgument(SourceLocation loc, string context, string name);
     void expectedArgumentKey(SourceLocation loc, string context);
     void expectedCommandBlock(SourceLocation loc, string context);
     void expectedTrackPropertyCommand(SourceLocation loc, string context);
@@ -249,12 +250,6 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
         incrementErrorCount();
     }
 
-    public override void unspecifiedOption(SourceLocation loc, string context)
-    {
-        writeMessage(loc, "error: '%s': not all options were specified", context);
-        incrementErrorCount();
-    }
-
     public override void cannotCountNoteLikeCommand(SourceLocation loc, SourceLocation requestLoc, string requestContext)
     {
         writeMessage(loc, "error: cannot count note-like commands");
@@ -283,6 +278,18 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     public override void expectedArgument(SourceLocation loc, string context)
     {
         writeMessage(loc, "error: '%s': expected argument", context);
+        incrementErrorCount();
+    }
+
+    public override void expectedArgument(SourceLocation loc, string context, size_t pos)
+    {
+        writeMessage(loc, "error: '%s': expected argument '#%d'", context, pos + 1);
+        incrementErrorCount();
+    }
+
+    public override void expectedArgument(SourceLocation loc, string context, string name)
+    {
+        writeMessage(loc, "error: '%s': expected argument for '%s'", context, name);
         incrementErrorCount();
     }
 

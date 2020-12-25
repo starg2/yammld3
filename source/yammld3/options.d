@@ -151,9 +151,17 @@ package final class OptionProcessor
                 {
                     _diagnosticsHandler.expectedArgumentList(loc, context);
                 }
+                else if (opt.key.peek!string !is null)
+                {
+                    _diagnosticsHandler.expectedArgument(loc, context, opt.key.get!string);
+                }
+                else if (!opt.position.isNull)
+                {
+                    _diagnosticsHandler.expectedArgument(loc, context, opt.position.get);
+                }
                 else
                 {
-                    _diagnosticsHandler.unspecifiedOption(loc, context);
+                    _diagnosticsHandler.expectedArgument(loc, context);
                 }
 
                 break;
