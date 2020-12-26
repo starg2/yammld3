@@ -706,10 +706,6 @@ public final class IRGenerator
             addOnTimePriorSpec(tb, c, true);
             break;
 
-        case "persist":
-            addPersistentOffset(tb, c);
-            break;
-
         case "rand":
             addUniformRandomPriorSpec(tb, c);
             break;
@@ -2522,53 +2518,6 @@ public final class IRGenerator
             }
 
             tb.addPriorSpec(kind.get, priorSpec);
-        }
-    }
-
-    private void addPersistentOffset(MultiTrackBuilder tb, ast.ModifierCommand c)
-    {
-        assert(c !is null);
-        assert(c.name.value == "persist");
-
-        auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
-
-        if (kind.isNull)
-        {
-            return;
-        }
-
-        compileBasicCommandIfItHasArgument(tb, c);
-
-        OptionValue value;
-        Option valueOpt;
-        valueOpt.position = 0;
-        valueOpt.valueType = optionTypeFromTrackPropertyKind(kind.get);
-        valueOpt.values = &value;
-
-        if (!_optionProc.processOptions([valueOpt], c.arguments, "!" ~ c.name.value, c.location, tb.compositionBuilder.currentTime))
-        {
-            return;
-        }
-
-        if (kind.get == TrackPropertyKind.duration)
-        {
-            float t = value.data.get!float;
-            tb.compositionBuilder.conductorTrackBuilder.incrementPersistentDurationOffset(t);
-        }
-        else
-        {
-            Algebraic!(int, float) n;
-
-            if (isIntegerProperty(kind.get))
-            {
-                n = value.data.get!int;
-            }
-            else
-            {
-                n = value.data.get!float;
-            }
-
-            tb.incrementPersistentOffset(kind.get, n);
         }
     }
 
