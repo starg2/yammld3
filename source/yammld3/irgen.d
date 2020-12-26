@@ -686,12 +686,12 @@ public final class IRGenerator
             clearPriorSpecs(tb, c);
             break;
 
-        case "const":
-            addConstPriorSpec(tb, c);
-            break;
-
         case "nrand":
             addNormalRandomPriorSpec(tb, c);
+            break;
+
+        case "offset":
+            addOffsetPriorSpec(tb, c);
             break;
 
         case "on_note":
@@ -2396,10 +2396,10 @@ public final class IRGenerator
         }
     }
 
-    private void addConstPriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
+    private void addOffsetPriorSpec(MultiTrackBuilder tb, ast.ModifierCommand c)
     {
         assert(c !is null);
-        assert(c.name.value == "const");
+        assert(c.name.value == "offset");
 
         auto kind = trackPropertyKindFromCommand(c.command, "!" ~ c.name.value);
 
@@ -2424,7 +2424,7 @@ public final class IRGenerator
         if (kind.get == TrackPropertyKind.duration)
         {
             float t = value.data.get!float;
-            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(new ConstantPriorSpec!float(t));
+            tb.compositionBuilder.conductorTrackBuilder.addDurationPriorSpec(new OffsetPriorSpec!float(t));
         }
         else
         {
@@ -2432,11 +2432,11 @@ public final class IRGenerator
 
             if (isIntegerProperty(kind.get))
             {
-                priorSpec = cast(PriorSpec!int)new ConstantPriorSpec!int(value.data.get!int);
+                priorSpec = cast(PriorSpec!int)new OffsetPriorSpec!int(value.data.get!int);
             }
             else
             {
-                priorSpec = cast(PriorSpec!float)new ConstantPriorSpec!float(value.data.get!float);
+                priorSpec = cast(PriorSpec!float)new OffsetPriorSpec!float(value.data.get!float);
             }
 
             tb.addPriorSpec(kind.get, priorSpec);

@@ -121,7 +121,7 @@ private U interpolateLinear(T, U)(SortedPairRange!(T, U) r, T key)
     }
 }
 
-package final class ConstantPriorSpec(T) : PriorSpec!T
+package final class OffsetPriorSpec(T) : PriorSpec!T
 {
     public this(T value)
     {
