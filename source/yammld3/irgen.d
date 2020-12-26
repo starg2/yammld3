@@ -743,11 +743,11 @@ public final class IRGenerator
 
         foreach (i; 0..repeatCount)
         {
-            auto context = tb.saveContext();
+            auto context = saveContext();
 
             scope (exit)
             {
-                tb.restoreContext(context);
+                restoreContext(context);
             }
 
             compileCommand(tb, c.command);
