@@ -3,12 +3,16 @@
 
 module yammld3.irgen;
 
+import std.typecons;
+
+import yammld3.irgenutil;
 import yammld3.macros;
 
 private struct BlockScopeContext
 {
     NoteMacroManagerContext noteMacroManagerContext;
     ExpressionMacroManagerContext expressionMacroManagerContext;
+    Nullable!(MultiTrackContext) multiTrackContext;
 }
 
 private immutable int recursionLimit = 20;
@@ -19,7 +23,6 @@ public final class IRGenerator
     import std.algorithm.iteration : map, sum;
     import std.array;
     import std.conv : to;
-    import std.typecons : Nullable, tuple;
     import std.variant : Algebraic;
 
     import ast = yammld3.ast;
@@ -27,7 +30,6 @@ public final class IRGenerator
     import yammld3.diagnostics : DiagnosticsHandler;
     import yammld3.eval;
     import ir = yammld3.ir;
-    import yammld3.irgenutil;
     import yammld3.options;
     import yammld3.parser : Parser;
     import yammld3.priorspec;
@@ -651,7 +653,18 @@ public final class IRGenerator
     private void doCompileCommand(MultiTrackBuilder tb, ast.ScopedCommand c)
     {
         assert(c !is null);
-        compileCommands(tb, c.commands);
+
+        auto context = saveContext(tb);
+
+        scope (exit)
+        {
+            restoreContext(context, tb);
+        }
+
+        foreach (childCommand; c.commands)
+        {
+            compileCommand(tb, childCommand);
+        }
     }
 
     private void doCompileCommand(MultiTrackBuilder tb, ast.UnscopedCommand c)
@@ -2991,8 +3004,28 @@ public final class IRGenerator
         );
     }
 
+    private BlockScopeContext saveContext(MultiTrackBuilder tb)
+    {
+        return BlockScopeContext(
+            _noteMacroManager.saveContext(),
+            _expressionMacroManager.saveContext(),
+            nullable(tb.saveContext())
+        );
+    }
+
     private void restoreContext(BlockScopeContext c)
     {
+        assert(c.multiTrackContext.isNull);
+
+        _expressionMacroManager.restoreContext(c.expressionMacroManagerContext);
+        _noteMacroManager.restoreContext(c.noteMacroManagerContext);
+    }
+
+    private void restoreContext(BlockScopeContext c, MultiTrackBuilder tb)
+    {
+        assert(!c.multiTrackContext.isNull);
+
+        tb.restoreContext(c.multiTrackContext.get);
         _expressionMacroManager.restoreContext(c.expressionMacroManagerContext);
         _noteMacroManager.restoreContext(c.noteMacroManagerContext);
     }
