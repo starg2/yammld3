@@ -54,7 +54,7 @@ private int countSharp(KeyName tonic, bool isMinor)
         return !isMinor ? -2 : -5;
 
     case KeyName.b:
-        return !isMinor ? 5 : -2;
+        return !isMinor ? 5 : 2;
     }
 }
 
