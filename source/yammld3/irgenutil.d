@@ -200,8 +200,7 @@ private final class TrackBuilder
         float timeShift = _context.timeShift.getValueFor(noteCount, noteSetInfo.nominalTime);
         float gateTime = _context.gateTime.getValueFor(noteCount, noteSetInfo.nominalTime);
 
-        foreach (ref k; noteSetInfo.keys)
-        {
+        noteSetInfo.keys = noteSetInfo.keys.map!((k){
             if (k.key.relative)
             {
                 k.key.value += keyDelta;
@@ -210,7 +209,9 @@ private final class TrackBuilder
             k.velocity = velocity;
             k.timeShift = timeShift;
             k.gateTime = gateTime;
-        }
+
+            return k;
+        }).array;
 
         _queuedNote = noteSetInfo;
     }
