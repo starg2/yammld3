@@ -944,10 +944,11 @@ public final class Parser
                 items ~= item;
                 skipSpaces(s);
 
-                if (s.scanChar(','))
+                if (!s.empty && s.front == ',')
                 {
                     charOffset = s.sourceOffset;
                     charView = s.view;
+                    s.popFront();
                 }
                 else if (s.scanChar(')'))
                 {
