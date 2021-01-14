@@ -1322,6 +1322,13 @@ public final class IRGenerator
 
         float duration = durationValue.data.get!float;
         float newTempo = tempoValue.data.get!float;
+
+        if (!(10.0f <= newTempo && newTempo <= 1000.0f))
+        {
+            _diagnosticsHandler.valueIsOutOfRange(tempoValue.location, "%" ~ c.name.value, 10.0f, 1000.0f, newTempo);
+            return;
+        }
+
         float oldTempo = cb.conductorTrackBuilder.tempo;
         int stepCount = floor(abs(newTempo - oldTempo)).to!int;
         assert(stepCount >= 0);
@@ -1361,7 +1368,12 @@ public final class IRGenerator
 
         float tempo = value.data.get!float;
 
-        // TODO: clamp value
+        if (!(10.0f <= tempo && tempo <= 1000.0f))
+        {
+            _diagnosticsHandler.valueIsOutOfRange(value.location, "%" ~ c.name.value, 10.0f, 1000.0f, tempo);
+            return;
+        }
+
         cb.conductorTrackBuilder.setTempo(cb.currentTime, tempo);
     }
 

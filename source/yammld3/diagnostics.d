@@ -74,6 +74,7 @@ public interface DiagnosticsHandler
 
     void invalidChannel(SourceLocation loc, string context, int channel);
     void valueIsOutOfRange(SourceLocation loc, string context, int minValue, int maxValue, int actualValue);
+    void valueIsOutOfRange(SourceLocation loc, string context, float minValue, float maxValue, float actualValue);
     void undefinedKeySignature(SourceLocation loc, string context);
     void undefinedGSInsertionEffectType(SourceLocation loc, string context);
 
@@ -509,6 +510,14 @@ public final class SimpleDiagnosticsHandler : DiagnosticsHandler
     {
         writeMessage(
             loc, "error: '%s': value '%d' is out of range; it must be between '%d' and '%d'", context, actualValue, minValue, maxValue
+        );
+        incrementErrorCount();
+    }
+
+    public override void valueIsOutOfRange(SourceLocation loc, string context, float minValue, float maxValue, float actualValue)
+    {
+        writeMessage(
+            loc, "error: '%s': value '%f' is out of range; it must be between '%f' and '%f'", context, actualValue, minValue, maxValue
         );
         incrementErrorCount();
     }
