@@ -580,6 +580,11 @@ public final class IRGenerator
             compileControlChangeCommand(tb, ir.ControlChangeCode.effect1Depth, c);
             break;
 
+        case "rit":
+        case "ritardando":
+            compileRitardandoCommand(tb.compositionBuilder, c);
+            break;
+
         case "rpn":
             compileRPNCommand(tb, c);
             break;
@@ -1280,6 +1285,57 @@ public final class IRGenerator
         }
 
         tb.putCommand(new ir.GSInsertionEffectSetType(tb.compositionBuilder.currentTime, type.get));
+    }
+
+    private void compileRitardandoCommand(CompositionBuilder cb, ast.ExtensionCommand c)
+    {
+        import std.math : abs, floor;
+
+        assert(c !is null);
+        assert(c.name.value == "rit" || c.name.value == "ritardando");
+
+        if (c.block !is null)
+        {
+            _diagnosticsHandler.unexpectedCommandBlock(c.location, "%" ~ c.name.value);
+        }
+
+        float curTime = cb.currentTime;
+
+        OptionValue durationValue;
+        Option durationOpt;
+        durationOpt.key = "duration";
+        durationOpt.position = 0;
+        durationOpt.valueType = OptionType.duration;
+        durationOpt.values = &durationValue;
+
+        OptionValue tempoValue;
+        Option tempoOpt;
+        tempoOpt.key = "tempo";
+        tempoOpt.position = 1;
+        tempoOpt.valueType = OptionType.floatingPoint;
+        tempoOpt.values = &tempoValue;
+
+        if (!_optionProc.processOptions([durationOpt, tempoOpt], c.arguments, "%" ~ c.name.value, c.location, curTime))
+        {
+            return;
+        }
+
+        float duration = durationValue.data.get!float;
+        float newTempo = tempoValue.data.get!float;
+        float oldTempo = cb.conductorTrackBuilder.tempo;
+        int stepCount = floor(abs(newTempo - oldTempo)).to!int;
+        assert(stepCount >= 0);
+
+        float deltaDuration = duration / stepCount;
+
+        // TODO: clamp value
+
+        foreach (i; 0..stepCount)
+        {
+            cb.conductorTrackBuilder.setTempo(curTime + deltaDuration * i, oldTempo - i);
+        }
+
+        cb.conductorTrackBuilder.setTempo(curTime + duration, newTempo);
     }
 
     private void setTempo(CompositionBuilder cb, ast.ExtensionCommand c)

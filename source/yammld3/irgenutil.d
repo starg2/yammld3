@@ -558,8 +558,14 @@ package final class ConductorTrackBuilder
         _commands ~= new SystemReset(time, kind);
     }
 
+    public @property float tempo()
+    {
+        return _currentTempo;
+    }
+
     public void setTempo(float time, float tempo)
     {
+        _currentTempo = tempo;
         _commands ~= new SetTempoEvent(time, tempo);
     }
 
@@ -617,6 +623,7 @@ package final class ConductorTrackBuilder
         return new Track(".conductor", conductorChannel, _commands[], 0.0f);
     }
 
+    private float _currentTempo = 120.0f;
     private MeterMap _meterMap;
     private ConductorTrackContext _context;
     private Appender!(Command[]) _commands;
