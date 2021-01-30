@@ -2370,12 +2370,11 @@ public final class IRGenerator
     private void compileTableBlock(R)(MultiTrackBuilder tb, R commands)
     {
         import std.algorithm.iteration : chunkBy;
-        //import std.algorithm.mutation : SwapStrategy;
-        import std.algorithm.sorting : sort;
+        import std.algorithm.sorting : multiSort;
 
-        //auto sortedByColumn = commands.array.sort!((a, b) => a.location.column < b.location.column, SwapStrategy.stable);
-        auto sortedByColumn = commands.array.sort!(
-            (a, b) => cmp([a.location.column, a.location.line], [b.location.column, b.location.line]) < 0
+        auto sortedByColumn = commands.array.multiSort!(
+            (a, b) => a.location.column < b.location.column,
+            (a, b) => a.location.line < b.location.line
         );
 
         auto cb = tb.compositionBuilder;
