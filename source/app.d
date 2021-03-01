@@ -194,7 +194,7 @@ private string getOutputFileMode(CommandLineInfo cmdInfo)
 private void printHelp()
 {
 	writeln("YAMMLd3 MML Compiler (" ~ versionString ~ ")" ~ `
-Copyright (c) 2020 Starg.
+Copyright (c) 2020-2021 Starg.
 
 Usage: yammld3 <options> <input file>
 
