@@ -341,13 +341,22 @@ public final class UnaryExpression : Expression
         assert(op !is null);
         assert(operand !is null);
 
+        this(SourceLocation(op.location, operand.location), op, operand);
+    }
+
+    public this(SourceLocation loc, Operator op, Expression operand)
+    {
+        assert(op !is null);
+        assert(operand !is null);
+
+        _loc = loc;
         _op = op;
         _operand = operand;
     }
 
     public override @property SourceLocation location()
     {
-        return SourceLocation(_op.location, _operand.location);
+        return _loc;
     }
 
     public override @property ExpressionKind kind()
@@ -365,6 +374,7 @@ public final class UnaryExpression : Expression
         return _operand;
     }
 
+    private SourceLocation _loc;
     private Operator _op;
     private Expression _operand;
 }
@@ -377,6 +387,16 @@ public final class BinaryExpression : Expression
         assert(left !is null);
         assert(right !is null);
 
+        this(SourceLocation(left.location, right.location), op, left, right);
+    }
+
+    public this(SourceLocation loc, Operator op, Expression left, Expression right)
+    {
+        assert(op !is null);
+        assert(left !is null);
+        assert(right !is null);
+
+        _loc = loc;
         _op = op;
         _left = left;
         _right = right;
@@ -384,7 +404,7 @@ public final class BinaryExpression : Expression
 
     public override @property SourceLocation location()
     {
-        return SourceLocation(_left.location, _right.location);
+        return _loc;
     }
 
     public override @property ExpressionKind kind()
@@ -407,6 +427,7 @@ public final class BinaryExpression : Expression
         return _right;
     }
 
+    private SourceLocation _loc;
     private Operator _op;
     private Expression _left;
     private Expression _right;
@@ -419,13 +440,22 @@ public final class CallExpression : Expression
         assert(callee !is null);
         assert(parameters !is null);
 
+        this(SourceLocation(_callee.location, _parameters.location), callee, parameters);
+    }
+
+    public this(SourceLocation loc, Expression callee, ExpressionList parameters)
+    {
+        assert(callee !is null);
+        assert(parameters !is null);
+
+        _loc = loc;
         _callee = callee;
         _parameters = parameters;
     }
 
     public override @property SourceLocation location()
     {
-        return SourceLocation(_callee.location, _parameters.location);
+        return _loc;
     }
 
     public override @property ExpressionKind kind()
@@ -443,6 +473,7 @@ public final class CallExpression : Expression
         return _parameters;
     }
 
+    private SourceLocation _loc;
     private Expression _callee;
     private ExpressionList _parameters;
 }

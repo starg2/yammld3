@@ -573,7 +573,19 @@ package final class ExpressionMacroManager
                 }
                 else
                 {
-                    return matched.front.definition;
+                    return matched.front.definition.visit!(
+                        (Identifier id) => cast(Expression)new Identifier(invocation.location, id.value),
+                        (IntegerLiteral il) => cast(Expression)new IntegerLiteral(invocation.location, il.value),
+                        (FloatLiteral fl) => cast(Expression)new FloatLiteral(invocation.location, fl.value),
+                        (StringLiteral sl) => cast(Expression)new StringLiteral(invocation.location, sl.value),
+                        (TimeLiteral tl) => cast(Expression)new TimeLiteral(invocation.location, tl.time),
+                        (DurationLiteral dl) => cast(Expression)new DurationLiteral(invocation.location, dl.denominator, dl.dot),
+                        (CommandBlock cb) => cast(Expression)new CommandBlock(invocation.location, cb.commands),
+                        (ExpressionMacroInvocationExpression ie) => cast(Expression)new ExpressionMacroInvocationExpression(invocation.location, ie.name, ie.arguments),
+                        (UnaryExpression ue) => cast(Expression)new UnaryExpression(invocation.location, ue.op, ue.operand),
+                        (BinaryExpression be) => cast(Expression)new BinaryExpression(invocation.location, be.op, be.left, be.right),
+                        (CallExpression ce) => cast(Expression)new CallExpression(invocation.location, ce.callee, ce.parameters)
+                    );
                 }
             }
             else
