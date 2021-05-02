@@ -8,7 +8,7 @@ import core.time : Duration, MonoTime;
 
 import yammld3;
 
-private class CommandLineErrorException : Exception
+private class CommandLineException : Exception
 {
     public this(string msg = "command line error", string file = __FILE__, size_t line = __LINE__) @nogc @safe pure nothrow
     {
@@ -94,7 +94,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 			else
 			{
 				stderr.writeln("command line error: expected directory name after '-I'");
-				throw new CommandLineErrorException();
+				throw new CommandLineException();
 			}
 		}
 		else if (arg == "-o")
@@ -102,7 +102,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 			if (!cmdInfo.outputFile.empty)
 			{
 				stderr.writeln("command line error: cannot specify multiple output files");
-				throw new CommandLineErrorException();
+				throw new CommandLineException();
 			}
 
 			i++;
@@ -114,7 +114,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 			else
 			{
 				stderr.writeln("command line error: expected file name after '-o'");
-				throw new CommandLineErrorException();
+				throw new CommandLineException();
 			}
 		}
 		else if (arg == "-r")
@@ -128,7 +128,7 @@ private CommandLineInfo parseCommandLine(string[] args)
 		else if (arg != "--" && !arg.empty && arg.front == '-')
 		{
 			stderr.writefln("command line error: unrecognized option '%s'", arg);
-			throw new CommandLineErrorException();
+			throw new CommandLineException();
 		}
 		else
 		{
@@ -139,14 +139,14 @@ private CommandLineInfo parseCommandLine(string[] args)
 				if (i >= args.length)
 				{
 					stderr.writeln("command line error: expected file name after '--'");
-					throw new CommandLineErrorException();
+					throw new CommandLineException();
 				}
 			}
 
 			if (!cmdInfo.inputFile.empty)
 			{
 				stderr.writeln("command line error: cannot specify multiple input files");
-				throw new CommandLineErrorException();
+				throw new CommandLineException();
 			}
 
 			cmdInfo.inputFile = args[i];
@@ -254,7 +254,7 @@ int main(string[] args)
 			if (cmdInfo.inputFile.empty)
 			{
 				stderr.writeln("command line error: input file not specified");
-				throw new CommandLineErrorException();
+				throw new CommandLineException();
 			}
 
 			string outFilePath = makeOutputFilePath(cmdInfo);
@@ -386,7 +386,7 @@ int main(string[] args)
 	{
 		return 1;
 	}
-	catch (CommandLineErrorException e)
+	catch (CommandLineException e)
 	{
 	    return 2;
 	}
