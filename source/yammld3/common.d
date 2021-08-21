@@ -116,6 +116,7 @@ private struct SplitMix64
     this(uint64_t seed)
     {
         _s = seed;
+        popFront();
     }
 
     enum bool empty = false;
